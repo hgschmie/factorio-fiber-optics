@@ -9,7 +9,7 @@ local oc = require('scripts.oc')
 local network = require('scripts.network')
 
 -- support for other mods
-local PickerDollies = require('lib.other_mods.picker_dollies')
+-- local PickerDollies = require('lib.other_mods.picker_dollies')
 
 ---------------------------------------------------------------------------------------------------------
 
@@ -20,7 +20,7 @@ local function on_init()
     network.init()
 
     oc.init()
-    PickerDollies.install(const.attached_entities)
+--     PickerDollies.install(const.attached_entities)
 end
 
 local function on_load()
@@ -30,7 +30,7 @@ local function on_load()
 
     oc.init()
 
-    PickerDollies.install(const.attached_entities)
+--     PickerDollies.install(const.attached_entities)
 end
 
 script.on_init(on_init)
