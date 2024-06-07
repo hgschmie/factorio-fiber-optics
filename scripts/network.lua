@@ -4,9 +4,11 @@
 
 local const = require('lib.constants')
 local tools = require('lib.tools')
-local context_manager = require('lib.context')
 
-local debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug 
+local debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
+
+---@class ModNetwork
+local Network = {}
 
 ---------------------------------------------------------------------------------------------------------
 
@@ -141,8 +143,8 @@ local function detect_network_status(power_pole)
     return result
 end
 
-local function fiber_network_management_handler()
-    for _, context in pairs(context_manager:get_all_contexts()) do
+function Network:fiber_network_management_handler()
+    for _, context in pairs(This.context_manager:get_all_contexts()) do
         if is_functional(context) then
             local power_entity = context.power_entity
 
@@ -195,7 +197,7 @@ end
 
 -- called when the context is destroyed because the primary object was destroyed.
 -- removes all network connections from the network table
-local function network_destroy_context(unit_number, entity_context)
+function Network.destroy_context(unit_number, entity_context)
     local connected_networks = entity_context.connected_networks or {}
 
     for network_id, _ in pairs(connected_networks) do
@@ -203,7 +205,7 @@ local function network_destroy_context(unit_number, entity_context)
     end
 end
 
-local function fiber_network_debug_output()
+function Network:fiber_network_debug_output()
     if not global.networks then
         global.networks = {}
     end
@@ -241,23 +243,8 @@ end
 
 
 
-local function network_load()
-    script.on_nth_tick(300, fiber_network_management_handler)
-
-    if bit32.band(debug_mode, 1) ~= 0 then
-        script.on_nth_tick(100, fiber_network_debug_output)
-    end
-end
-
-
-local function network_init()
+function Network:init()
     global.networks = {}
-
-    network_load()
 end
 
-return {
-    init = network_init,
-    load = network_load,
-    destroy_context = network_destroy_context,
-}
+return Network

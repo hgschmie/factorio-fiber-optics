@@ -56,6 +56,30 @@ function Constants:locale(id)
     return Constants:with_prefix('gui.') .. id
 end
 
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
+
+Constants.creation_events = {
+    defines.events.on_built_entity,
+    defines.events.on_robot_built_entity,
+    defines.events.script_raised_built,
+    defines.events.script_raised_revive
+}
+
+Constants.deletion_events = {
+    defines.events.on_player_mined_entity,
+    defines.events.on_robot_mined_entity,
+    defines.events.on_entity_died,
+    defines.events.script_raised_destroy
+}
+
+
+Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
+
+
+-------- todo -------
+
 Constants.optical_connector = Constants:with_prefix(Constants.name)
 
 Constants.optical_connector_technology = Constants:with_prefix('optical-connector-technology')

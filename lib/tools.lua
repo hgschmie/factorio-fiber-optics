@@ -39,10 +39,10 @@ end
 local function the_event_handler(event)
     local handler = event_handlers[event.name]
     if handler then
-        assert(type(handler.func) == 'function', "Found " .. tostring(handler.func) .. " which is not a function")
+        assert(type(handler.func) == 'function', 'Found ' .. tostring(handler.func) .. ' which is not a function')
         handler.func(event)
     else
-        tools.debug_print("Received event for " .. event.name .. " but no handler registered!")
+        tools.debug_print('Received event for ' .. event.name .. ' but no handler registered!')
     end
 end
 
@@ -56,7 +56,7 @@ function tools.register_entity_event(event_names, event_function, event_filter)
         if tools.is_valid(entity) then
             event_function(entity, event)
         else
-            tools.debug_print(string.format("Received event %d for invalid entity!", event.name))
+            tools.debug_print(string.format('Received event %d for invalid entity!', event.name))
         end
     end
 
@@ -79,7 +79,7 @@ function tools.register_event(event_names, event_function, event_filter)
         local keep_filters = true
         local old_handler = script.get_event_handler(event_name)
         if old_handler then
-            assert(old_handler == the_event_handler, string.format("Found a foreign handler for event %d: %s", event_name, tostring(old_handler)))
+            assert(old_handler == the_event_handler, string.format('Found a foreign handler for event %d: %s', event_name, tostring(old_handler)))
         end
 
         -- see if there were already filter conditions set. If yes, copy them over
