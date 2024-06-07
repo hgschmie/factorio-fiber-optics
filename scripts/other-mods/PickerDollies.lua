@@ -12,6 +12,9 @@ local PickerDolliesSupport = {}
 local function picker_dollies_moved(event)
     if not Is.Valid(event.moved_entity) then return end
     if not event.moved_entity.name == const.filter_combinator_name then return end
+
+    local player = game.players[event.player_index]
+    This.oc:move(event.moved_entity, event.start_pos, player)
 end
 
 --------------------------------------------------------------------------------
@@ -22,8 +25,13 @@ PickerDolliesSupport.runtime = function()
     local picker_dollies_init = function()
         if not remote.interfaces['PickerDollies'] then return end
 
-        if remote.interfaces['PickerDollies']['dolly_moved_entity_id'] then
-            Event.on_event(remote.call('PickerDollies', 'dolly_moved_entity_id'), picker_dollies_moved)
+        assert(remote.interfaces['PickerDollies']['dolly_moved_entity_id'], 'Picker Dollies present but no dolly_moved_entity_id interface!')
+        assert(remote.interfaces['PickerDollies']['add_blacklist_name'], 'Picker Dollies present but no add_blacklist_name interface!')
+
+        Event.on_event(remote.call('PickerDollies', 'dolly_moved_entity_id'), picker_dollies_moved)
+
+        for _, entity_name in pairs(const.attached_entities) do
+            remote.call('PickerDollies', 'add_blacklist_name', entity_name)
         end
     end
 

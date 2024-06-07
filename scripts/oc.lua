@@ -32,6 +32,34 @@ end
 
 ---------------------------------------------------------------------------------------------------------
 
+function Oc:move(entity, start_pos, player)
+    local dx = entity.position.x - start_pos.x
+    local dy = entity.position.y - start_pos.y
+    local related_entities = tools.find_entities(entity, start_pos, { name = const.attached_entities })
+
+    local move_list = {}
+
+    for idx, related_entity in pairs(related_entities) do
+        local dst_pos = {
+            x = related_entity.position.x + dx,
+            y = related_entity.position.y + dy,
+        }
+
+        if tools.check_wire_stretch(related_entity, dst_pos, player) then
+            entity.teleport(start_pos)
+            return
+        end
+
+        move_list[idx] = dst_pos
+    end
+
+    for idx, related_entity in pairs(related_entities) do
+        related_entity.teleport(move_list[idx])
+    end
+end
+
+---------------------------------------------------------------------------------------------------------
+
 --- rotates the iopins to the new orientation of the entity and tests whether the
 --- wires overstretch.
 ---@param entity LuaEntity The base entity for the io pins

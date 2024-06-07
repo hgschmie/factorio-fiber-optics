@@ -66,7 +66,7 @@ Constants.oc_led_lamp = Constants:with_prefix('oc-led-lamp')
 Constants.oc_cc = Constants:with_prefix('oc-constant-combinator')
 
 Constants.oc_iopin_count = 16
-Constants.oc_iopin_prefix = Constants:with_prefix("oc-iopin_")
+Constants.oc_iopin_prefix = Constants:with_prefix('oc-iopin_')
 
 Constants.iopin_name = function(idx) return Constants.oc_iopin_prefix .. idx end
 
@@ -104,12 +104,22 @@ local function rotate_pins(from)
     return result
 end
 
+Constants.check_circuit_wires = 1
+Constants.check_power_wires = 2
+
 Constants.all_iopins = {}
+
+-- map for all entities that need to do connection check
+Constants.wire_check = {
+    [Constants.oc_power_pole] = Constants.check_power_wires
+}
 
 for idx = 1, Constants.oc_iopin_count, 1 do
     local name = Constants.iopin_name(idx)
     table.insert(Constants.attached_entities, name)
     table.insert(Constants.all_iopins, name)
+
+    Constants.wire_check[name] = Constants.check_circuit_wires
 end
 
 --
