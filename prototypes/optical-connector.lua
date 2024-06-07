@@ -4,15 +4,19 @@
 
 local const = require('lib.constants')
 
-local oc_icon = const:png('sprite/oc-sprite-128')
-local oc_sprite = {
+local oc_sprite = {}
+for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
+    oc_sprite[direction] = {
         filename = const:png('entity/oc-entity-shadow'),
         width = 128,
         height = 127,
         scale = 0.5,
-        x = 0,
+        x = (idx - 1) * 128,
         shift = util.by_pixel(4, 4),
     }
+end
+
+local oc_icon = const:png('sprite/oc-sprite-128')
 
 -- The actual connector item
 ---@type data.ItemPrototype
