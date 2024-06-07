@@ -1,48 +1,136 @@
+------------------------------------------------------------------------
+-- mod constant definitions.
 --
--- Constants used in the code
---
+-- can be loaded into scripts and data
+------------------------------------------------------------------------
 
-local iopins = require('lib.iopins')
+local Constants = {}
 
-local const = {}
+--------------------------------------------------------------------------------
+-- main constants
+--------------------------------------------------------------------------------
 
-const.mod_prefix = '__fiber-optics__'
-const.prefix = "hps:fo-"
--- prefix any name with the internal constant prefix
-const.with_prefix = function(self, value) return self.prefix .. value end
+-- the current version that is the result of the latest migration
+Constants.current_version = 1
 
-const.optical_connector = const:with_prefix('optical-connector')
-const.optical_connector_technology = const:with_prefix('optical-connector-technology')
-const.oc_power_interface = const:with_prefix('oc-power-interface')
-const.oc_power_pole = const:with_prefix('oc-power-pole')
-const.oc_led_lamp = const:with_prefix('oc-led-lamp')
-const.oc_cc = const:with_prefix('oc-constant-combinator')
+Constants.prefix = 'hps:fo-'
+Constants.name = 'optical-connector'
+Constants.root = '__fiber-optics__'
+Constants.gfx_location = Constants.root .. '/gfx/'
+
+--------------------------------------------------------------------------------
+-- Framework intializer
+--------------------------------------------------------------------------------
+
+---@return FrameworkConfig config
+function Constants.framework_init()
+    return {
+        -- prefix is the internal mod prefix
+        prefix = Constants.prefix,
+        -- name is a human readable name
+        name = Constants.name,
+        -- The filesystem root.
+        root = Constants.root,
+    }
+end
+
+--------------------------------------------------------------------------------
+-- Path and name helpers
+--------------------------------------------------------------------------------
+
+---@param value string
+---@return string result
+function Constants:with_prefix(value)
+    return self.prefix .. value
+end
+
+---@param path string
+---@return string result
+function Constants:png(path)
+    return self.gfx_location .. path .. '.png'
+end
+
+---@param id string
+---@return string result
+function Constants:locale(id)
+    return Constants:with_prefix('gui.') .. id
+end
+
+Constants.optical_connector = Constants:with_prefix(Constants.name)
+
+Constants.optical_connector_technology = Constants:with_prefix('optical-connector-technology')
+
+Constants.oc_power_interface = Constants:with_prefix('oc-power-interface')
+Constants.oc_power_pole = Constants:with_prefix('oc-power-pole')
+Constants.oc_led_lamp = Constants:with_prefix('oc-led-lamp')
+Constants.oc_cc = Constants:with_prefix('oc-constant-combinator')
+
+Constants.oc_iopin_count = 16
+Constants.oc_iopin_prefix = Constants:with_prefix("oc-iopin_")
+
+Constants.iopin_name = function(idx) return Constants.oc_iopin_prefix .. idx end
 
 -- network specific stuff
-const.network_connector = const:with_prefix('network-connector')
+Constants.network_connector = Constants:with_prefix('network-connector')
 
-const.attached_entities = {
-    const.oc_power_interface,
-    const.oc_power_pole,
-    const.oc_led_lamp,
-    const.oc_cc,
+Constants.attached_entities = {
+    Constants.oc_power_interface,
+    Constants.oc_power_pole,
+    Constants.oc_led_lamp,
+    Constants.oc_cc,
 }
 
-const.empty_sprite = {
+Constants.empty_sprite = {
     filename = '__core__/graphics/empty.png',
     width = 1,
     height = 1,
 }
 
-const.circuit_wire_connectors = {
+Constants.circuit_wire_connectors = {
     wire = { red = { 0, 0 }, green = { 0, 0 } },
     shadow = { red = { 0, 0 }, green = { 0, 0 } },
 }
 
-const.directions = { defines.direction.north, defines.direction.west, defines.direction.south, defines.direction.east }
+Constants.directions = { defines.direction.north, defines.direction.west, defines.direction.south, defines.direction.east }
 
-const.msg_wires_too_long = const.prefix .. 'messages.wires_too_long'
+Constants.msg_wires_too_long = Constants.prefix .. 'messages.wires_too_long'
 
-iopins.setup(const)
+local function rotate_pins(from)
+    local result = {}
+    for _, offset in pairs(from) do
+        local pin = { offset[2], -offset[1] }
+        table.insert(result, pin)
+    end
+    return result
+end
 
-return const
+Constants.all_iopins = {}
+
+for idx = 1, Constants.oc_iopin_count, 1 do
+    local name = Constants.iopin_name(idx)
+    table.insert(Constants.attached_entities, name)
+    table.insert(Constants.all_iopins, name)
+end
+
+--
+-- connection points for wires
+--
+Constants.iopin_connection_points = {
+    [defines.direction.north] = {
+        [1] = { -2, -2 }, [16] = { -2, -1 }, [15] = { -2, 0 }, [14] = { -2, 1 }, [13] = { -2, 2 },
+        [2] = { -1, -2 }, [12] = { -1, 2 },
+        [3] = { 0, -2 }, [11] = { 0, 2 },
+        [4] = { 1, -2 }, [10] = { 1, 2 },
+        [5] = { 2, -2 }, [6] = { 2, -1 }, [7] = { 2, 0 }, [8] = { 2, 1 }, [9] = { 2, 2 },
+    },
+}
+
+local previous = {}
+for _, dir in pairs(Constants.directions) do
+    if not Constants.iopin_connection_points[dir] then
+        Constants.iopin_connection_points[dir] = rotate_pins(previous)
+    end
+    previous = Constants.iopin_connection_points[dir]
+end
+
+return Constants

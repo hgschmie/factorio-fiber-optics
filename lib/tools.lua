@@ -8,13 +8,6 @@ local tools = {}
 
 local event_handlers = {}
 
----Creates the image path for a given image name.
----@param name string The image name.
----@return string The image path.
-function tools.image(name)
-    return const.mod_prefix .. '/gfx/' .. name
-end
-
 ---Checks whether a given entity exists and is valid.
 ---@param entity LuaEntity? The entity to check.
 ---@return boolean Whether the entity exists and is valid.
