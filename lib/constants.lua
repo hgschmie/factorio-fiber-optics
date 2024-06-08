@@ -57,28 +57,8 @@ function Constants:locale(id)
 end
 
 --------------------------------------------------------------------------------
--- Events
+-- Entities
 --------------------------------------------------------------------------------
-
-Constants.creation_events = {
-    defines.events.on_built_entity,
-    defines.events.on_robot_built_entity,
-    defines.events.script_raised_built,
-    defines.events.script_raised_revive
-}
-
-Constants.deletion_events = {
-    defines.events.on_player_mined_entity,
-    defines.events.on_robot_mined_entity,
-    defines.events.on_entity_died,
-    defines.events.script_raised_destroy
-}
-
-
-Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
-
-
--------- todo -------
 
 Constants.optical_connector = Constants:with_prefix(Constants.name)
 
@@ -92,10 +72,50 @@ Constants.oc_cc = Constants:with_prefix('oc-constant-combinator')
 Constants.oc_iopin_count = 16
 Constants.oc_iopin_prefix = Constants:with_prefix('oc-iopin_')
 
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
+
+Constants.creation_events = {
+    defines.events.on_built_entity,
+    defines.events.on_robot_built_entity,
+    defines.events.script_raised_built,
+    defines.events.script_raised_revive,
+}
+
+Constants.deletion_events = {
+    defines.events.on_player_mined_entity,
+    defines.events.on_robot_mined_entity,
+    defines.events.on_entity_died,
+    defines.events.script_raised_destroy,
+}
+
+--------------------------------------------------------------------------------
+-- Network
+--------------------------------------------------------------------------------
+
+Constants.network_connector = Constants:with_prefix('network-connector')
+Constants.max_fiber_count = 16
+
+Constants.check_circuit_wires = 1
+Constants.check_power_wires = 2
+
+-- map for all entities that need to do connection check
+Constants.wire_check = {
+    [Constants.oc_power_pole] = Constants.check_power_wires
+}
+
+
+
+Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
+
+
+-------- todo -------
+
+
 Constants.iopin_name = function(idx) return Constants.oc_iopin_prefix .. idx end
 
 -- network specific stuff
-Constants.network_connector = Constants:with_prefix('network-connector')
 
 Constants.attached_entities = {
     Constants.oc_power_interface,
@@ -128,15 +148,8 @@ local function rotate_pins(from)
     return result
 end
 
-Constants.check_circuit_wires = 1
-Constants.check_power_wires = 2
-
 Constants.all_iopins = {}
 
--- map for all entities that need to do connection check
-Constants.wire_check = {
-    [Constants.oc_power_pole] = Constants.check_power_wires
-}
 
 for idx = 1, Constants.oc_iopin_count, 1 do
     local name = Constants.iopin_name(idx)

@@ -5,8 +5,6 @@
 local Event = require('__stdlib__/stdlib/event/event')
 local Is = require('__stdlib__/stdlib/utils/is')
 
-local table = require('__stdlib__/stdlib/utils/table')
-
 local Util = require('framework.util')
 
 local const = require('lib.constants')
@@ -30,6 +28,7 @@ end
 
 function onPlayerRotatedEntity(event)
     local entity = event and (event.created_entity or event.entity)
+    if not Is.Valid(entity) then return end
 
     This.oc:rotate(entity, event.player_index)
 end
@@ -40,6 +39,7 @@ end
 
 function onGhostEntityCreated(event)
     local entity = event and (event.created_entity or event.entity)
+    if not Is.Valid(entity) then return end
 
     This.oc:createGhost(event)
 end
@@ -48,9 +48,10 @@ end
 -- entity create / delete
 --------------------------------------------------------------------------------
 
---- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive
+--- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 function onEntityCreated(event)
     local entity = event and (event.created_entity or event.entity)
+    if not Is.Valid(entity) then return end
 
     This.oc:create(entity)
 end
@@ -58,6 +59,7 @@ end
 
 function onEntityDeleted(event)
     local entity = event and (event.created_entity or event.entity)
+    if not Is.Valid(entity) then return end
 
     This.oc:remove(entity)
 end
@@ -68,6 +70,7 @@ end
 
 function onMarkedForDeconstruction(event)
     local entity = event and (event.created_entity or event.entity)
+    if not Is.Valid(entity) then return end
 
     This.oc:mark_for_deconstruction(entity)
 end

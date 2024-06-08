@@ -34,6 +34,8 @@ local function oc_idx_from_iopin(iopin)
 end
 
 ---------------------------------------------------------------------------------------------------------
+-- Move OC (Picker Dollies code)
+---------------------------------------------------------------------------------------------------------
 
 function Oc:move(entity, start_pos, player)
     local dx = entity.position.x - start_pos.x
