@@ -4,10 +4,16 @@
 
 require('lib.init')
 
-if global.oc_networks and global.oc_networks.VERSION > 0 then return end
+local const = require('lib.constants')
+
+if global.oc_networks and global.oc_data and global.oc_networks.VERSION > 0 and global.oc_data.VERSION > 0 then return end
 
 if not global.oc_networks then
     This.network:init()
+end
+
+if not global.oc_data then
+    This.oc:init()
 end
 
 if global.networks then
@@ -40,4 +46,31 @@ if global.networks then
         end
     end
     global.networks = nil
+end
+
+if global.context then
+    for idx, old_connector in pairs(global.context) do
+        local new_entity = {
+            main = old_connector._primary,
+            entities = old_connector._cleanup,
+            connected_networks = old_connector.connected_networks,
+            ref = {
+                main = old_connector._primary,
+                power_entity = old_connector.power_entity,
+                power_pole = old_connector.power_pole,
+                status_led_1 = old_connector.lamp1,
+                status_led_2 = old_connector.lamp2,
+                status_controller = old_connector.cc,
+            }
+        }
+
+        for io_idx, entity in pairs(old_connector.iopins) do
+            new_entity.ref['iopin' .. io_idx ] = entity
+        end
+
+        global.oc_data.oc[idx] = new_entity
+        global.oc_data.count = global.oc_data.count + 1
+    end
+
+    global.context = nil
 end

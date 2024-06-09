@@ -13,12 +13,10 @@ local const = require('lib.constants')
 -- mod init/load code
 --------------------------------------------------------------------------------
 local function onInitOc()
-    This.context_manager:init(nil, This.network.destroy_context)
     This.network:init()
 end
 
 local function onLoadOc()
-    This.context_manager:load(nil, This.network.destroy_context)
 end
 
 
@@ -26,11 +24,11 @@ end
 -- rotation
 --------------------------------------------------------------------------------
 
+---@param event EventData.on_player_rotated_entity
 function onPlayerRotatedEntity(event)
-    local entity = event and (event.created_entity or event.entity)
-    if not Is.Valid(entity) then return end
+    local entity = event and event.entity
 
-    This.oc:rotate(entity, event.player_index)
+    This.oc:rotate(entity, event.player_index, event.previous_direction)
 end
 
 --------------------------------------------------------------------------------
@@ -51,17 +49,21 @@ end
 --- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 function onEntityCreated(event)
     local entity = event and (event.created_entity or event.entity)
-    if not Is.Valid(entity) then return end
+    local tags = event.tags
 
-    This.oc:create(entity)
+    -- TODO Ghost management
+
+    -- register entity for destruction
+    script.register_on_entity_destroyed(entity)
+
+    This.oc:create(entity, tags)
 end
-
 
 function onEntityDeleted(event)
     local entity = event and (event.created_entity or event.entity)
-    if not Is.Valid(entity) then return end
+    if not entity then return end
 
-    This.oc:remove(entity)
+    This.oc:destroy(entity.unit_number)
 end
 
 --------------------------------------------------------------------------------
@@ -80,7 +82,7 @@ end
 --------------------------------------------------------------------------------
 
 function onEntityDestroyed(event)
-    This.context_manager:cleanup(event.unit_number)
+    --     This.context_manager:cleanup(event.unit_number)
 end
 
 --------------------------------------------------------------------------------
@@ -88,7 +90,7 @@ end
 --------------------------------------------------------------------------------
 
 function onTick(event)
-    This.network:fiber_network_management_handler()
+    --    This.network:fiber_network_management_handler()
 end
 
 --------------------------------------------------------------------------------
@@ -96,7 +98,7 @@ end
 --------------------------------------------------------------------------------
 
 function onDebugTick(event)
-    This.network:fiber_network_debug_output()
+    --     This.network:fiber_network_debug_output()
 end
 
 --------------------------------------------------------------------------------
@@ -130,9 +132,9 @@ Event.register(defines.events.on_marked_for_deconstruction, onMarkedForDeconstru
 Event.register(defines.events.on_entity_destroyed, onEntityDestroyed)
 
 -- ticker code
-Event.on_nth_tick(299, onTick)
+-- Event.on_nth_tick(299, onTick)
 
 -- debug code
 if bit32.band(const.debug_mode, 1) ~= 0 then
-    Event.on_nth_tick(101, onDebugTick)
+    --     Event.on_nth_tick(101, onDebugTick)
 end
