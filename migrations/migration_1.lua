@@ -4,8 +4,6 @@
 
 require('lib.init')
 
-local const = require('lib.constants')
-
 if global.oc_networks and global.oc_data and global.oc_networks.VERSION > 0 and global.oc_data.VERSION > 0 then return end
 
 if not global.oc_networks then
@@ -24,7 +22,7 @@ if global.networks then
 
 
     for idx, old_surface_networks in pairs(global.networks) do
-        local surface_networks = This.network:get_surface_network()
+        local surface_networks = This.network:create_new_surface_network()
         global.oc_networks.surface_networks[idx] = surface_networks
 
         for network_idx, old_network in pairs(old_surface_networks) do
@@ -74,3 +72,7 @@ if global.context then
 
     global.context = nil
 end
+
+-- don't use 'const.current_version', otherwise the next migrations are not run!
+global.oc_networks.VERSION = 1
+global.oc_data.VERSION = 1

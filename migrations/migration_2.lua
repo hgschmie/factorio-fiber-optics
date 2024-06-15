@@ -4,8 +4,6 @@
 
 require('lib.init')
 
-local const = require('lib.constants')
-
 if global.oc_networks.VERSION > 1 and global.oc_data.VERSION > 1 then return end
 
 if not global.oc_ghosts then
@@ -16,5 +14,6 @@ if not global.oc_attached then
     global.oc_attached = {}
 end
 
-global.oc_networks.VERSION = const.current_version
-global.oc_data.VERSION = const.current_version
+-- don't use 'const.current_version', otherwise the next migrations are not run!
+global.oc_networks.VERSION = 2
+global.oc_data.VERSION = 2

@@ -16,7 +16,7 @@ local Constants = {}
 Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
 
 -- the current version that is the result of the latest migration
-Constants.current_version = 3
+Constants.current_version = 4
 
 Constants.prefix = 'hps:fo-'
 Constants.name = 'optical-connector'
