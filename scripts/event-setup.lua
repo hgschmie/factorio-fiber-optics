@@ -179,15 +179,15 @@ end
 -- Event registration
 --------------------------------------------------------------------------------
 
+-- mod init/load code
+Event.on_init(onInitOc)
+Event.on_load(onLoadOc)
+
 Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
 
 local oc_entity_filter = Util.create_event_entity_matcher('name', const.optical_connector)
 local oc_attached_entities_filter = Util.create_event_entity_matcher('name', const.attached_entities)
 local oc_ghost_filter = Util.create_event_ghost_entity_matcher(const.ghost_entities)
-
--- mod init/load code
-Event.on_init(onInitOc)
-Event.on_load(onLoadOc)
 
 -- rotation
 Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity)

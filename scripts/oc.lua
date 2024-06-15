@@ -108,8 +108,8 @@ end
 ---@field x integer?
 ---@field y integer?
 ---@field pos MapPosition?
----@field ghost OcAttachedEntity?
----@field attached OcAttachedEntity?
+---@field ghost AttachedEntity?
+---@field attached AttachedEntity?
 
 local sub_entities = {
     { id = 'power_entity',      name = const.oc_power_interface, },                     -- Power Entity for power consumption
@@ -154,6 +154,7 @@ local function create_internal_entity(cfg)
 
     sub_entity.minable = false
     sub_entity.destructible = false
+    sub_entity.operable = false
 
     oc_entity.entities[sub_entity.unit_number] = sub_entity
 
@@ -191,8 +192,8 @@ end
 ---@param main LuaEntity
 ---@param tags Tags?
 ---@param player_index integer
----@param ghosts OcAttachedEntity[]
----@param attached OcAttachedEntity[]
+---@param ghosts AttachedEntity[]
+---@param attached AttachedEntity[]
 ---@return OpticalConnectorData? oc_entity
 function Oc:create(main, tags, player_index, ghosts, attached)
     if not Is.Valid(main) then return nil end
