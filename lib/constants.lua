@@ -184,17 +184,7 @@ Constants.directions = { defines.direction.north, defines.direction.west, define
 
 Constants.msg_wires_too_long = Constants.prefix .. 'messages.wires_too_long'
 
-local function rotate_pins(from)
-    local result = {}
-    for _, offset in pairs(from) do
-        local pin = { offset[2], -offset[1] }
-        table.insert(result, pin)
-    end
-    return result
-end
-
 Constants.all_iopins = {}
-
 
 for idx = 1, Constants.oc_iopin_count, 1 do
     local name = Constants.iopin_name(idx)
@@ -206,24 +196,58 @@ for idx = 1, Constants.oc_iopin_count, 1 do
 end
 
 --
--- connection points for wires
+-- create the eight variants of io pin distribution, depending
+-- on rotation and mirroring (from blueprints). See sprite_positions.txt
+-- for the variants
 --
-Constants.iopin_connection_points = {
+Constants.iopin_positions = {}
+
+for idx = 1, 4, 1 do
+    Constants.iopin_positions[idx * 2 - 1] = {}
+    Constants.iopin_positions[idx * 2] = {}
+    local start = (idx - 1) * 4
+    for id = 0, 15, 1 do
+        local pos_forward = ((start + id) % 16) + 1
+        local pos_backward = ((start - id + 16) % 16) + 1
+        Constants.iopin_positions[idx * 2 - 1][id + 1] = pos_forward
+        Constants.iopin_positions[idx * 2][id + 1] = pos_backward
+    end
+end
+
+-- see sprite_positions.txt
+Constants.sprite_positions = {
+    { -42, -41 }, { -22, -29 }, { 3, -50 }, { 25, -29 },
+    { 48,  -41 }, { 35, -14 }, { 55, 3 }, { 35, 21 },
+    { 48,  47 }, { 25, 31 }, { 3, 53 }, { -22, 31 },
+    { -42, 47 }, { -30, 21 }, { -50, 3 }, { -30, -14 },
+}
+
+Constants.iopin_directions = {
     [defines.direction.north] = {
-        [1] = { -2, -2 }, [16] = { -2, -1 }, [15] = { -2, 0 }, [14] = { -2, 1 }, [13] = { -2, 2 },
-        [2] = { -1, -2 }, [12] = { -1, 2 },
-        [3] = { 0, -2 }, [11] = { 0, 2 },
-        [4] = { 1, -2 }, [10] = { 1, 2 },
-        [5] = { 2, -2 }, [6] = { 2, -1 }, [7] = { 2, 0 }, [8] = { 2, 1 }, [9] = { 2, 2 },
+        1, -- NORMAL (NORTH)
+        4, -- H-FLIP (SOUTH-V)
+        8, -- V-FLIP (NORTH-V)
+        5, -- H/V FLIP (SOUTH)
+    },
+    [defines.direction.east] = {
+        3, -- NORMAL (EAST)
+        6, -- H-FLIP (WEST-V)
+        2, -- V-FLIP (EAST-V)
+        7, -- H/V FLIP (WEST)
+    },
+    [defines.direction.south] = {
+        5, -- NORMAL (SOUTH)
+        8, -- H-FLIP (NORTH-V)
+        4, -- V-FLIP (SOUTH-V)
+        1, -- H/V FLIP (NORTH)
+    },
+    [defines.direction.west] = {
+        7, -- NORMAL (WEST)
+        2, -- H-FLIP (EAST-V)
+        6, -- V-FLIP (WEST-V)
+        3, -- H/V FLIP (EAST)
     },
 }
 
-local previous = {}
-for _, dir in pairs(Constants.directions) do
-    if not Constants.iopin_connection_points[dir] then
-        Constants.iopin_connection_points[dir] = rotate_pins(previous)
-    end
-    previous = Constants.iopin_connection_points[dir]
-end
 
 return Constants

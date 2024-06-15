@@ -88,23 +88,18 @@ end
 
 -- computes io pin position relative to an entity and the iopin index.
 local function oc_iopin_position(entity, idx, direction)
-    local offset = const.iopin_connection_points[direction or entity.direction][idx]
 
-    local x_off = 0.02 + offset[1] * 0.35
-    local y_off = 0.02 + offset[2] * 0.35
+    -- find the right direction map, do only "normal" for now (1)
+    local direction_id = const.iopin_directions[direction or entity.direction][1]
+
+    -- find the iopin position
+    local iopin_id = const.iopin_positions[direction_id][idx]
+    local sprite_position = const.sprite_positions[iopin_id]
 
     return {
-        x = entity.position.x + x_off,
-        y = entity.position.y + y_off,
+        x = entity.position.x + sprite_position[1] / 64,
+        y = entity.position.y + sprite_position[2] / 64,
     }
-end
-
-local function oc_idx_from_iopin(iopin)
-    if not iopin or not iopin.valid then return end
-
-    local s, e = iopin.name:find(const.oc_iopin_prefix, 1, true)
-    if s ~= 1 then return end
-    return tonumber(iopin.name:sub(e + 1))
 end
 
 ---@class OcCreateInternalEntityCfg
