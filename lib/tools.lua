@@ -119,65 +119,7 @@ function tools.register_event(event_names, event_function, event_filter)
     end
 end
 
-local wire_checks = {
-    [const.check_circuit_wires] = function(entity)
-        local wire_connections = entity.circuit_connected_entities
-        if wire_connections then
-            for _, connected_entities in pairs(wire_connections) do
-                for _, connected_entity in pairs(connected_entities) do
-                    if entity.surface == connected_entity.surface and connected_entity.name ~= const.network_connector then
-                        if not entity.can_wires_reach(connected_entity) then
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-        return false
-    end,
-    [const.check_power_wires] = function(entity)
-        if entity.neighbours and entity.neighbours.copper then
-            for _, neighbor in pairs(entity.neighbours.copper) do
-                if entity.surface == neighbor.surface then
-                    if not entity.can_wires_reach(neighbor) then
-                        return true
-                    end
-                end
-            end
-        end
-        return false
-    end,
-}
 
-
---- check whether connected wires can be stretched. Returns true if the wire
---- could not be stretched to the new position.
----@param entity LuaEntity
----@param new_pos MapPosition
----@param player LuaPlayer
-function tools.check_wire_stretch(entity, new_pos, player)
-    local src_pos = entity.position
-
-    local checker = const.wire_check[entity.name]
-    -- no wires, no check
-    if not checker then return false end
-
-    -- move entity temporarily to check wire reach
-    entity.teleport(new_pos)
-
-    local vetoed = wire_checks[checker](entity)
-    if vetoed then
-        player.create_local_flying_text {
-            position = entity.position,
-            text = { const.msg_wires_too_long },
-        }
-    end
-
-    -- move back
-    entity.teleport(src_pos)
-
-    return vetoed
-end
 
 function tools.array_contains(array, value)
     for i, v in ipairs(array) do

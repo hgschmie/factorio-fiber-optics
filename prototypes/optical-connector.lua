@@ -54,7 +54,7 @@ local entity = {
     icon = oc_icon,
     icon_size = 128,
     collision_box = { { -0.95, -0.95 }, { 0.95, 0.95 } },
-    collision_mask = { 'floor-layer', 'item-layer', 'object-layer', 'water-tile' },
+    collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
     selection_box = { { -1, -1 }, { 1, 1 } },
     selection_priority = 20,
     minable = { mining_time = 1, result = const.optical_connector },

@@ -5,23 +5,21 @@
 local const = require('lib.constants')
 
 local oc_icon = const:png('sprite/oc-sprite-128')
-local empty_icon = '__core__/graphics/empty.png'
 
 -- power pole for the copper connections
 local powerpole_item = {
     type = 'item',
     name = const.oc_power_pole,
-    icon = empty_icon,
+    icon = const.empty_icon,
     icon_size = 1,
     subgroup = 'circuit-network',
     order = 'f[iber-optics]',
     place_result = const.oc_power_pole,
     stack_size = 50,
-    flags = {
-        'hidden',
-    },
+    flags = const.prototyle_internal_item_flags,
 }
 
+data:extend { powerpole_item }
 
 local entities = {
     -- represents the power connection and consumption
@@ -54,16 +52,7 @@ local entities = {
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
         collision_mask = {},
         selection_box = { { -1, -1 }, { 1, 1 } },
-        flags = {
-            'not-rotatable',
-            'placeable-off-grid',
-            'hide-alt-info',
-            'not-upgradable',
-            'not-in-kill-statistics',
-            'not-on-map',
-            'not-blueprintable',
-            'hidden',
-        },
+        flags = const.prototype_hidden_entity_flags,
         minable = nil,
         allow_copy_paste = false,
         selectable_in_game = false,
@@ -74,7 +63,7 @@ local entities = {
         -- PrototypeBase
         type = 'power-switch',
         name = const.oc_power_pole,
-        icon = empty_icon,
+        icon = const.empty_icon,
         icon_size = 1,
 
         -- PowerSwitchPrototype
@@ -106,18 +95,10 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -0.2, -0.1 }, { 0.2, 0.1 } },
-        collision_mask = {},
+        collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
         selection_box = { { -0.2, -0.1 }, { 0.2, 0.1 } },
 
-        flags = {
-            'player-creation',
-            'placeable-neutral',
-            'not-rotatable',
-            'placeable-off-grid',
-            'hide-alt-info',
-            'not-upgradable',
-            'not-in-kill-statistics',
-        },
+        flags = const.prototype_internal_entity_flags,
 
         minable = nil,
         allow_copy_paste = false,
@@ -176,21 +157,13 @@ local entities = {
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
         collision_mask = {},
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        flags = {
-            'not-rotatable',
-            'placeable-off-grid',
-            'hide-alt-info',
-            'not-upgradable',
-            'not-in-kill-statistics',
-            'not-on-map',
-            'not-blueprintable',
-            'hidden',
-        },
+        flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,
         allow_copy_paste = false,
         selection_priority = 0,
     },
+    -- constant combinator to turn led lamps on and off
     {
         -- PrototypeBase
         type = 'constant-combinator',
@@ -211,22 +184,13 @@ local entities = {
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
         collision_mask = {},
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        flags = {
-            'not-rotatable',
-            'placeable-off-grid',
-            'hide-alt-info',
-            'not-upgradable',
-            'not-in-kill-statistics',
-            'not-on-map',
-            'not-blueprintable',
-            'hidden',
-        },
+        flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,
         allow_copy_paste = false,
         selection_priority = 0,
     },
-
+    -- network connection entities
     {
         -- PrototypeBase
         type = 'container',
@@ -246,19 +210,7 @@ local entities = {
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
         collision_mask = {},
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        flags = {
-            'not-rotatable',
-            'placeable-off-grid',
-            'hide-alt-info',
-            'not-upgradable',
-            'not-in-kill-statistics',
-            'not-on-map',
-            'not-blueprintable',
-            'no-automated-item-removal',
-            'no-automated-item-insertion',
-            'hidden',
-        },
-
+        flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,
         allow_copy_paste = false,
@@ -266,5 +218,4 @@ local entities = {
     },
 }
 
-data:extend { powerpole_item }
 data:extend(entities)

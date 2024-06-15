@@ -96,7 +96,7 @@ if script then
     --- works around https://github.com/Afforess/Factorio-Stdlib/pull/164
     ---@param event_ids defines.events[]
     ---@param handler function(ev: EventData)
-    ---@param filter function(ev: EventData, pattern: any?)?:boolean
+    ---@param filter? function(ev: EventData, pattern: any?)?:boolean
     ---@param pattern any?
     ---@param options table<string, boolean>?
     function Util.event_register(event_ids, handler, filter, pattern, options)

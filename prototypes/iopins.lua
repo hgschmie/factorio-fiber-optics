@@ -4,7 +4,6 @@
 
 local const = require('lib.constants')
 
-local empty_icon = '__core__/graphics/empty.png'
 local circle_sprite = const:png('sprite/circle')
 
 local iopin_sprite = {
@@ -23,31 +22,27 @@ local iopin_one_sprite = {
 
 local item = {
     type = "item",
-    icon = empty_icon,
+    icon = const.empty_icon,
     icon_size = 1,
     subgroup = "circuit-network",
     order = 'f[iber-optics]',
     stack_size = 50,
-    flags = {
-        'hidden',
-        'hide-from-bonus-gui',
-    },
+    flags = const.prototyle_internal_item_flags,
 }
 
 local entity = {
     -- PrototypeBase
-    type = "lamp",
-    icon = empty_icon,
+    type = 'lamp',
+    icon = const.empty_icon,
     icon_size = 1,
 
     -- LampPrototype
     energy_usage_per_tick = "1J",
     energy_source = { type = "void" },
-    circuit_wire_max_distance = default_circuit_wire_max_distance,
     circuit_wire_connection_point = const.circuit_wire_connectors,
-    draw_copper_wires = false,
+    circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_circuit_wires = true,
-
+    draw_copper_wires = false,
     always_on = true,
 
     -- EntityWithHealthPrototype
@@ -55,17 +50,9 @@ local entity = {
 
     -- EntityPrototype
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    collision_mask = {},
+    collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    flags = {
-        "player-creation",
-        "placeable-neutral",
-        "not-rotatable",
-        "placeable-off-grid",
-        "hide-alt-info",
-        "not-upgradable",
-        "not-in-kill-statistics",
-    },
+    flags = const.prototype_internal_entity_flags,
     minable = nil,
     allow_copy_paste = false,
     selection_priority = 70,

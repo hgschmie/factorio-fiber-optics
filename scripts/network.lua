@@ -4,10 +4,10 @@
 
 local Is = require('__stdlib__/stdlib/utils/is')
 
+local Util = require('framework.util')
+
 local const = require('lib.constants')
 local tools = require('lib.tools')
-
-local debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
 
 
 ---@class FiberNetworkManager
@@ -34,8 +34,7 @@ end
 
 ---------------------------------------------------------------------------------------------------------
 
-function Network:get_surface_network()
-
+function Network:create_new_surface_network()
     ---@class SurfaceFiberNetworks
     ---@field networks table<integer, FiberNetwork>
     ---@field network_count integer
@@ -77,10 +76,10 @@ end
 function Network:locate_network(entity, network_id)
     local surface_index = entity.surface_index
 
-    local surface_networks = global.oc_networks.surface_networks[surface_index] or get_surface_network()
+    local surface_networks = global.oc_networks.surface_networks[surface_index] or self:create_new_surface_network()
     local fiber_network = surface_networks.networks[network_id] or create_new_network(entity)
 
-    if not surface_networks[network_id] then
+    if not surface_networks.networks[network_id] then
         surface_networks.networks[network_id] = fiber_network
         surface_networks.network_count = surface_networks.network_count + 1
         global.oc_networks.total_count = global.oc_networks.total_count + 1
@@ -107,60 +106,40 @@ function Network:destroy_network(entity, network_id)
     global.oc_networks.total_count = global.oc_networks.total_count - 1
 end
 
--- function Network:connect_entity(entity, network_id)
---     if not Is.Valid(entity) then return end
+------------------------------------------------------------------------
+-- add/remove endpoint
+------------------------------------------------------------------------
 
---     local network = self:locate_network(entity, network_id)
+---@param entity LuaEntity
+---@param network_id integer
+function Network:remove_endpoint(entity, network_id)
+    local network = self:locate_network(entity, network_id)
 
---     local oc = This.oc:entity(entity)
+    -- already disconnected
+    if not network.endpoints[entity.unit_number] then return end
 
---     if not oc then return end
+    network.endpoints[entity.unit_number] = nil
+    network.endpoint_count = network.endpoint_count - 1
 
---     local connection_success = true
---         for idx, iopin in pairs(context.iopins) do
---             assert(tools.is_valid(iopin))
---             local network_terminator = network_bus.connector[idx]
---             assert(tools.is_valid(network_terminator))
+    if network.endpoint_count <= 0 then
+        self:destroy_network(entity, network_id)
+    end
+end
 
---             -- bring the connection point close to connect
---             network_terminator.teleport(context._primary.position)
+---@param entity LuaEntity
+---@param network_id integer
+function Network:add_endpoint(entity, network_id)
+    local network = self:locate_network(entity, network_id)
 
---             connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.red, target_entity = network_terminator }
---             connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.green, target_entity = network_terminator }
---         end
+    -- already connected
+    if network.endpoints[entity.unit_number] then return end
 
---         if connection_success then
---             table.insert(network_bus.endpoint, context._primary.unit_number, true)
---             network_bus.endpoint_count = network_bus.endpoint_count + 1
---         end
---         return connection_success
---     end
---     return false
--- end
+    network.endpoints[entity.unit_number] = entity
+    network.endpoint_count = network.endpoint_count + 1
+end
 
--- local function disconnect_from_fiber_network(network_id, context)
---     local network_bus = locate_fiber_network(context._primary, network_id)
-
---     if network_bus then
---         for idx, iopin in pairs(context.iopins) do
---             assert(tools.is_valid(iopin), "IO Pin object invalid!")
---             local fiber_strand = network_bus.connector[idx]
---             assert(tools.is_valid(fiber_strand), "Fiber strand is invalid!")
-
---             iopin.disconnect_neighbour({ wire = defines.wire_type.red, target_entity = fiber_strand })
---             iopin.disconnect_neighbour({ wire = defines.wire_type.green, target_entity = fiber_strand })
---         end
-
---         network_bus.endpoint[context._primary.unit_number] = nil
---         network_bus.endpoint_count = network_bus.endpoint_count - 1
-
---         if network_bus.endpoint_count <= 0 then
---             stop_fiber_network(context._primary, network_id)
---         end
---     end
---     return true
--- end
-
+---------------------------------------------------------------------------------------------------------
+-- Network ticker
 ---------------------------------------------------------------------------------------------------------
 
 -- local function is_functional(entity_context)
@@ -173,33 +152,22 @@ end
 --     return true
 -- end
 
--- local function detect_network_status(power_pole)
---     local result = {}
---     if power_pole.neighbours and power_pole.neighbours.copper then
---         for idx = 1, 2, 1 do
---             if power_pole.neighbours.copper[idx] then
---                 local neighbor = power_pole.neighbours.copper[idx]
---                 if tools.is_valid(neighbor) and not result[power_pole.neighbours.copper[idx].electric_network_id] then
---                     result[power_pole.neighbours.copper[idx].electric_network_id] = idx
---                 end
---             end
---         end
---     end
---     return result
--- end
 
--- function Network:fiber_network_management_handler()
---     for _, context in pairs(This.context_manager:get_all_contexts()) do
---         if is_functional(context) then
---             local power_entity = context.power_entity
+
+
+--             local power_entity = entity.ref.power_entity
 
 --             if bit32.band(debug_mode, 2) ~= 0 then
---                 tools.debug_print(string.format("Connector %d, current energy usage %4.1d kW", context._primary.unit_number, (power_entity.power_usage * 60)/1000.0))
---                 tools.debug_print(string.format("Connector %d, charge: %d, drain: %d, capacity: %d", context._primary.unit_number, power_entity.electric_emissions, power_entity.electric_drain, power_entity.electric_buffer_size))
+--                 tools.debug_print(string.format("Connector %d, current energy usage %4.1d kW", idx, (power_entity.power_usage * 60)/1000.0))
+--                 tools.debug_print(string.format("Connector %d, charge: %d, drain: %d, capacity: %d", idx, power_entity.electric_emissions, power_entity.electric_drain, power_entity.electric_buffer_size))
 --             end
+
+--             entity.status = (power_entity.status and Util.STATUS_TABLE[power_entity.status]) or defines.entity_status.disabled
 
 --             local no_power = (power_entity.status and
 --                 (power_entity.status == defines.entity_status.no_power or power_entity.status == defines.entity_status.low_power)) or false
+
+
 
 --             local connected_networks = context.connected_networks or {}
 --             -- if the unit is unpowered, all networks disconnect
@@ -250,40 +218,33 @@ end
 --     end
 -- end
 
--- function Network:fiber_network_debug_output()
---     if not global.networks then
---         global.networks = {}
---     end
+function Network:fiber_network_debug_output()
+    for surface_index, networks in pairs(global.oc_networks.surface_networks) do
+        for network_id, fiber_network in pairs(networks) do
+            local connectors = ''
+            local count = 0
 
---     if not global.networks[1] then
---         global.networks[1] = {}
---     end
+            for id, _ in pairs(fiber_network.endpoints) do
+                count = count + 1
+                if connectors:len() > 0 then
+                    connectors = connectors .. ', '
+                end
+                connectors = connectors .. id
+            end
 
---     for network_id, fiber_network in pairs(global.networks[1]) do
+            tools.debug_print(string.format('Network Id: %d/%d, connected entities: %d', network_id, surface_index, fiber_network.endpoint_count))
+            tools.debug_print(string.format('Entities: %s', connectors))
 
---         local connectors = ''
---         local count = 0
-
---         for id, _ in pairs(fiber_network.endpoint) do
---             count = count + 1
---             if connectors:len() > 0 then
---                 connectors = connectors .. ", "
---             end
---             connectors = connectors .. id
---         end
-
---         tools.debug_print(string.format("Network Id: %d, connected entities: %d", network_id, fiber_network.endpoint_count))
---         tools.debug_print(string.format("Entities: %s", connectors))
-
---         for idx, connector in pairs(fiber_network.connector) do
---             if #connector.circuit_connected_entities.red ~= count then
---                 tools.debug_print(string.format("Fiber strand %d has %d connected red endpoints", idx, #connector.circuit_connected_entities.red))
---             end
---             if #connector.circuit_connected_entities.green ~= count then
---                 tools.debug_print(string.format("Fiber strand %d has %d connected green endpoints", idx, #connector.circuit_connected_entities.green))
---             end
---         end
---     end
--- end
+            for idx, connector in pairs(fiber_network.connectors) do
+                if #connector.circuit_connected_entities.red ~= count then
+                    tools.debug_print(string.format('Fiber strand %d has %d connected red endpoints', idx, #connector.circuit_connected_entities.red))
+                end
+                if #connector.circuit_connected_entities.green ~= count then
+                    tools.debug_print(string.format('Fiber strand %d has %d connected green endpoints', idx, #connector.circuit_connected_entities.green))
+                end
+            end
+        end
+    end
+end
 
 return Network

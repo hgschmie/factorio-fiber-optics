@@ -4,10 +4,11 @@
 
 local Is = require('__stdlib__/stdlib/utils/is')
 
-local const = require('lib.constants')
-local tools = require('lib.tools')
+local Util = require('framework.util')
 
----------------------------------------------------------------------------------------------------------
+local const = require('lib.constants')
+
+------------------------------------------------------------------------
 
 ---@class ModOc
 local Oc = {}
@@ -23,7 +24,9 @@ function Oc:init()
     ---@class OpticalConnectorData
     ---@field main LuaEntity
     ---@field entities LuaEntity[]
+    ---@field status defines.entity_status?
     ---@field ref table<string, LuaEntity>
+    ---@field connected_networks table<integer, integer>
 
     ---@class ModOcData
     ---@field oc OpticalConnectorData[]
@@ -105,18 +108,20 @@ local function oc_idx_from_iopin(iopin)
 end
 
 ---@class OcCreateInternalEntityCfg
----@field entity FilterCombinatorData
+---@field entity OpticalConnectorData
 ---@field name string
 ---@field x integer?
 ---@field y integer?
 ---@field pos MapPosition?
+---@field ghost OcAttachedEntity?
+---@field attached OcAttachedEntity?
 
 local sub_entities = {
-    { id = 'power_entity',      name = const.oc_power_interface, },          -- Power Entity for power consumption
-    { id = 'power_pole',        name = const.oc_power_pole, },               -- Power Pole for power connections
+    { id = 'power_entity',      name = const.oc_power_interface, },                     -- Power Entity for power consumption
+    { id = 'power_pole',        name = const.oc_power_pole, },                          -- Power Pole for power connections
     { id = 'status_led_1',      name = const.oc_led_lamp,        x = -0.2, y = -0.02 }, -- Status Lamp 1
     { id = 'status_led_2',      name = const.oc_led_lamp,        x = 0.2,  y = -0.02 }, -- Status Lamp 2
-    { id = 'status_controller', name = const.oc_cc, },                       -- Status Controller
+    { id = 'status_controller', name = const.oc_cc, },                                  -- Status Controller
 }
 
 ---@param cfg OcCreateInternalEntityCfg
@@ -127,17 +132,28 @@ local function create_internal_entity(cfg)
     local x = (cfg.pos and cfg.pos.x) or (main.position.x + (cfg.x or 0))
     local y = (cfg.pos and cfg.pos.y) or (main.position.y + (cfg.y or 0))
 
-    ---@type LuaEntity?
-    local sub_entity = main.surface.create_entity {
-        name = cfg.name,
-        position = { x = x, y = y },
-        direction = main.direction,
-        force = main.force,
+    local ghost = cfg.ghost
+    local attached = cfg.attached
 
-        create_build_effect_smoke = false,
-        spawn_decorations = false,
-        move_stuck_players = true,
-    }
+    ---@type LuaEntity?
+    local sub_entity
+    if ghost and ghost.entity then
+        local collision, entity = ghost.entity.silent_revive()
+        sub_entity = entity
+    elseif attached and attached.entity then
+        sub_entity = attached.entity
+    else
+        sub_entity = main.surface.create_entity {
+            name = cfg.name,
+            position = { x = x, y = y },
+            direction = main.direction,
+            force = main.force,
+
+            create_build_effect_smoke = false,
+            spawn_decorations = false,
+            move_stuck_players = true,
+        }
+    end
 
     assert(sub_entity)
 
@@ -179,18 +195,21 @@ end
 --- and configures it.
 ---@param main LuaEntity
 ---@param tags Tags?
+---@param player_index integer
+---@param ghosts OcAttachedEntity[]
+---@param attached OcAttachedEntity[]
 ---@return OpticalConnectorData? oc_entity
-function Oc:create(main, tags)
+function Oc:create(main, tags, player_index, ghosts, attached)
     if not Is.Valid(main) then return nil end
 
     local entity_id = main.unit_number --[[@as integer]]
 
     assert(self:entity(entity_id) == nil)
 
-    -- todo ghost management / blueprint tags
-
+    ---@type OpticalConnectorData
     local oc_entity = {
         main = main,
+        status = defines.entity_status.disabled,
         entities = {},
         ref = { main = main },
         connected_networks = {},
@@ -201,6 +220,8 @@ function Oc:create(main, tags)
         oc_entity.ref[cfg.id] = create_internal_entity {
             entity = oc_entity,
             name = cfg.name,
+            ghost = ghosts[cfg.name],
+            attached = attached[cfg.name],
             x = cfg.x,
             y = cfg.y,
         }
@@ -214,6 +235,8 @@ function Oc:create(main, tags)
         oc_entity.ref[iopin_ref] = create_internal_entity {
             entity = oc_entity,
             name = iopin_name,
+            ghost = ghosts[iopin_name],
+            attached = attached[iopin_name],
             pos = iopin_pos,
         }
     end
@@ -223,6 +246,122 @@ function Oc:create(main, tags)
     self:setEntity(entity_id, oc_entity)
 
     return oc_entity
+end
+
+------------------------------------------------------------------------
+-- control status of the optical connector
+------------------------------------------------------------------------
+
+---@param entity OpticalConnectorData
+---@param network_id integer
+local function disconnect_network(entity, network_id)
+    local network = This.network:locate_network(entity.main, network_id)
+    assert(network)
+
+    for idx = 1, const.oc_iopin_count, 1 do
+        local iopin_ref = 'iopin' .. idx
+        local iopin = entity.ref[iopin_ref]
+        assert(Is.Valid(iopin), 'IO Pin object invalid!')
+        local fiber_strand = network.connectors[idx]
+        assert(Is.Valid(fiber_strand), 'Fiber strand is invalid!')
+
+        iopin.disconnect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
+        iopin.disconnect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+    end
+
+    This.network:remove_endpoint(entity.main, network_id)
+
+    return true
+end
+
+---@param entity OpticalConnectorData
+---@param network_id integer
+local function connect_network(entity, network_id)
+    local network = This.network:locate_network(entity.main, network_id)
+    assert(network)
+
+    local connection_success = true
+
+    for idx = 1, const.oc_iopin_count, 1 do
+        local iopin_ref = 'iopin' .. idx
+        local iopin = entity.ref[iopin_ref]
+        assert(Is.Valid(iopin), 'IO Pin object invalid!')
+
+        local fiber_strand = network.connectors[idx]
+        assert(Is.Valid(fiber_strand), 'Fiber strand is invalid!')
+
+        -- bring the connection point close to connect
+        fiber_strand.teleport(entity.main.position)
+
+        connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
+        connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+    end
+
+    assert(connection_success)
+
+    This.network:add_endpoint(entity.main, network_id)
+
+    return true
+end
+
+---@param power_pole LuaEntity
+---@return table<integer, integer> network_map
+local function get_connected_networks(power_pole)
+    local result = {}
+    if not (power_pole.neighbours or power_pole.neighbours.copper) then return result end
+
+    for idx = 1, 2, 1 do
+        if power_pole.neighbours.copper[idx] then
+            local neighbor = power_pole.neighbours.copper[idx]
+            if Is.Valid(neighbor) and not result[power_pole.neighbours.copper[idx].electric_network_id] then
+                -- id -> idx for presence check below
+                result[power_pole.neighbours.copper[idx].electric_network_id] = idx
+            end
+        end
+    end
+
+    return result
+end
+
+---@param entity OpticalConnectorData
+function Oc:update_entity_status(entity)
+    if not (entity and entity.main and Is.Valid(entity.main)) then return end
+
+    entity.status = entity.ref.power_entity.status or defines.entity_status.disabled
+
+    -- check connected networks
+    local changes = false
+    local signals = { 0, 0 }
+    local active_signals = 0
+
+    -- if the unit is in red status, disconnect all networks
+    local current_networks = ((Util.STATUS_NAMES[entity.status] == 'RED') and {}) or get_connected_networks(entity.ref.power_pole)
+
+    -- disconnect missing networks
+    for network_id in pairs(entity.connected_networks) do
+        changes = (not current_networks[network_id] and disconnect_network(entity, network_id)) or changes
+    end
+
+    -- connect new networks
+    for network_id, idx in pairs(current_networks) do
+        signals[idx] = 1
+        active_signals = active_signals + 1
+        changes = (not entity.connected_networks[network_id] and connect_network(entity, network_id)) or changes
+    end
+
+    if changes then
+        local control = entity.ref.status_controller.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
+        assert(control)
+
+        -- idx is the led to turn on/off, count is 0 for off or 1 for on
+        for idx, count in pairs(signals) do
+            control.set_signal(idx, { signal = { type = 'virtual', name = 'signal-' .. idx }, count = count })
+        end
+
+        entity.connected_networks = current_networks
+
+        entity.ref.power_entity.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
+    end
 end
 
 -- local entity_context = This.context_manager:get_entity_context(primary_entity, true)
@@ -318,12 +457,70 @@ function Oc:destroy(entity_id)
     self:setEntity(entity_id, nil)
 end
 
----------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- Move OC (Picker Dollies code)
----------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+local wire_checks = {
+    [const.check_circuit_wires] = function(entity)
+        local wire_connections = entity.circuit_connected_entities
+        if wire_connections then
+            for _, connected_entities in pairs(wire_connections) do
+                for _, connected_entity in pairs(connected_entities) do
+                    if entity.surface == connected_entity.surface and connected_entity.name ~= const.network_connector then
+                        if not entity.can_wires_reach(connected_entity) then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end,
+    [const.check_power_wires] = function(entity)
+        if entity.neighbours and entity.neighbours.copper then
+            for _, neighbor in pairs(entity.neighbours.copper) do
+                if entity.surface == neighbor.surface then
+                    if not entity.can_wires_reach(neighbor) then
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end,
+}
+
+--- check whether connected wires can be stretched. Returns true if the wire
+--- could not be stretched to the new position.
+---@param entity LuaEntity
+---@param new_pos MapPosition
+---@param player LuaPlayer
+local function check_wire_stretch(entity, new_pos, player)
+    local src_pos = entity.position
+
+    local checker = const.wire_check[entity.name]
+    -- no wires, no check
+    if not checker then return false end
+
+    -- move entity temporarily to check wire reach
+    entity.teleport(new_pos)
+
+    local vetoed = wire_checks[checker](entity)
+    if vetoed then
+        player.create_local_flying_text {
+            position = entity.position,
+            text = { const.msg_wires_too_long },
+        }
+    end
+
+    -- move back
+    entity.teleport(src_pos)
+
+    return vetoed
+end
 
 function Oc:move(main, start_pos, player)
-
     if not Is.Valid(main) then return end
 
     local oc_entity = self:entity(main.unit_number)
@@ -340,7 +537,7 @@ function Oc:move(main, start_pos, player)
             y = related_entity.position.y + dy,
         }
 
-        if tools.check_wire_stretch(related_entity, dst_pos, player) then
+        if check_wire_stretch(related_entity, dst_pos, player) then
             -- move entity back, end
             main.teleport(start_pos)
             return
@@ -354,7 +551,9 @@ function Oc:move(main, start_pos, player)
     end
 end
 
----------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- Rotate OC
+------------------------------------------------------------------------
 
 --- rotates the iopins to the new orientation of the entity and tests whether the
 --- wires overstretch.
@@ -364,13 +563,12 @@ end
 ---@return boolean vetoed If true, vetoed the move
 ---@return MapPosition[] iopin_positions Array of new positions for the io pins. Only valid if not vetoed.
 local function rotate_iopins(main, oc_entity, player)
-
     local move_list = {}
-    for idx = 1,const.oc_iopin_count, 1 do
+    for idx = 1, const.oc_iopin_count, 1 do
         local iopin_name = 'iopin' .. idx
         local dst_pos = oc_iopin_position(main, idx)
         local iopin = oc_entity.ref[iopin_name]
-        if tools.check_wire_stretch(iopin, dst_pos, player) then
+        if check_wire_stretch(iopin, dst_pos, player) then
             return true, {}
         end
 
@@ -396,10 +594,28 @@ function Oc:rotate(main, player_index, previous_direction)
     if vetoed then
         main.direction = previous_direction
     else
-        for idx = 1,const.oc_iopin_count, 1 do
+        for idx = 1, const.oc_iopin_count, 1 do
             local iopin_name = 'iopin' .. idx
             oc_entity.ref[iopin_name].teleport(rotated_io_pins[idx])
         end
+    end
+end
+
+------------------------------------------------------------------------
+-- Ticker
+------------------------------------------------------------------------
+
+function Oc:update_entities()
+    for idx, entity in pairs(self:entities()) do
+        local power_entity = entity.ref.power_entity
+
+        if bit32.band(This.debug_mode, 2) ~= 0 then
+            Framework.logger.debugf('Connector %d, current energy usage %4.1d kW', idx, (power_entity.power_usage * 60) / 1000.0)
+            Framework.logger.debugf('Connector %d, charge: %d, drain: %d, capacity: %d', idx, power_entity.electric_emissions, power_entity.electric_drain,
+                power_entity.electric_buffer_size)
+        end
+
+        self:update_entity_status(entity)
     end
 end
 
@@ -463,40 +679,40 @@ end
 --     -- end
 -- end
 
-function Oc:createGhost(primary_entity)
-    if not tools.is_valid(primary_entity) or primary_entity.type ~= 'entity-ghost' then return end
-    if not tools.array_contains(const.attached_entities, primary_entity.ghost_name) then return end
+-- function Oc:createGhost(primary_entity)
+--     if not tools.is_valid(primary_entity) or primary_entity.type ~= 'entity-ghost' then return end
+--     if not tools.array_contains(const.attached_entities, primary_entity.ghost_name) then return end
 
-    -- local existing_oc = find_oc_from_entity(primary_entity)
-    -- if (existing_oc) then
-    --     local _, revived_entity = primary_entity.silent_revive()
-    --     if tools.is_valid(revived_entity) then
-    --         -- deal with io pins
-    --         if tools.array_contains(const.all_iopins, revived_entity.name) then
-    --             local idx = oc_idx_from_iopin(revived_entity)
-    --             local old_pin = This.context_manager:remove_entity(existing_oc, { 'iopins', idx })
-    --             if old_pin and old_pin.valid then
-    --                 old_pin.destroy()
-    --             end
+--     -- local existing_oc = find_oc_from_entity(primary_entity)
+--     -- if (existing_oc) then
+--     --     local _, revived_entity = primary_entity.silent_revive()
+--     --     if tools.is_valid(revived_entity) then
+--     --         -- deal with io pins
+--     --         if tools.array_contains(const.all_iopins, revived_entity.name) then
+--     --             local idx = oc_idx_from_iopin(revived_entity)
+--     --             local old_pin = This.context_manager:remove_entity(existing_oc, { 'iopins', idx })
+--     --             if old_pin and old_pin.valid then
+--     --                 old_pin.destroy()
+--     --             end
 
-    --             This.context_manager:add_entity(existing_oc, { 'iopins', idx }, revived_entity)
-    --             revived_entity.direction = existing_oc.direction
-    --             revived_entity.teleport(oc_iopin_position(existing_oc, idx))
-    --         elseif revived_entity.name == const.oc_power_pole then
-    --             local old_power_pole = This.context_manager:remove_entity(existing_oc, 'power_pole')
-    --             if old_power_pole and old_power_pole.valid then
-    --                 old_power_pole.destroy()
-    --             end
-    --             This.context_manager:add_entity(existing_oc, 'power_pole')
-    --             revived_entity.direction = existing_oc.direction
-    --             revived_entity.teleport(existing_oc.position)
-    --         else
-    --             -- everything else can be destroyed
-    --             revived_entity.destroy()
-    --         end
-    --     end
-    -- end
-end
+--     --             This.context_manager:add_entity(existing_oc, { 'iopins', idx }, revived_entity)
+--     --             revived_entity.direction = existing_oc.direction
+--     --             revived_entity.teleport(oc_iopin_position(existing_oc, idx))
+--     --         elseif revived_entity.name == const.oc_power_pole then
+--     --             local old_power_pole = This.context_manager:remove_entity(existing_oc, 'power_pole')
+--     --             if old_power_pole and old_power_pole.valid then
+--     --                 old_power_pole.destroy()
+--     --             end
+--     --             This.context_manager:add_entity(existing_oc, 'power_pole')
+--     --             revived_entity.direction = existing_oc.direction
+--     --             revived_entity.teleport(existing_oc.position)
+--     --         else
+--     --             -- everything else can be destroyed
+--     --             revived_entity.destroy()
+--     --         end
+--     --     end
+--     -- end
+-- end
 
 ---------------------------------------------------------------------------------------------------------
 
