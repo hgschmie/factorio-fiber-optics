@@ -63,6 +63,16 @@ end
 -- entity create / delete
 --------------------------------------------------------------------------------
 
+--- @param event EventData.on_pre_build
+local function onPreBuild(event)
+    local player, player_data = Player.get(event.player_index)
+
+    -- register the per-player flip state
+    player_data.flip_horizontal = event.flip_horizontal
+    player_data.flip_vertical = event.flip_vertical
+end
+
+
 --- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onEntityCreated(event)
     local entity = event and (event.created_entity or event.entity)
@@ -71,6 +81,7 @@ local function onEntityCreated(event)
     script.register_on_entity_destroyed(entity)
 
     local player_index = event.player_index
+
     local tags = event.tags
 
     local entity_ghost = This.attached_entities:findMatchingGhost(entity)
@@ -79,7 +90,15 @@ local function onEntityCreated(event)
         tags = tags or entity_ghost.tags
     end
 
-    local area = Area.new(entity.bounding_box)
+    local flip_horizontal = false
+    local flip_vertical = false
+    if player_index then
+        local _, player_data = Player.get(player_index)
+        flip_horizontal = player_data.flip_horizontal or false
+        flip_vertical = player_data.flip_vertical or false
+    end
+
+    local area = Area.new(entity.selection_box)
 
     -- find all the ghosts that are covered by the new entity
     -- Those would be placed by paste / blueprint and the main entity
@@ -92,7 +111,15 @@ local function onEntityCreated(event)
     -- entities.
     local attached_entities = This.attached_entities:findEntitiesInArea(area)
 
-    This.oc:create(entity, tags, player_index, attached_ghosts, attached_entities)
+    This.oc:create {
+        main = entity,
+        tags = tags,
+        player_index = player_index,
+        ghosts = attached_ghosts,
+        attached = attached_entities,
+        flip_h = flip_horizontal,
+        flip_v = flip_vertical,
+    }
 end
 
 ---@param event EventData.on_player_mined_entity | EventData.on_robot_mined_entity | EventData.on_entity_died | EventData.script_raised_destroy
@@ -108,7 +135,6 @@ end
 --------------------------------------------------------------------------------
 
 local function onEntityDestroyed(event)
-
     -- is it a known ghost or entity?
     This.attached_entities:delete(event.unit_number)
 
@@ -190,12 +216,14 @@ local oc_attached_entities_filter = Util.create_event_entity_matcher('name', con
 local oc_ghost_filter = Util.create_event_ghost_entity_matcher(const.ghost_entities)
 
 -- rotation
-Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity)
+Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity, oc_entity_filter)
 
 -- manage ghost building (robot building)
 Util.event_register(const.creation_events, onGhostEntityCreated, oc_ghost_filter)
 
 -- entity create / delete
+Event.register(defines.events.on_pre_build, onPreBuild)
+
 Util.event_register(const.creation_events, onEntityCreated, oc_entity_filter)
 Util.event_register(const.creation_events, onAttachedEntityCreated, oc_attached_entities_filter)
 

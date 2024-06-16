@@ -27,6 +27,7 @@ function Oc:init()
     ---@field status defines.entity_status?
     ---@field ref table<string, LuaEntity>
     ---@field connected_networks table<integer, integer>
+    ---@field flip_index integer?
 
     ---@class ModOcData
     ---@field oc OpticalConnectorData[]
@@ -86,37 +87,43 @@ end
 -- create/destroy
 ------------------------------------------------------------------------
 
--- computes io pin position relative to an entity and the iopin index.
-local function oc_iopin_position(entity, idx, direction)
+---@class OcIopinPositionCfg
+---@field main LuaEntity
+---@field idx integer
+---@field direction defines.direction?
+---@field flip_index integer
 
-    -- find the right direction map, do only "normal" for now (1)
-    local direction_id = const.iopin_directions[direction or entity.direction][1]
+-- computes io pin position relative to an entity and the iopin index.
+---@param cfg OcIopinPositionCfg
+local function oc_iopin_position(cfg)
+    -- find the right direction map
+    local direction_id = const.iopin_directions[cfg.direction or cfg.main.direction][cfg.flip_index]
 
     -- find the iopin position
-    local iopin_id = const.iopin_positions[direction_id][idx]
+    local iopin_id = const.iopin_positions[direction_id][cfg.idx]
     local sprite_position = const.sprite_positions[iopin_id]
 
     return {
-        x = entity.position.x + sprite_position[1] / 64,
-        y = entity.position.y + sprite_position[2] / 64,
+        x = cfg.main.position.x + sprite_position[1] / 64,
+        y = cfg.main.position.y + sprite_position[2] / 64,
     }
 end
 
 ---@class OcCreateInternalEntityCfg
 ---@field entity OpticalConnectorData
 ---@field name string
----@field x integer?
----@field y integer?
+---@field dx integer?
+---@field dy integer?
 ---@field pos MapPosition?
 ---@field ghost AttachedEntity?
 ---@field attached AttachedEntity?
 
 local sub_entities = {
-    { id = 'power_entity',      name = const.oc_power_interface, },                     -- Power Entity for power consumption
-    { id = 'power_pole',        name = const.oc_power_pole, },                          -- Power Pole for power connections
-    { id = 'status_led_1',      name = const.oc_led_lamp,        x = -0.2, y = -0.02 }, -- Status Lamp 1
-    { id = 'status_led_2',      name = const.oc_led_lamp,        x = 0.2,  y = -0.02 }, -- Status Lamp 2
-    { id = 'status_controller', name = const.oc_cc, },                                  -- Status Controller
+    { id = 'power_entity',      name = const.oc_power_interface, },                       -- Power Entity for power consumption
+    { id = 'power_pole',        name = const.oc_power_pole, },                            -- Power Pole for power connections
+    { id = 'status_led_1',      name = const.oc_led_lamp,        dx = -0.2, dy = -0.02 }, -- Status Lamp 1
+    { id = 'status_led_2',      name = const.oc_led_lamp,        dx = 0.2,  dy = -0.02 }, -- Status Lamp 2
+    { id = 'status_controller', name = const.oc_cc, },                                    -- Status Controller
 }
 
 ---@param cfg OcCreateInternalEntityCfg
@@ -124,19 +131,23 @@ local function create_internal_entity(cfg)
     local oc_entity = cfg.entity
     local main = oc_entity.main
 
-    local x = (cfg.pos and cfg.pos.x) or (main.position.x + (cfg.x or 0))
-    local y = (cfg.pos and cfg.pos.y) or (main.position.y + (cfg.y or 0))
+    local x = (cfg.pos and cfg.pos.x) or (main.position.x + (cfg.dx or 0))
+    local y = (cfg.pos and cfg.pos.y) or (main.position.y + (cfg.dy or 0))
 
     local ghost = cfg.ghost
     local attached = cfg.attached
 
     ---@type LuaEntity?
     local sub_entity
+
     if ghost and ghost.entity then
         local collision, entity = ghost.entity.silent_revive()
+        assert(entity)
+        entity.teleport { x, y }
         sub_entity = entity
     elseif attached and attached.entity then
         sub_entity = attached.entity
+        sub_entity.teleport { x, y }
     else
         sub_entity = main.surface.create_entity {
             name = cfg.name,
@@ -187,39 +198,74 @@ local function setup_oc(oc_entity)
     assert(oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.green, target_entity = oc_entity.ref.status_led_2 })
 end
 
+local function compute_flip_index(cfg_flip_h, cfg_flip_v, tags)
+    local tag_flip_h = false
+    local tag_flip_v = false
+
+    if tags and tags.flip_index then
+        tag_flip_h = bit32.band(tags.flip_index - 1, 1) == 1
+        tag_flip_v = bit32.band(tags.flip_index - 1, 2) == 2
+    end
+
+    local flip_h = cfg_flip_h ~= tag_flip_h
+    local flip_v = cfg_flip_v ~= tag_flip_v
+
+    return 1 + (flip_h and 1 or 0) + (flip_v and 2 or 0)
+end
+
+
+---@class OcCreateCfg
+---@field main LuaEntity
+---@field tags Tags?
+---@field player_index integer
+---@field ghosts AttachedEntity[]
+---@field attached AttachedEntity[]
+---@field flip_h boolean
+---@field flip_v boolean
+
+
 --- Creates a new entity from the main entity, registers with the mod
 --- and configures it.
----@param main LuaEntity
----@param tags Tags?
----@param player_index integer
----@param ghosts AttachedEntity[]
----@param attached AttachedEntity[]
+---@param cfg OcCreateCfg
 ---@return OpticalConnectorData? oc_entity
-function Oc:create(main, tags, player_index, ghosts, attached)
-    if not Is.Valid(main) then return nil end
+function Oc:create(cfg)
+    if not Is.Valid(cfg.main) then return nil end
 
-    local entity_id = main.unit_number --[[@as integer]]
+    local entity_id = cfg.main.unit_number --[[@as integer]]
 
     assert(self:entity(entity_id) == nil)
 
+    -- the flip index includes both the tags from a blueprint and the current flips
+    local flip_index = compute_flip_index(cfg.flip_h, cfg.flip_v, cfg.tags)
+
+    -- this is the original direction of the oc
+    local direction = const.correct_direction[cfg.main.direction][flip_index]
+    cfg.main.direction = direction
+
+    -- -- now find the original direction of the oc
+    -- local original_direction =
+    -- cfg.main.direction = original_direction
+
     ---@type OpticalConnectorData
     local oc_entity = {
-        main = main,
+        main = cfg.main,
         status = defines.entity_status.disabled,
         entities = {},
-        ref = { main = main },
+        ref = { main = cfg.main },
         connected_networks = {},
+        flip_index = flip_index,
+        direction = direction,
     }
 
     -- create the basic innards
-    for _, cfg in pairs(sub_entities) do
-        oc_entity.ref[cfg.id] = create_internal_entity {
+    for _, sub_entity in pairs(sub_entities) do
+        oc_entity.ref[sub_entity.id] = create_internal_entity {
             entity = oc_entity,
-            name = cfg.name,
-            ghost = ghosts[cfg.name],
-            attached = attached[cfg.name],
-            x = cfg.x,
-            y = cfg.y,
+            name = sub_entity.name,
+            ghost = cfg.ghosts[sub_entity.name],
+            attached = cfg.attached[sub_entity.name],
+            dx = sub_entity.dx,
+            dy = sub_entity.dy,
         }
     end
 
@@ -227,15 +273,25 @@ function Oc:create(main, tags, player_index, ghosts, attached)
     for idx = 1, const.oc_iopin_count, 1 do
         local iopin_ref = 'iopin' .. idx
         local iopin_name = const.iopin_name(idx)
-        local iopin_pos = oc_iopin_position(main, idx)
+        local iopin_pos = oc_iopin_position {
+            main = cfg.main,
+            idx = idx,
+            flip_index = flip_index,
+        }
+
         oc_entity.ref[iopin_ref] = create_internal_entity {
             entity = oc_entity,
             name = iopin_name,
-            ghost = ghosts[iopin_name],
-            attached = attached[iopin_name],
+            ghost = cfg.ghosts[iopin_name],
+            attached = cfg.attached[iopin_name],
             pos = iopin_pos,
         }
     end
+
+    -- now correct the actual direction of the main entity so that the image
+    -- reflects the h_flip/v_flip
+    local image_direction = const.correct_image[oc_entity.direction][flip_index]
+    cfg.main.direction = image_direction
 
     setup_oc(oc_entity)
 
@@ -562,7 +618,13 @@ local function rotate_iopins(main, oc_entity, player)
     local move_list = {}
     for idx = 1, const.oc_iopin_count, 1 do
         local iopin_name = 'iopin' .. idx
-        local dst_pos = oc_iopin_position(main, idx)
+
+        local dst_pos = oc_iopin_position {
+            main = main,
+            idx = idx,
+            flip_index = oc_entity.flip_index or 1,
+        }
+
         local iopin = oc_entity.ref[iopin_name]
         if check_wire_stretch(iopin, dst_pos, player) then
             return true, {}
@@ -584,6 +646,10 @@ function Oc:rotate(main, player_index, previous_direction)
     local oc_entity = self:entity(main.unit_number)
     if not oc_entity then return end
 
+    -- reverse the image correction
+    local rotated_direction = const.correct_image[main.direction][oc_entity.flip_index]
+    main.direction = rotated_direction
+
     local player = game.players[player_index]
     local vetoed, rotated_io_pins = rotate_iopins(main, oc_entity, player)
 
@@ -594,6 +660,10 @@ function Oc:rotate(main, player_index, previous_direction)
             local iopin_name = 'iopin' .. idx
             oc_entity.ref[iopin_name].teleport(rotated_io_pins[idx])
         end
+
+        -- redo image correction
+        oc_entity.direction = rotated_direction
+        main.direction = const.correct_image[main.direction][oc_entity.flip_index]
     end
 end
 

@@ -16,7 +16,7 @@ local Constants = {}
 Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
 
 -- the current version that is the result of the latest migration
-Constants.current_version = 4
+Constants.current_version = 5
 
 Constants.prefix = 'hps:fo-'
 Constants.name = 'optical-connector'
@@ -224,28 +224,105 @@ Constants.sprite_positions = {
 
 Constants.iopin_directions = {
     [defines.direction.north] = {
+        -- north related
         1, -- NORMAL (NORTH)
         4, -- H-FLIP (SOUTH-V)
-        8, -- V-FLIP (NORTH-V)
-        5, -- H/V FLIP (SOUTH)
+        -- north related (show up as south after v-flip)
+        8, -- V-FLIP (SOUTH-V)
+        5, -- H/V FLIP (NORTH)
     },
     [defines.direction.east] = {
+        -- east related
         3, -- NORMAL (EAST)
-        6, -- H-FLIP (WEST-V)
-        2, -- V-FLIP (EAST-V)
+
+        -- east related (show up as west after h-flip)
+        2, -- H-FLIP (WEST-V)
+
+        -- east related
+        6, -- V-FLIP (EAST-V)
+
+        -- east related (show up as west after h-flip)
         7, -- H/V FLIP (WEST)
     },
     [defines.direction.south] = {
+        -- south related
         5, -- NORMAL (SOUTH)
         8, -- H-FLIP (NORTH-V)
-        4, -- V-FLIP (SOUTH-V)
-        1, -- H/V FLIP (NORTH)
+
+        -- south related (show up as north after v-flip)
+        4, -- V-FLIP (NORTH-V)
+        1, -- H/V FLIP (SOUTH)
     },
     [defines.direction.west] = {
+        -- west related
         7, -- NORMAL (WEST)
-        2, -- H-FLIP (EAST-V)
-        6, -- V-FLIP (WEST-V)
+
+        -- west related (show up as east after h-flip)
+        6, -- H-FLIP (EAST-V)
+
+        -- west related
+        2, -- V-FLIP (WEST-V)
+
+        -- west related (show up as east after h-flip)
         3, -- H/V FLIP (EAST)
+    },
+}
+
+-- any main entity at construction time has been rotated
+-- according to the flip_h and flip_v settings. This matrix
+-- undoes those so that the actual direction is the original
+-- direction before flipping.
+Constants.correct_direction = {
+    [defines.direction.north] = {
+        defines.direction.north, -- NORMAL
+        defines.direction.north, -- H-FLIP
+        defines.direction.south, -- V-FLIP
+        defines.direction.south, -- H/V-FLIP
+    },
+    [defines.direction.east] = {
+        defines.direction.east,
+        defines.direction.west,
+        defines.direction.east,
+        defines.direction.west,
+    },
+    [defines.direction.south] = {
+        defines.direction.south,
+        defines.direction.south,
+        defines.direction.north,
+        defines.direction.north,
+    },
+    [defines.direction.west] = {
+        defines.direction.west,
+        defines.direction.east,
+        defines.direction.west,
+        defines.direction.east,
+    },
+}
+
+Constants.correct_image = {
+    [defines.direction.north] = {
+        defines.direction.north, -- NORMAL
+        defines.direction.east,  -- H-FLIP
+        defines.direction.west,  -- V-FLIP
+        defines.direction.south, -- H/V-FLIP
+    },
+    [defines.direction.east] = {
+        defines.direction.east,
+        defines.direction.north,
+        defines.direction.south,
+        defines.direction.west,
+    },
+    [defines.direction.south] = {
+        defines.direction.south,
+        defines.direction.west,
+        defines.direction.east,
+        defines.direction.north,
+    },
+    [defines.direction.west] = {
+        defines.direction.west,
+        defines.direction.south,
+        defines.direction.north,
+        defines.direction.east,
     },
 }
 

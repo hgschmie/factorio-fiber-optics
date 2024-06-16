@@ -32,7 +32,7 @@ end
 
 -- reorders the blueprint based on the passed split function. If the function
 -- returns true, move the BlueprintEntity to the end of the list. This is necessary
--- e.g. for the optical connectors where the IOPins etc. must be built before the 
+-- e.g. for the optical connectors where the IOPins etc. must be built before the
 -- main entity so that they can be adopted by the main entity.
 ---@param blueprint LuaItemStack
 ---@param splitter function(blueprint_entity: BlueprintEntity): boolean
@@ -103,35 +103,37 @@ local function save_to_blueprint(entities, blueprint)
 
     local blueprint_entities = reorder_blueprint(blueprint, reorder_optical_connectors)
     assert(blueprint_entities)
-    
-    -- -- blueprints hold a set of entities without any identifying information besides
-    -- -- the position of the entity. Build a double-index map that allows finding the
-    -- -- index in the blueprint entity list by x/y coordinate.
-    -- local blueprint_index = {}
 
-    -- for idx, blueprint_entity in pairs(blueprint_entities) do
-    --     local x_map = blueprint_index[blueprint_entity.position.x] or {}
-    --     local y_map = x_map[blueprint_entity.position.y] or {}
-    --     x_map[blueprint_entity.position.y] = y_map
-    --     assert(not y_map[blueprint_entity.name])
-    --     y_map[blueprint_entity.name] = idx
+    -- blueprints hold a set of entities without any identifying information besides
+    -- the position of the entity. Build a double-index map that allows finding the
+    -- index in the blueprint entity list by x/y coordinate.
+    local blueprint_index = {}
 
-    --     blueprint_index[blueprint_entity.position.x] = x_map
-    -- end
+    for idx, blueprint_entity in pairs(blueprint_entities) do
+        local x_map = blueprint_index[blueprint_entity.position.x] or {}
+        local y_map = x_map[blueprint_entity.position.y] or {}
+        x_map[blueprint_entity.position.y] = y_map
+        assert(not y_map[blueprint_entity.name])
+        y_map[blueprint_entity.name] = idx
 
-    -- local entity_map = {}
-    -- local oc_list = {}
+        blueprint_index[blueprint_entity.position.x] = x_map
+    end
+
+    local entity_map = {}
+    local oc_list = {}
     -- -- all entities here are of interest. Find their index in the blueprint
     -- -- and assign the config as a tag.
-    -- for _, entity in pairs(entities) do
-    --     local idx_map = (blueprint_index[entity.position.x] or {})[entity.position.y]
-    --     if idx_map and idx_map[entity.name] then
-    --         entity_map[entity.unit_number] = idx_map[entity.name]
-    --         if entity.name == const.optical_connector then
-    --             oc_list[entity.unit_number] = entity
-    --         end
-    --     end
-    -- end
+    for _, entity in pairs(entities) do
+        local idx_map = (blueprint_index[entity.position.x] or {})[entity.position.y]
+        if idx_map and idx_map[entity.name] then
+            local oc_config = This.oc:entity(entity.unit_number)
+            -- record the flip index with the blueprint
+            if oc_config then
+                blueprint.set_blueprint_entity_tag(idx_map[entity.name], 'flip_index', oc_config.flip_index)
+                blueprint.set_blueprint_entity_tag(idx_map[entity.name], 'direction', oc_config.direction)
+            end
+        end
+    end
 end
 
 --- checks whether the player has a valid blueprint for editing
