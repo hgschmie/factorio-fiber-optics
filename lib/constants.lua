@@ -326,5 +326,13 @@ Constants.correct_image = {
     },
 }
 
+-- this is the equivalent of <first> XOR <second>
+Constants.total_flip = {
+    { 1, 2, 3, 4, }, -- NORMAL   (NORMAL, H-FLIP, V-FLIP, H/V-FLIP)
+    { 2, 1, 4, 3, }, -- H-FLIP   (H-FLIP, NORMAL, H/V-FLIP, V-FLIP)
+    { 3, 4, 1, 2, }, -- V-FLIP   (V-FLIP, H/V-FLIP, NORMAL, H-FLIP)
+    { 4, 3, 2, 1, }, -- H/V-FLIP (H/V-FLIP, V-FLIP, H-FLIP, NORMAL)
+}
+
 
 return Constants

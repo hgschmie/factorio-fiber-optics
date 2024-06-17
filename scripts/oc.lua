@@ -198,22 +198,6 @@ local function setup_oc(oc_entity)
     assert(oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.green, target_entity = oc_entity.ref.status_led_2 })
 end
 
-local function compute_flip_index(cfg_flip_h, cfg_flip_v, tags)
-    local tag_flip_h = false
-    local tag_flip_v = false
-
-    if tags and tags.flip_index then
-        tag_flip_h = bit32.band(tags.flip_index - 1, 1) == 1
-        tag_flip_v = bit32.band(tags.flip_index - 1, 2) == 2
-    end
-
-    local flip_h = cfg_flip_h ~= tag_flip_h
-    local flip_v = cfg_flip_v ~= tag_flip_v
-
-    return 1 + (flip_h and 1 or 0) + (flip_v and 2 or 0)
-end
-
-
 ---@class OcCreateCfg
 ---@field main LuaEntity
 ---@field tags Tags?
@@ -235,16 +219,41 @@ function Oc:create(cfg)
 
     assert(self:entity(entity_id) == nil)
 
-    -- the flip index includes both the tags from a blueprint and the current flips
-    local flip_index = compute_flip_index(cfg.flip_h, cfg.flip_v, cfg.tags)
+    -- deal with flipped entities. This is somewhat convoluted as there are
+    -- two transformations: one by the current h/v flip (which can be done by
+    -- flipping a blueprint) and the existing flips from the entity (if a flipped
+    -- entity was picked up by a blueprint first).
+    --
+    -- For an added bonus, the oc uses an asymmetric image (pin 1 is marked green)
+    -- so for a flipped image, the direction is actually not the direction of the
+    -- main entity.
 
-    -- this is the original direction of the oc
-    local direction = const.correct_direction[cfg.main.direction][flip_index]
-    cfg.main.direction = direction
+    -- flip index for the current build. Those were set by the prebuild event
+    local build_flip_index = 1 + (cfg.flip_h and 1 or 0) + (cfg.flip_v and 2 or 0)
 
-    -- -- now find the original direction of the oc
-    -- local original_direction =
-    -- cfg.main.direction = original_direction
+    -- undo the current flip. The entity now points in the direction if it had not been
+    -- flipped through the blueprint
+    local pre_build_flip_direction = const.correct_direction[cfg.main.direction][build_flip_index]
+
+    -- the build code has put an existing flip into the tags (either from a blueprint ghost
+    -- entity or from the event if this is a direct build.
+    -- this is an optional value; if no tag was found, it uses index 1 ("no flips")
+    local existing_flip_index = cfg.tags and cfg.tags.flip_index or 1
+
+    -- the image was corrected so that pin 1 was in the right location when it was created
+    -- undo this here. The main entity now points in the correct direction without any flips
+    -- this allows finding the right spots for all the io points.
+    local pre_image_flip_direction = const.correct_image[pre_build_flip_direction][existing_flip_index]
+
+    -- this is the direction that is needed for all the iopin calculations
+    cfg.main.direction = pre_image_flip_direction
+
+    -- now the flip index includes both the tags from a blueprint and the current flips
+    local final_flip_index = const.total_flip[existing_flip_index][build_flip_index]
+
+    -- the final image may need to point in a different direction so that pin 1 aligns 
+    -- correctly. Create that direction and store it.
+    local final_direction = const.correct_image[pre_image_flip_direction][final_flip_index]
 
     ---@type OpticalConnectorData
     local oc_entity = {
@@ -253,8 +262,7 @@ function Oc:create(cfg)
         entities = {},
         ref = { main = cfg.main },
         connected_networks = {},
-        flip_index = flip_index,
-        direction = direction,
+        flip_index = final_flip_index,
     }
 
     -- create the basic innards
@@ -276,7 +284,7 @@ function Oc:create(cfg)
         local iopin_pos = oc_iopin_position {
             main = cfg.main,
             idx = idx,
-            flip_index = flip_index,
+            flip_index = final_flip_index,
         }
 
         oc_entity.ref[iopin_ref] = create_internal_entity {
@@ -288,14 +296,13 @@ function Oc:create(cfg)
         }
     end
 
-    -- now correct the actual direction of the main entity so that the image
-    -- reflects the h_flip/v_flip
-    local image_direction = const.correct_image[oc_entity.direction][flip_index]
-    cfg.main.direction = image_direction
-
     setup_oc(oc_entity)
-
     self:setEntity(entity_id, oc_entity)
+
+    -- finally point the entity in the final direction so that the image lines up
+    -- with the IO pins. If the entity was not flipped anywhere, all of those transformations
+    -- end up being neutral and nothing changed.
+    oc_entity.main.direction = final_direction
 
     return oc_entity
 end
