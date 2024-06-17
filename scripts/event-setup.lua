@@ -90,12 +90,12 @@ local function onEntityCreated(event)
         tags = tags or entity_ghost.tags
     end
 
-    local flip_horizontal = false
-    local flip_vertical = false
+    local flip_index = 1 -- (NORMAL - no flips)
     if player_index then
         local _, player_data = Player.get(player_index)
-        flip_horizontal = player_data.flip_horizontal or false
-        flip_vertical = player_data.flip_vertical or false
+        -- increase the flip index based on present flips
+        flip_index = flip_index + (player_data.flip_horizontal and 1 or 0)
+        flip_index = flip_index + (player_data.flip_vertical and 2 or 0)
     end
 
     local area = Area.new(entity.selection_box)
@@ -117,8 +117,7 @@ local function onEntityCreated(event)
         player_index = player_index,
         ghosts = attached_ghosts,
         attached = attached_entities,
-        flip_h = flip_horizontal,
-        flip_v = flip_vertical,
+        flip_index = flip_index,
     }
 end
 
@@ -189,7 +188,7 @@ end
 -- Ticker code
 --------------------------------------------------------------------------------
 
-local function onTick(event)
+local function onTick()
     This.oc:update_entities()
 end
 
@@ -197,7 +196,7 @@ end
 -- Debug code
 --------------------------------------------------------------------------------
 
-local function onDebugTick(event)
+local function onDebugTick()
     This.network:fiber_network_debug_output()
 end
 

@@ -1,16 +1,9 @@
+---@meta
 ------------------------------------------------------------------------
 -- Manage all the attached entities and ghosts
 ------------------------------------------------------------------------
 
 local Position = require('__stdlib__/stdlib/area/position')
-
----@class AttachedEntity
----@field entity LuaEntity
----@field name string?
----@field position MapPosition?
----@field orientation float?
----@field tags Tags?
----@field player_index integer
 
 
 ---@class FiberNetworkAttachedEntities

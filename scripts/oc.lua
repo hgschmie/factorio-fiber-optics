@@ -1,6 +1,7 @@
---
+---@meta
+------------------------------------------------------------------------
 -- all the optical connector management code
---
+------------------------------------------------------------------------
 
 local Is = require('__stdlib__/stdlib/utils/is')
 
@@ -21,18 +22,7 @@ local Oc = {}
 function Oc:init()
     if global.oc_data then return end
 
-    ---@class OpticalConnectorData
-    ---@field main LuaEntity
-    ---@field entities LuaEntity[]
-    ---@field status defines.entity_status?
-    ---@field ref table<string, LuaEntity>
-    ---@field connected_networks table<integer, integer>
-    ---@field flip_index integer?
-
-    ---@class ModOcData
-    ---@field oc OpticalConnectorData[]
-    ---@field count integer
-    ---@field VERSION integer
+    ---@type ModOcData
     global.oc_data = {
         oc = {},
         count = 0,
@@ -87,12 +77,6 @@ end
 -- create/destroy
 ------------------------------------------------------------------------
 
----@class OcIopinPositionCfg
----@field main LuaEntity
----@field idx integer
----@field direction defines.direction?
----@field flip_index integer
-
 -- computes io pin position relative to an entity and the iopin index.
 ---@param cfg OcIopinPositionCfg
 local function oc_iopin_position(cfg)
@@ -109,21 +93,12 @@ local function oc_iopin_position(cfg)
     }
 end
 
----@class OcCreateInternalEntityCfg
----@field entity OpticalConnectorData
----@field name string
----@field dx integer?
----@field dy integer?
----@field pos MapPosition?
----@field ghost AttachedEntity?
----@field attached AttachedEntity?
-
 local sub_entities = {
-    { id = 'power_entity',      name = const.oc_power_interface, },                       -- Power Entity for power consumption
+    { id = 'power_entity',      name = const.oc_power_interface, },                         -- Power Entity for power consumption
     { id = 'power_pole',        name = const.oc_power_pole,      dx = 0,    dy = 16 / 64 }, -- Power Pole for power connections
-    { id = 'status_led_1',      name = const.oc_led_lamp,        dx = -0.2, dy = -0.02 }, -- Status Lamp 1
-    { id = 'status_led_2',      name = const.oc_led_lamp,        dx = 0.2,  dy = -0.02 }, -- Status Lamp 2
-    { id = 'status_controller', name = const.oc_cc, },                                    -- Status Controller
+    { id = 'status_led_1',      name = const.oc_led_lamp,        dx = -0.2, dy = -0.02 },   -- Status Lamp 1
+    { id = 'status_led_2',      name = const.oc_led_lamp,        dx = 0.2,  dy = -0.02 },   -- Status Lamp 2
+    { id = 'status_controller', name = const.oc_cc, },                                      -- Status Controller
 }
 
 ---@param cfg OcCreateInternalEntityCfg
@@ -141,14 +116,17 @@ local function create_internal_entity(cfg)
     local sub_entity
 
     if ghost and ghost.entity then
-        local collision, entity = ghost.entity.silent_revive()
+        -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
+        local _, entity = ghost.entity.silent_revive()
         assert(entity)
         entity.teleport { x, y }
         sub_entity = entity
     elseif attached and attached.entity then
+        -- adopt an actual entity and position it
         sub_entity = attached.entity
         sub_entity.teleport { x, y }
     else
+        -- otherwise create a new entity
         sub_entity = main.surface.create_entity {
             name = cfg.name,
             position = { x = x, y = y },
@@ -198,16 +176,6 @@ local function setup_oc(oc_entity)
     assert(oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.green, target_entity = oc_entity.ref.status_led_2 })
 end
 
----@class OcCreateCfg
----@field main LuaEntity
----@field tags Tags?
----@field player_index integer
----@field ghosts AttachedEntity[]
----@field attached AttachedEntity[]
----@field flip_h boolean
----@field flip_v boolean
-
-
 --- Creates a new entity from the main entity, registers with the mod
 --- and configures it.
 ---@param cfg OcCreateCfg
@@ -228,12 +196,9 @@ function Oc:create(cfg)
     -- so for a flipped image, the direction is actually not the direction of the
     -- main entity.
 
-    -- flip index for the current build. Those were set by the prebuild event
-    local build_flip_index = 1 + (cfg.flip_h and 1 or 0) + (cfg.flip_v and 2 or 0)
-
     -- undo the current flip. The entity now points in the direction if it had not been
     -- flipped through the blueprint
-    local pre_build_flip_direction = const.correct_direction[cfg.main.direction][build_flip_index]
+    local pre_build_flip_direction = const.correct_direction[cfg.main.direction][cfg.flip_index]
 
     -- the build code has put an existing flip into the tags (either from a blueprint ghost
     -- entity or from the event if this is a direct build.
@@ -249,7 +214,7 @@ function Oc:create(cfg)
     cfg.main.direction = pre_image_flip_direction
 
     -- now the flip index includes both the tags from a blueprint and the current flips
-    local final_flip_index = const.total_flip[existing_flip_index][build_flip_index]
+    local final_flip_index = const.total_flip[existing_flip_index][cfg.flip_index]
 
     -- the final image may need to point in a different direction so that pin 1 aligns
     -- correctly. Create that direction and store it.
@@ -592,7 +557,6 @@ function Oc:rotate(main, player_index, previous_direction)
         end
 
         -- redo image correction
-        oc_entity.direction = rotated_direction
         main.direction = const.correct_image[main.direction][oc_entity.flip_index]
     end
 end

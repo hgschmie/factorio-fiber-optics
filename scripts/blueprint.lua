@@ -1,3 +1,4 @@
+---@meta
 --------------------------------------------------------------------------------
 -- Blueprint / copy&paste management
 --------------------------------------------------------------------------------
@@ -28,7 +29,6 @@ local function rewrite_blueprint_entities(array, id_map)
         end
     end
 end
-
 
 -- reorders the blueprint based on the passed split function. If the function
 -- returns true, move the BlueprintEntity to the end of the list. This is necessary
@@ -94,7 +94,6 @@ local function reorder_blueprint(blueprint, splitter)
     return head_list
 end
 
-
 --- @param blueprint LuaItemStack
 --- @param entities LuaEntity[]
 local function save_to_blueprint(entities, blueprint)
@@ -119,8 +118,6 @@ local function save_to_blueprint(entities, blueprint)
         blueprint_index[blueprint_entity.position.x] = x_map
     end
 
-    local entity_map = {}
-    local oc_list = {}
     -- -- all entities here are of interest. Find their index in the blueprint
     -- -- and assign the config as a tag.
     for _, entity in pairs(entities) do
@@ -130,7 +127,6 @@ local function save_to_blueprint(entities, blueprint)
             -- record the flip index with the blueprint
             if oc_config then
                 blueprint.set_blueprint_entity_tag(idx_map[entity.name], 'flip_index', oc_config.flip_index)
-                blueprint.set_blueprint_entity_tag(idx_map[entity.name], 'direction', oc_config.direction)
             end
         end
     end
@@ -145,7 +141,6 @@ local function has_valid_blueprint(player)
 
     return (player.cursor_stack.valid_for_read and player.cursor_stack.name == 'blueprint')
 end
-
 
 ---@param player LuaPlayer
 ---@param player_data table<string, any>

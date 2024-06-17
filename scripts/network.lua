@@ -15,10 +15,7 @@ local Network = {}
 function Network:init()
     if global.oc_networks then return end
 
-    ---@class GlobalFiberNetworks
-    ---@field VERSION integer
-    ---@field surface_networks table<integer, SurfaceFiberNetworks>
-    ---@field total_count integer
+    ---@type GlobalFiberNetworks
     global.oc_networks = {
         VERSION = const.current_version,
         surface_networks = {},
@@ -51,10 +48,7 @@ local function create_new_network(entity)
         }
     end
 
-    ---@class FiberNetwork
-    ---@field endpoint_count integer
-    ---@field endpoints table<integer, LuaEntity>
-    ---@field connectors table<integer, LuaEntity>
+    ---@type FiberNetwork
     return {
         endpoint_count = 0,
         endpoints = {},
