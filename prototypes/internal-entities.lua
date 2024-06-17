@@ -3,6 +3,7 @@
 ------------------------------------------------------------------------
 
 local const = require('lib.constants')
+local Sprites = require('__stdlib__/stdlib/data/modules/sprites')
 
 local oc_icon = const:png('sprite/oc-sprite-128')
 
@@ -41,7 +42,7 @@ local entities = {
 
         energy_usage = '2kW',
         gui_mode = 'none',
-        picture = const.empty_sprite,
+        picture = Sprites.empty_picture(),
 
         -- EntityWithHealthPrototype
         max_health = 1,
@@ -67,11 +68,11 @@ local entities = {
         icon_size = 1,
 
         -- PowerSwitchPrototype
-        power_on_animation = const.empty_sprite,
-        overlay_start = const.empty_sprite,
-        overlay_loop = const.empty_sprite,
-        led_on = const.empty_sprite,
-        led_off = const.empty_sprite,
+        power_on_animation = Sprites.empty_picture(),
+        overlay_start = Sprites.empty_picture(),
+        overlay_loop = Sprites.empty_picture(),
+        led_on = Sprites.empty_picture(),
+        led_off = Sprites.empty_picture(),
         overlay_start_delay = 0,
 
         circuit_wire_connection_point = {
@@ -172,10 +173,10 @@ local entities = {
         -- ConstantCombinatorPrototype
         item_slot_count = 2,
         activity_led_light_offsets = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
-        circuit_wire_connection_points = { const.circuit_wire_connectors, const.circuit_wire_connectors, const.circuit_wire_connectors, const.circuit_wire_connectors },
+        circuit_wire_connection_points = Sprites.empty_connection_points(4),
         circuit_wire_max_distance = 2,
         draw_circuit_wires = false,
-        sprites = const.empty_sprite,
+        sprites = Sprites.empty_picture(),
 
         -- EntityWithHealthPrototype
         max_health = 1,
@@ -198,8 +199,8 @@ local entities = {
 
         -- ContainerPrototype
         inventory_size = 0,
-        picture = const.empty_sprite,
-        circuit_wire_connection_points = const.circuit_wire_connectors,
+        picture = Sprites.empty_picture(),
+        circuit_wire_connection_points = Sprites.empty_connection_points()[1],
         circuit_wire_max_distance = default_circuit_wire_max_distance,
         draw_circuit_wires = false,
 

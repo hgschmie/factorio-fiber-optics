@@ -2,6 +2,8 @@
 -- setup code for all the io pins
 ------------------------------------------------------------------------
 
+local Sprites = require('__stdlib__/stdlib/data/modules/sprites')
+
 local const = require('lib.constants')
 
 local circle_sprite = const:png('sprite/circle')
@@ -39,7 +41,7 @@ local entity = {
     -- LampPrototype
     energy_usage_per_tick = "1J",
     energy_source = { type = "void" },
-    circuit_wire_connection_point = const.circuit_wire_connectors,
+    circuit_wire_connection_point = Sprites.empty_connection_points()[1],
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_circuit_wires = true,
     draw_copper_wires = false,
@@ -58,27 +60,27 @@ local entity = {
     selection_priority = 70,
 }
 
-local result = {}
+local iopin_entities = {}
 
 local sprite_name = iopin_one_sprite
 
 for idx = 1, const.oc_iopin_count, 1 do
-    local name = const.iopin_name(idx)
+    local name = const:iopin_name(idx)
 
     local iopin_item = table.deepcopy(item)
     iopin_item.name = name
     iopin_item.place_result = name
 
-    table.insert(result, iopin_item)
+    table.insert(iopin_entities, iopin_item)
 
     local iopin_entity = table.deepcopy(entity)
     iopin_entity.name = name
     iopin_entity.picture_on = sprite_name
     iopin_entity.picture_off = sprite_name
 
-    table.insert(result, iopin_entity)
+    table.insert(iopin_entities, iopin_entity)
 
     sprite_name = iopin_sprite
 end
 
-data:extend(result)
+data:extend(iopin_entities)
