@@ -79,12 +79,12 @@ local entities = {
         },
 
         left_wire_connection_point = {
-            wire = { copper = { -0.2, 0 } },
-            shadow = { copper = { -0.2, 0 } },
+            wire = { copper = { -14/64, 4/64 } },
+            shadow = { copper = { -14/64, 4/64 } },
         },
         right_wire_connection_point = {
-            wire = { copper = { 0.2, 0 } },
-            shadow = { copper = { 0.2, 0 } },
+            wire = { copper = { 16/64, 4/64 } },
+            shadow = { copper = { 16/64, 4/64 } },
         },
         wire_max_distance = 10,
         draw_copper_wires = true,
@@ -94,9 +94,9 @@ local entities = {
         max_health = 1,
 
         -- EntityPrototype
-        collision_box = { { -0.2, -0.1 }, { 0.2, 0.1 } },
+        collision_box = { { -22/64, -8/64 }, { 24/64, 8/64 } },
         collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
-        selection_box = { { -0.2, -0.1 }, { 0.2, 0.1 } },
+        selection_box = { { -22/64, -8/64 }, { 24/64, 8/64 } },
 
         flags = const.prototype_internal_entity_flags,
 

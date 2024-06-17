@@ -120,7 +120,7 @@ end
 
 local sub_entities = {
     { id = 'power_entity',      name = const.oc_power_interface, },                       -- Power Entity for power consumption
-    { id = 'power_pole',        name = const.oc_power_pole, },                            -- Power Pole for power connections
+    { id = 'power_pole',        name = const.oc_power_pole,      dx = 0,    dy = 16 / 64 }, -- Power Pole for power connections
     { id = 'status_led_1',      name = const.oc_led_lamp,        dx = -0.2, dy = -0.02 }, -- Status Lamp 1
     { id = 'status_led_2',      name = const.oc_led_lamp,        dx = 0.2,  dy = -0.02 }, -- Status Lamp 2
     { id = 'status_controller', name = const.oc_cc, },                                    -- Status Controller
