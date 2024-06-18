@@ -200,6 +200,19 @@ local function onDebugTick()
     This.network:fiber_network_debug_output()
 end
 
+local debug_enabled = false
+local function onRuntimeModSettingsChanged(event)
+    local new_debug_enabled = Framework.settings:runtime().debug_mode or false --[[@as boolean]]
+    if new_debug_enabled ~= debug_enabled then
+        if new_debug_enabled then
+            Event.on_nth_tick(101, onDebugTick)
+        else
+            Event.remove(-101, onDebugTick)
+        end
+        debug_enabled = new_debug_enabled
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Event registration
 --------------------------------------------------------------------------------
@@ -209,6 +222,7 @@ Event.on_init(onInitOc)
 Event.on_load(onLoadOc)
 
 Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
+Event.register(defines.events.on_runtime_mod_setting_changed, onRuntimeModSettingsChanged)
 
 local oc_entity_filter = Util.create_event_entity_matcher('name', const.optical_connector)
 local oc_attached_entities_filter = Util.create_event_entity_matcher('name', const.attached_entities)
@@ -237,8 +251,3 @@ Event.register(defines.events.on_entity_destroyed, onEntityDestroyed)
 
 -- ticker code
 Event.on_nth_tick(299, onTick)
-
--- debug code
-if bit32.band(This.debug_mode, 1) ~= 0 then
-    Event.on_nth_tick(101, onDebugTick)
-end

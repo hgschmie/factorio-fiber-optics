@@ -15,10 +15,10 @@ local Settings = {
    -- `NAMES` table mapping settings fields to their in-game names (fields not present in NAMES will
    -- be ignored).
    definitions = {
-      startup = {
-         debug_mode = { Framework.PREFIX .. 'debug-mode', false }
+      startup = {},
+      runtime = {
+        debug_mode = { Framework.PREFIX .. 'debug-mode', false }
       },
-      runtime = {},
       player = {},
    }
 }

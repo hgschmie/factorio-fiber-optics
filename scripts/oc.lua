@@ -569,10 +569,10 @@ function Oc:update_entities()
     for idx, entity in pairs(self:entities()) do
         self:update_entity_status(entity)
 
-        if bit32.band(This.debug_mode, 2) ~= 0 then
+        if Framework.settings:runtime().debug_mode then
             local power_entity = entity.ref.power_entity
-            Framework.logger.debugf('Connector %d, current energy usage %4.1d kW', idx, (power_entity.power_usage * 60) / 1000.0)
-            Framework.logger.debugf('Connector %d, charge: %d, drain: %d, capacity: %d', idx, power_entity.electric_emissions, power_entity.electric_drain,
+            Framework.logger:debugf('Connector %d, current energy usage %4.1d kW', idx, (power_entity.power_usage * 60) / 1000.0)
+            Framework.logger:debugf('Connector %d, charge: %d, drain: %d, capacity: %d', idx, power_entity.electric_emissions, power_entity.electric_drain,
                 power_entity.electric_buffer_size)
         end
     end

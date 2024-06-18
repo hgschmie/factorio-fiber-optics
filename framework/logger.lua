@@ -12,10 +12,10 @@ local default_logger = { log = log }
 
 --- Logging
 ---@class FrameworkLogger
----@field debug_mode boolean If true, debug and debugf produce output lines
+---@field debug_mode boolean? If true, debug and debugf produce output lines
 ---@field core_logger table<string, any> The logging target
 local FrameworkLogger = {
-    debug_mode = true,
+    debug_mode = nil,
     core_logger = default_logger,
 
     debug = dummy,
@@ -39,6 +39,22 @@ if FrameworkLogger.debug_mode then
     FrameworkLogger.debugf = FrameworkLogger.logf
 end
 
+function FrameworkLogger:updateDebugSettings()
+    local new_debug_mode = Framework.settings:runtime().debug_mode --[[@as boolean]]
+
+    if new_debug_mode ~= self.debug_mode then
+        self:log('==')
+        self:logf('== Debug Mode %s.', new_debug_mode and 'enabled' or 'disabled')
+        self:log('==')
+    end
+
+    -- reset debug logging, turn back on if debug_mode is still set
+    self.debug = (new_debug_mode and self.log) or dummy
+    self.debugf = (new_debug_mode and self.logf) or dummy
+
+    self.debug_mode = new_debug_mode
+end
+
 ----------------------------------------------------------------------------------------------------
 
 --- Brings up the actual file logging using the stdlib. This only works in runtime mode, otherwise logging
@@ -48,19 +64,16 @@ end
 function FrameworkLogger:init()
     assert(script, 'Logger can only be initalized in runtime stage')
 
-    self.debug_mode = Framework.settings:startup().debug_mode --[[@as boolean]]
     self.core_logger = StdLibLogger.new('framework', self.debug_mode, { force_append = true })
 
     self.flush = function() self.core_logger.write() end
 
-    -- reset debug logging, turn back on if debug_mode is still set
-    self.debug = (self.debug_mode and self.log) or dummy
-    self.debugf = (self.debug_mode and self.logf) or dummy
-
     self:log('================================================================================')
     self:log('==')
-    self:logf("== Framework logfile for '%s' mod intialized (debug mode: %s)", Framework.NAME, tostring(self.debug_mode))
+    self:logf("== Framework logfile for '%s' mod intialized ", Framework.NAME) --(debug mode: %s)", Framework.NAME, tostring(self.debug_mode))
     self:log('==')
+
+    self:updateDebugSettings()
 
     local Event = require('__stdlib__/stdlib/event/event')
 
@@ -81,6 +94,11 @@ function FrameworkLogger:init()
     -- flush the log every 60 seconds
     Event.on_nth_tick(3600, function(ev)
         self:flush()
+    end)
+
+    -- Runtime settings changed
+    Event.register(defines.events.on_runtime_mod_setting_changed, function()
+        self:updateDebugSettings()
     end)
 end
 

@@ -131,8 +131,8 @@ end
 ------------------------------------------------------------------------
 
 function Network:fiber_network_debug_output()
-    for surface_index, networks in pairs(global.oc_networks.surface_networks) do
-        for network_id, fiber_network in pairs(networks) do
+    for surface_index, surface_networks in pairs(global.oc_networks.surface_networks) do
+        for network_id, fiber_network in pairs(surface_networks.networks) do
             local connectors = ''
             local count = 0
 
