@@ -29,7 +29,7 @@ function FrameworkLogger:log(message)
 end
 
 ---@param message string
----@param ... any[]
+---@param ... any
 function FrameworkLogger:logf(message, ...)
     self.core_logger.log(message:format(table.unpack { ... }))
 end
