@@ -1,6 +1,6 @@
 {
   "name": "fiber-optics",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "title": "Fiber Optics",
   "description": "Connects to the optical fibers in power lines to transfer red and green signals across power networks.",
   "author": "hgschmie",
