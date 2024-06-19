@@ -1,5 +1,9 @@
-Did you know that modern power cables have a fiber core and the cables used in Factorio are no exception. Every power cable that was ever placed in your factory actually has a number of optical fibers in it.
+# Fiber Optics Connector
 
-Fiber optic cables are good for one thing: Transfer signals over long distances. However, up until now, there was no way to access them.
+Did you know that modern power cables have a fiber core? What you don't know is that Factorio actually uses such cables. So every power cable that was ever placed in your factory has a number of optical fibers in it.
 
-Fiber optics technology provides a connector that can transfer up to 16 red/green signal pairs across a power network. Multiple power networks are supported.
+Fiber optic cables are good for one thing: Transferring signals over long distances. However, up to now, there was no way to use them.
+
+A Fiber optics connector can transfer up to 16 red/green signal pairs across a power network.
+
+Multiple fiber optics connectors form a bus across a power network. Each pin is fully connected to the same pin on all other FOCs. The current generation of FOCs can transfer up to 16 red and 16 green signals simultaneously across up to two power networks.
