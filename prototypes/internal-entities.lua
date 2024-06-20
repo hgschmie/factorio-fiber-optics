@@ -17,7 +17,7 @@ local powerpole_item = {
     order = 'f[iber-optics]',
     place_result = const.oc_power_pole,
     stack_size = 50,
-    flags = const.prototyle_internal_item_flags,
+    flags = const.prototype_internal_item_flags,
 }
 
 data:extend { powerpole_item }
@@ -96,7 +96,7 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
-        collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
+        collision_mask = const.entity_collision_mask,
         selection_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
 
         flags = const.prototype_internal_entity_flags,

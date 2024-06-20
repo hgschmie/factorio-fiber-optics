@@ -254,8 +254,10 @@ Constants.deletion_events = {
 
 Constants.empty_icon = '__core__/graphics/empty.png'
 
+Constants.entity_collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' }
+
 -- item flags
-Constants.prototyle_internal_item_flags = {
+Constants.prototype_internal_item_flags = {
     'hidden',
     'hide-from-bonus-gui',
     'only-in-cursor',

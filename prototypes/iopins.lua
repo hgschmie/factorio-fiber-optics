@@ -31,7 +31,7 @@ local iopin_item = {
     subgroup = 'circuit-network',
     order = 'f[iber-optics]',
     stack_size = 50,
-    flags = const.prototyle_internal_item_flags,
+    flags = const.prototype_internal_item_flags,
 }
 
 local iopin_entity = {
@@ -53,7 +53,7 @@ local iopin_entity = {
 
     -- EntityPrototype
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
+    collision_mask = const.entity_collision_mask,
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     flags = const.prototype_internal_entity_flags,
     minable = nil,
@@ -106,7 +106,7 @@ local legacy_entity = {
 
     -- EntityPrototype
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
+    collision_mask = const.entity_collision_mask,
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     flags = const.prototype_internal_entity_flags,
     minable = nil,
