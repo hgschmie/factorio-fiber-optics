@@ -53,9 +53,9 @@ for _, oc_entity in pairs(oc:entities()) do
                 oc_entity.ref[iopin_ref] = nil
                 oc_entity.iopin[idx] = iopin_entity
 
-                oc:setIOPin(iopin_entity.unit_number, oc_entity.main.unit_number)
+                oc:setIOPin(iopin_entity.unit_number, idx)
             else
-                oc:setIOPin(entity.unit_number, oc_entity.main.unit_number)
+                oc:setIOPin(entity.unit_number, idx)
             end
         end
     end

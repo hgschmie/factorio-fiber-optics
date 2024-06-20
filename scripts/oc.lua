@@ -82,9 +82,9 @@ end
 
 -- Sets a new IO Pin reference
 ---@param iopin_id integer unit number of the iopin
----@param entity_id integer? unit number of the associated main entity
-function Oc:setIOPin(iopin_id, entity_id)
-    global.oc_data.iopins[iopin_id] = entity_id
+---@param iopin_index integer? The IO Pin index (1 .. 16)
+function Oc:setIOPin(iopin_id, iopin_index)
+    global.oc_data.iopins[iopin_id] = iopin_index
 end
 
 ------------------------------------------------------------------------
@@ -276,7 +276,7 @@ function Oc:create(cfg)
 
         oc_entity.iopin[idx] = iopin_entity
 
-        self:setIOPin(iopin_entity.unit_number, cfg.main.unit_number)
+        self:setIOPin(iopin_entity.unit_number, idx)
     end
 
     setup_oc(oc_entity)
@@ -579,33 +579,27 @@ end
 -- IO Pin identification
 ------------------------------------------------------------------------
 
-function Oc:identifyIOPin(iopin_entity)
-    local main_entity_id = self:iopins()[iopin_entity.unit_number]
-    if not main_entity_id then return nil end
-
-    local oc_entity = self:entity(main_entity_id)
-    if not oc_entity then return nil end
-
-    for idx = 1, const.oc_iopin_count, 1 do
-        if oc_entity.iopin[idx].unit_number == iopin_entity.unit_number then
-            return idx
-        end
-    end
-
-    return nil
-end
-
 local msg_iopin_caption = const:with_prefix('messages.iopin_caption')
+local text_color = {
+    { 1,   1,   1, },    -- none
+    { 1,   0.5, 0.5 },   -- red
+    { 0.5, 1,   0.5 },   -- green
+    { 1,   1,   0.5 },   -- red and green
+}
 
 function Oc:displayPinCaption(entity, player_index)
-    local iopin_idx = self:identifyIOPin(entity)
+    local iopin_idx = self:iopins()[entity.unit_number]
     if not iopin_idx then return end
+
+    local color_index = 1
+    color_index = color_index + ((table_size(entity.circuit_connected_entities.red) > 0) and 1 or 0)
+    color_index = color_index + ((table_size(entity.circuit_connected_entities.green) > 0) and 2 or 0)
 
     Framework.render:renderText(player_index, {
         text = { msg_iopin_caption, iopin_idx },
         surface = entity.surface,
         target = entity,
-        color = { 1, 1, 1, },
+        color = text_color[color_index],
         only_in_alt_mode = false,
         alignment = 'center',
         target_offset = { 0, -0.7 },
