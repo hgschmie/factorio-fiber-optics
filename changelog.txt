@@ -1,7 +1,15 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.0.3
-Date: ????
+Version: 0.1.0
+Date: 2024-??-??
   Changes:
+    - Replaced Lamp IO Pins with containers. Existing OCs will be migrated, but blueprints will have to be redone.
+    -
+---------------------------------------------------------------------------------------------------
+Version: 0.0.2
+Date: 2024-06-18
+  Changes:
+    - Rewrote the code on top of stdlib
+    - Supports blueprint flipping
 ---------------------------------------------------------------------------------------------------
 Version: 0.0.1
 Date: 2024-05-08

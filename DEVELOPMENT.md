@@ -17,12 +17,11 @@ Every FOC consists of a primary entity (which is a _SimpleEntityWithOwner_) and 
 
 - A _PowerSwitch_ for the network connection points. This seems to be literally the only entity that can take copper wire connections that is not a power pole (which has its own issues with automatically connecting copper wires)
 
-- 16 _Lamp_ entitities that are the i/o pins. Lamps are great because they are simple and provide an easy access point for circuit wires. This is the same technique that the compaktcircuits mod uses, except that it uses 16 instances of the same item and some trickery to keep the pins in the right spot. But then again, it does not support rotating the circuits.
+- 16 _Container_ entities that are the i/o pins. Containers and Lamps great because they are simple and provide an easy access point for circuit wires. This is the same technique that the compaktcircuits mod uses. As containers do not support rotating nor variants, there are two items, one for pin 1 (which is green) and 15 instances for the other pins that are orange.
 
-- [*] Two more lamps that emulate the connection LEDs.
+- [*] Two lamps that emulate the connection LEDs. I repurposed the wall control lights from the base game because I am lazy.
 
-- [*] A single constant combinator that controls the on/off state of
-  the LEDs
+- [*] A single constant combinator that controls the on/off state of the LEDs
 
 Entities that are marked with [*] are fully managed by the control code and are added and removed as needed. The connection points for the power and circuit cables (Power switch and Lamps) have corresponding items and are visible when blueprinting or copying a FOC. This is necessary to be able to blueprint the connection wires or reconnect wires when placing a blueprint over existing entities.
 
@@ -35,6 +34,7 @@ Very, very minimal. As there are no events when connecting/disconnecting an elec
 
 The good news is that this happens only once every five seconds, does not do any find_entity or similar heavy operation but simply poll the registered entities. So the impact should be minimal, especially when the FOCs are in "steady state" (no connection/disconnections happening).
 
+
 ### Opportunities
 
 - Nicer graphics. If you want to contribute, open an issue on github.
@@ -42,8 +42,6 @@ The good news is that this happens only once every five seconds, does not do any
 - A smaller (1x1) FOC would be nice. It would have fewer IO pins (maybe only 8). However, the picture gets really crowded (two LEDs and two connection points surrounded by eight IO Pins...). Also, with a subset of IO pins, there would need to be some GUI that allows connecting the pins to a specific fiber strand.
 
 - Rotating the power connection points (and the LEDs) with the FOC would be nice. I don't think the power switch can be rotated.
-
-- There are ways to store and restore information during cut/paste and blueprinting (compaktcircuit does it) which would allow to reduce the 16 different IO pin items to maybe 2 (one for pin 1, one for everything else)
 
 
 ## Observations
@@ -76,6 +74,8 @@ The good news is that this happens only once every five seconds, does not do any
 All of this make sense if one looks at it from the perspective of that giant stateful machine that Factorio is. But having to deal with four sets of events for building, two sets for deconstruction, two for blueprinting and a few more for singular things such as rotation requires a lot of code just for management.
 
 - It would be _great_ if an item could be marked as "invisible" in the UI for cut/paste and blueprinting. Right now, when blueprinting/cut&pasteing a FOC, the power connector and the IO pins show up as extra items, even though the user can not construct them (and the code takes care of them). But they need to be in the blueprint so that connecting wires works. If they could be marked as "needed but invisible", it would tremendously reduce the visual clutter when blueprinting.
+
+- Finally figured out how to handle multiple instances of the same entity type (for the IO Pins) without going slightly insane. The tag management code has come a very long way from my first attempts and is separated from the graphical representation. I did end up with a giant "IO Pin Entity unit number" -> "IO Pin Number" map, that I wanted to avoid for the longest time, but the `on_selected_entity_changed` (another event to handle...) event returns the entity under the cursor without any context. To display the hover text, the code needs to find out a) what FOC it belongs to and b) which IO Pin it is. Or just short-cut it and map the unit number directly to the IO Pin index.
 
 - *wire handling*. Ugh. I understand why there are no events for connecting/disconnecting and I can live with that but do the data structures for red/green wires and copper wires *really* have to be different enough that one can not write generic code? Inspecting ghosts, entities and blueprint items for existing wire connections is like an exercise in detective work and most of the time it is try-and-error. And then there are some small corners that are flat out undocumented.
 
