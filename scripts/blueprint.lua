@@ -103,6 +103,21 @@ local function save_to_blueprint(entities, blueprint)
     local blueprint_entities = reorder_blueprint(blueprint, reorder_optical_connectors)
     assert(blueprint_entities)
 
+    -- look at all the entities that are matched by the current blueprint. For any OC,
+    -- find all the pins and create a map from pin unit_number to pin index. This map will
+    -- be used to create the tags on the pins that mark their position on the OC.
+    local iopin_index = {}
+    for _, entity in pairs(entities) do
+        if Is.Valid(entity) and entity.name == const.optical_connector then
+            local oc_config = This.oc:entity(entity.unit_number)
+            if oc_config and oc_config.iopin then
+                for idx, iopin_entity in pairs(oc_config.iopin) do
+                    iopin_index[iopin_entity.unit_number] = idx
+                end
+            end
+        end
+    end
+
     -- blueprints hold a set of entities without any identifying information besides
     -- the position of the entity. Build a double-index map that allows finding the
     -- index in the blueprint entity list by x/y coordinate.
@@ -118,15 +133,27 @@ local function save_to_blueprint(entities, blueprint)
         blueprint_index[blueprint_entity.position.x] = x_map
     end
 
+    local iopin_match = table.array_to_dictionary(const.all_iopins)
+
     -- -- all entities here are of interest. Find their index in the blueprint
     -- -- and assign the config as a tag.
     for _, entity in pairs(entities) do
         local idx_map = (blueprint_index[entity.position.x] or {})[entity.position.y]
         if idx_map and idx_map[entity.name] then
-            local oc_config = This.oc:entity(entity.unit_number)
-            -- record the flip index with the blueprint
-            if oc_config then
-                blueprint.set_blueprint_entity_tag(idx_map[entity.name], 'flip_index', oc_config.flip_index)
+            local blueprint_entry = idx_map[entity.name]
+
+            if entity.name == const.optical_connector then
+                -- for all OC entities, record the flip index. This is needed to "unflip" the entity
+                -- when building to place the pins in the right places.
+                local oc_config = This.oc:entity(entity.unit_number)
+                if oc_config then
+                    blueprint.set_blueprint_entity_tag(blueprint_entry, 'flip_index', oc_config.flip_index)
+                end
+            elseif iopin_match[entity.name] then
+                -- for io pins, record their index which comes from the map that was built above
+                local iopin_idx = iopin_index[entity.unit_number]
+                assert(iopin_idx)
+                blueprint.set_blueprint_entity_tag(blueprint_entry, 'iopin_index', iopin_idx)
             end
         end
     end

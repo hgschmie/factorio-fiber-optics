@@ -13,10 +13,10 @@ local Constants = {}
 --------------------------------------------------------------------------------
 
 -- debug mode
-Constants.debug_mode = 0 -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
+Constants.debug_mode = 0
 
 -- the current version that is the result of the latest migration
-Constants.current_version = 5
+Constants.current_version = 6
 
 Constants.prefix = 'hps:fo-'
 Constants.name = 'optical-connector'
@@ -60,6 +60,8 @@ end
 --------------------------------------------------------------------------------
 
 Constants.optical_connector = Constants:with_prefix(Constants.name)
+Constants.iopin_name = Constants:with_prefix('oc-io_pin')
+Constants.iopin_one_name = Constants:with_prefix('oc-io_pin_one')
 
 Constants.optical_connector_technology = Constants:with_prefix('optical-connector-technology')
 
@@ -74,12 +76,18 @@ Constants.attached_entities = {
     Constants.oc_power_pole,
     Constants.oc_led_lamp,
     Constants.oc_cc,
+
+    Constants.iopin_name,
+    Constants.iopin_one_name,
 }
 
 -- entities that take a wire connection
 Constants.ghost_entities = {
     Constants.optical_connector,
     Constants.oc_power_pole,
+
+    Constants.iopin_name,
+    Constants.iopin_one_name,
 }
 
 --------------------------------------------------------------------------------
@@ -94,7 +102,10 @@ Constants.check_power_wires = 2
 
 -- map for all entities that need to do connection check
 Constants.wire_check = {
-    [Constants.oc_power_pole] = Constants.check_power_wires
+    [Constants.oc_power_pole] = Constants.check_power_wires,
+    [Constants.iopin_name] = Constants.check_circuit_wires,
+    [Constants.iopin_one_name] = Constants.check_circuit_wires,
+
 }
 
 --------------------------------------------------------------------------------
@@ -102,22 +113,11 @@ Constants.wire_check = {
 --------------------------------------------------------------------------------
 
 Constants.oc_iopin_count = 16
-Constants.oc_iopin_prefix = Constants:with_prefix('oc-iopin_')
 
-function Constants:iopin_name(idx)
-    return self.oc_iopin_prefix .. idx
-end
-
-Constants.all_iopins = {}
-
-for idx = 1, Constants.oc_iopin_count, 1 do
-    local name = Constants:iopin_name(idx)
-    table.insert(Constants.attached_entities, name)
-    table.insert(Constants.ghost_entities, name)
-    table.insert(Constants.all_iopins, name)
-
-    Constants.wire_check[name] = Constants.check_circuit_wires
-end
+Constants.all_iopins = {
+    Constants.iopin_name,
+    Constants.iopin_one_name,
+}
 
 --
 -- create the eight variants of io pin distribution, depending
@@ -131,8 +131,8 @@ for idx = 1, 4, 1 do
     Constants.iopin_positions[idx * 2] = {}
     local start = (idx - 1) * 4
     for id = 0, 15, 1 do
-        local pos_forward = ((start + id) % 16) + 1
-        local pos_backward = ((start - id + 16) % 16) + 1
+        local pos_forward = ((start + id) % Constants.oc_iopin_count) + 1
+        local pos_backward = ((start - id + Constants.oc_iopin_count) % Constants.oc_iopin_count) + 1
         Constants.iopin_positions[idx * 2 - 1][id + 1] = pos_forward
         Constants.iopin_positions[idx * 2][id + 1] = pos_backward
     end
@@ -145,42 +145,6 @@ Constants.iopin_directions = {
     [defines.direction.east] = { 3, 2, 6, 7, },  -- NORMAL (EAST), H-FLIP (WEST-V), V-FLIP (EAST-V), H/V FLIP (WEST)
     [defines.direction.south] = { 5, 8, 4, 1, }, -- NORMAL (SOUTH), H-FLIP (NORTH-V), V-FLIP (NORTH-V), H/V FLIP (SOUTH)
     [defines.direction.west] = { 7, 6, 2, 3, },  -- NORMAL (WEST), H-FLIP (EAST-V), V-FLIP (WEST-V), H/V FLIP (EAST)
-}
-
---
--- create the eight variants of io pin distribution, depending
--- on rotation and mirroring (from blueprints). See sprite_positions.txt
--- for the variants
---
-Constants.iopin_positions = {}
-
-for idx = 1, 4, 1 do
-    Constants.iopin_positions[idx * 2 - 1] = {}
-    Constants.iopin_positions[idx * 2] = {}
-    local start = (idx - 1) * 4
-    for id = 0, 15, 1 do
-        local pos_forward = ((start + id) % 16) + 1
-        local pos_backward = ((start - id + 16) % 16) + 1
-        Constants.iopin_positions[idx * 2 - 1][id + 1] = pos_forward
-        Constants.iopin_positions[idx * 2][id + 1] = pos_backward
-    end
-end
-
--- defines which of the eight iopin position variants is used, based on the
--- direction of the entity and the flip index (H-FLIP, V-FLIP)
-Constants.iopin_directions = {
-    [defines.direction.north] = {
-        1, 4, 8, 5, -- NORMAL (NORTH), H-FLIP (SOUTH-V), V-FLIP (SOUTH-V), H/V FLIP (NORTH)
-    },
-    [defines.direction.east] = {
-        3, 2, 6, 7, -- NORMAL (EAST), H-FLIP (WEST-V), V-FLIP (EAST-V), H/V FLIP (WEST)
-    },
-    [defines.direction.south] = {
-        5, 8, 4, 1, -- NORMAL (SOUTH), H-FLIP (NORTH-V), V-FLIP (NORTH-V), H/V FLIP (SOUTH)
-    },
-    [defines.direction.west] = {
-        7, 6, 2, 3, -- NORMAL (WEST), H-FLIP (EAST-V), V-FLIP (WEST-V), H/V FLIP (EAST)
-    },
 }
 
 -- IO Pin sprite positions relative to the main entity

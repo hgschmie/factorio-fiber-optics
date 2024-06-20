@@ -22,25 +22,79 @@ local iopin_one_sprite = {
     tint = { 0, 1, 0, 1 }, -- green
 }
 
-local item = {
-    type = "item",
+local iopin_item = {
+    type = 'item',
+    name = const.iopin_name,
     icon = const.empty_icon,
     icon_size = 1,
-    subgroup = "circuit-network",
+    place_result = const.iopin_name,
+    subgroup = 'circuit-network',
     order = 'f[iber-optics]',
     stack_size = 50,
     flags = const.prototyle_internal_item_flags,
 }
 
-local entity = {
+local iopin_entity = {
+    -- PrototypeBase
+    type = 'container',
+    name = const.iopin_name,
+    icon = const.empty_icon,
+    icon_size = 1,
+
+    -- ContainerPrototype
+    inventory_size = 0,
+    picture = iopin_sprite,
+    circuit_wire_connection_points = Sprites.empty_connection_points()[1],
+    circuit_wire_max_distance = default_circuit_wire_max_distance,
+    draw_circuit_wires = true,
+
+    -- EntityWithHealthPrototype
+    max_health = 1,
+
+    -- EntityPrototype
+    collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
+    collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' },
+    selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
+    flags = const.prototype_internal_entity_flags,
+    minable = nil,
+    allow_copy_paste = false,
+    selection_priority = 70,
+}
+
+-- IO Pin 1 is special
+local iopin_one_item = table.deepcopy(iopin_item)
+iopin_one_item.name = const.iopin_one_name
+iopin_one_item.place_result = const.iopin_one_name
+
+local iopin_one_entity = table.deepcopy(iopin_entity)
+iopin_one_entity.name = const.iopin_one_name
+iopin_one_entity.picture = iopin_one_sprite
+
+data:extend { iopin_item, iopin_one_item, iopin_entity, iopin_one_entity }
+
+------------------------------------------------------------------------
+-- legacy item / entity. Needs to exist for migrating
+------------------------------------------------------------------------
+
+local legacy_item = {
+    type = 'item',
+    icon = const.empty_icon,
+    icon_size = 1,
+    subgroup = 'circuit-network',
+    order = 'f[iber-optics]',
+    stack_size = 50,
+    flags = const.prototyle_internal_item_flags,
+}
+
+local legacy_entity = {
     -- PrototypeBase
     type = 'lamp',
     icon = const.empty_icon,
     icon_size = 1,
 
     -- LampPrototype
-    energy_usage_per_tick = "1J",
-    energy_source = { type = "void" },
+    energy_usage_per_tick = '1J',
+    energy_source = { type = 'void' },
     circuit_wire_connection_point = Sprites.empty_connection_points()[1],
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_circuit_wires = true,
@@ -60,27 +114,27 @@ local entity = {
     selection_priority = 70,
 }
 
-local iopin_entities = {}
+local legacy_iopin_entities = {}
 
 local sprite_name = iopin_one_sprite
 
 for idx = 1, const.oc_iopin_count, 1 do
-    local name = const:iopin_name(idx)
+    local name = const:with_prefix('oc-iopin_') .. idx
 
-    local iopin_item = table.deepcopy(item)
+    local iopin_item = table.deepcopy(legacy_item)
     iopin_item.name = name
     iopin_item.place_result = name
 
-    table.insert(iopin_entities, iopin_item)
+    table.insert(legacy_iopin_entities, iopin_item)
 
-    local iopin_entity = table.deepcopy(entity)
-    iopin_entity.name = name
-    iopin_entity.picture_on = sprite_name
-    iopin_entity.picture_off = sprite_name
+    local legacy_iopin_entity = table.deepcopy(legacy_entity)
+    legacy_iopin_entity.name = name
+    legacy_iopin_entity.picture_on = sprite_name
+    legacy_iopin_entity.picture_off = sprite_name
 
-    table.insert(iopin_entities, iopin_entity)
+    table.insert(legacy_iopin_entities, legacy_iopin_entity)
 
     sprite_name = iopin_sprite
 end
 
-data:extend(iopin_entities)
+data:extend(legacy_iopin_entities)

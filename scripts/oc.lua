@@ -25,6 +25,7 @@ function Oc:init()
     ---@type ModOcData
     global.oc_data = {
         oc = {},
+        iopins = {},
         count = 0,
         VERSION = const.current_version,
     }
@@ -73,6 +74,19 @@ function Oc:setEntity(entity_id, oc_entity)
     end
 end
 
+--- Returns a map of all IO Pins (for text overlay)
+---@return table<integer, integer> entities
+function Oc:iopins()
+    return global.oc_data.iopins
+end
+
+-- Sets a new IO Pin reference
+---@param iopin_id integer unit number of the iopin
+---@param entity_id integer? unit number of the associated main entity
+function Oc:setIOPin(iopin_id, entity_id)
+    global.oc_data.iopins[iopin_id] = entity_id
+end
+
 ------------------------------------------------------------------------
 -- create/destroy
 ------------------------------------------------------------------------
@@ -102,7 +116,7 @@ local sub_entities = {
 }
 
 ---@param cfg OcCreateInternalEntityCfg
-local function create_internal_entity(cfg)
+function Oc.create_internal_entity(cfg)
     local oc_entity = cfg.entity
     local main = oc_entity.main
 
@@ -222,17 +236,18 @@ function Oc:create(cfg)
 
     ---@type OpticalConnectorData
     local oc_entity = {
-        main = cfg.main,
-        status = defines.entity_status.disabled,
-        entities = {},
-        ref = { main = cfg.main },
-        connected_networks = {},
-        flip_index = final_flip_index,
+        main = cfg.main,                         -- reference to the main entity. This is a shortcut for 'ref.main' because ... lazy
+        status = defines.entity_status.disabled, -- status of the OC. Is managed by the update_entity_status
+        entities = {},                           -- unit_number to sub entities map. Allows reference to unit_number even if the sub_entity is invalid. Used by deletion and move code
+        ref = { main = cfg.main },               -- named references to sub entities. Used by all the code that wants to address a specific sub entity.
+        iopin = {},                              -- iopin index (1 - 16) to iopin entity map.
+        connected_networks = {},                 -- connected network ids. Used to find network information.
+        flip_index = final_flip_index,           -- the flip index of the entity (bit 1 is H flip, bit 2 is V flip)
     }
 
     -- create the basic innards
     for _, sub_entity in pairs(sub_entities) do
-        oc_entity.ref[sub_entity.id] = create_internal_entity {
+        oc_entity.ref[sub_entity.id] = self.create_internal_entity {
             entity = oc_entity,
             name = sub_entity.name,
             ghost = cfg.ghosts[sub_entity.name],
@@ -244,21 +259,24 @@ function Oc:create(cfg)
 
     -- create the io pins
     for idx = 1, const.oc_iopin_count, 1 do
-        local iopin_ref = 'iopin' .. idx
-        local iopin_name = const:iopin_name(idx)
         local iopin_pos = oc_iopin_position {
             main = cfg.main,
             idx = idx,
             flip_index = final_flip_index,
         }
 
-        oc_entity.ref[iopin_ref] = create_internal_entity {
+        local iopin_entity = self.create_internal_entity {
             entity = oc_entity,
-            name = iopin_name,
-            ghost = cfg.ghosts[iopin_name],
-            attached = cfg.attached[iopin_name],
+            name = (idx == 1) and const.iopin_one_name or const.iopin_name,
+            -- ghosts and attached entities were stored using the iopin index (because they may have the same name)
+            ghost = cfg.ghosts[idx],
+            attached = cfg.attached[idx],
             pos = iopin_pos,
         }
+
+        oc_entity.iopin[idx] = iopin_entity
+
+        self:setIOPin(iopin_entity.unit_number, cfg.main.unit_number)
     end
 
     setup_oc(oc_entity)
@@ -283,8 +301,7 @@ local function disconnect_network(entity, network_id)
     assert(network)
 
     for idx = 1, const.oc_iopin_count, 1 do
-        local iopin_ref = 'iopin' .. idx
-        local iopin = entity.ref[iopin_ref]
+        local iopin = entity.iopin[idx]
         assert(Is.Valid(iopin), 'IO Pin object invalid!')
         local fiber_strand = network.connectors[idx]
         assert(Is.Valid(fiber_strand), 'Fiber strand is invalid!')
@@ -307,8 +324,7 @@ local function connect_network(entity, network_id)
     local connection_success = true
 
     for idx = 1, const.oc_iopin_count, 1 do
-        local iopin_ref = 'iopin' .. idx
-        local iopin = entity.ref[iopin_ref]
+        local iopin = entity.iopin[idx]
         assert(Is.Valid(iopin), 'IO Pin object invalid!')
 
         local fiber_strand = network.connectors[idx]
@@ -395,7 +411,8 @@ function Oc:destroy(entity_id)
     local oc_entity = self:entity(entity_id)
     if not oc_entity then return end
 
-    for _, sub_entity in pairs(oc_entity.entities) do
+    for id, sub_entity in pairs(oc_entity.entities) do
+        self:setIOPin(id)
         sub_entity.destroy()
     end
 
@@ -512,15 +529,13 @@ end
 local function rotate_iopins(main, oc_entity, player)
     local move_list = {}
     for idx = 1, const.oc_iopin_count, 1 do
-        local iopin_name = 'iopin' .. idx
-
         local dst_pos = oc_iopin_position {
             main = main,
             idx = idx,
             flip_index = oc_entity.flip_index or 1,
         }
 
-        local iopin = oc_entity.ref[iopin_name]
+        local iopin = oc_entity.iopin[idx]
         if check_wire_stretch(iopin, dst_pos, player) then
             return true, {}
         end
@@ -552,13 +567,32 @@ function Oc:rotate(main, player_index, previous_direction)
         main.direction = previous_direction
     else
         for idx = 1, const.oc_iopin_count, 1 do
-            local iopin_name = 'iopin' .. idx
-            oc_entity.ref[iopin_name].teleport(rotated_io_pins[idx])
+            oc_entity.iopin[idx].teleport(rotated_io_pins[idx])
         end
 
         -- redo image correction
         main.direction = const.correct_image[main.direction][oc_entity.flip_index]
     end
+end
+
+------------------------------------------------------------------------
+-- IO Pin identification
+------------------------------------------------------------------------
+
+function Oc:identifyIOPin(iopin_entity)
+    local main_entity_id = self:iopins()[iopin_entity.unit_number]
+    if not main_entity_id then return nil end
+
+    local oc_entity = self:entity(main_entity_id)
+    if not oc_entity then return nil end
+
+    for idx = 1, const.oc_iopin_count, 1 do
+        if oc_entity.iopin[idx].unit_number == iopin_entity.unit_number then
+            return idx
+        end
+    end
+
+    return nil
 end
 
 ------------------------------------------------------------------------

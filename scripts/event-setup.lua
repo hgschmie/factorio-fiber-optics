@@ -56,7 +56,7 @@ local function onAttachedEntityCreated(event)
 
     script.register_on_entity_destroyed(entity)
 
-    This.attached_entities:registerEntity(entity, event.player_index)
+    This.attached_entities:registerEntity(entity, event.player_index, event.tags)
 end
 
 --------------------------------------------------------------------------------
@@ -185,6 +185,34 @@ local function onPlayerCursorStackChanged(event)
 end
 
 --------------------------------------------------------------------------------
+-- Selected Entity changed (for IO Pin labels)
+--------------------------------------------------------------------------------
+
+local function onSelectedEntityChanged(event)
+    local player, _ = Player.get(event.player_index)
+
+    Framework.render:clearRenderedText(event.player_index)
+
+    local selected_entity = player.selected --[[@as LuaEntity]]
+
+    if not Is.Valid(selected_entity) then return end
+
+    local iopin_idx = This.oc:identifyIOPin(selected_entity)
+    if not iopin_idx then return end
+
+    Framework.render:renderText(event.player_index, {
+        text = '(' .. iopin_idx .. ')',
+        surface = selected_entity.surface,
+        target = selected_entity,
+        color = { 1, 1, 1, },
+        only_in_alt_mode = false,
+        alignment = 'center',
+        target_offset = { 0, -0.7 },
+        use_rich_text = true
+    })
+end
+
+--------------------------------------------------------------------------------
 -- Ticker code
 --------------------------------------------------------------------------------
 
@@ -223,6 +251,7 @@ Event.on_load(onLoadOc)
 
 Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
 Event.register(defines.events.on_runtime_mod_setting_changed, onRuntimeModSettingsChanged)
+Event.register(defines.events.on_selected_entity_changed, onSelectedEntityChanged)
 
 local oc_entity_filter = Util.create_event_entity_matcher('name', const.optical_connector)
 local oc_attached_entities_filter = Util.create_event_entity_matcher('name', const.attached_entities)

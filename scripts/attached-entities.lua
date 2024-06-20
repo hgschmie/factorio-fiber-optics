@@ -54,10 +54,12 @@ end
 
 ---@param entity LuaEntity
 ---@param player_index integer
-function AttachedEntities:registerEntity(entity, player_index)
+---@param tags Tags?
+function AttachedEntities:registerEntity(entity, player_index, tags)
     global.attached_entities[entity.unit_number] = {
         entity = entity,
-        player_index = player_index
+        player_index = player_index,
+        tags = tags,
     }
 end
 
@@ -105,7 +107,14 @@ function AttachedEntities:findGhostsInArea(area)
     for idx, ghost in pairs(global.ghost_entities) do
         local pos = Position.new(ghost.position)
         if pos:inside(area) then
-            ghosts[ghost.name] = ghost
+            -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
+            -- store it under the iopin index value, not its name. The creation code will
+            -- pick it up using the index because most pins have the same name.
+            if ghost.tags and ghost.tags.iopin_index then
+                ghosts[ghost.tags.iopin_index] = ghost
+            else
+                ghosts[ghost.name] = ghost
+            end
             global.ghost_entities[idx] = nil
         end
     end
@@ -125,7 +134,14 @@ function AttachedEntities:findEntitiesInArea(area)
     for idx, entity in pairs(global.attached_entities) do
         local pos = Position.new(entity.entity.position)
         if pos:inside(area) then
-            entities[entity.entity.name] = entity
+            -- if the entity has tags with an iopin_index (therefore represents an IO Pin),
+            -- store it under the iopin index value, not its name. The creation code will
+            -- pick it up using the index because most pins have the same name.
+            if entity.tags and entity.tags.iopin_index then
+                entities[entity.tags.iopin_index] = entity
+            else
+                entities[entity.entity.name] = entity
+            end
             global.attached_entities[idx] = nil
         end
     end

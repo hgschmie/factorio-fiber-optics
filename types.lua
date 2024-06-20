@@ -52,9 +52,11 @@
 ---@field ref table<string, LuaEntity>
 ---@field connected_networks table<integer, integer>
 ---@field flip_index integer?
+---@field iopin table<integer, LuaEntity>
 
 ---@class ModOcData
 ---@field oc OpticalConnectorData[]
+---@field iopins table<integer, integer>
 ---@field count integer
 ---@field VERSION integer
 
