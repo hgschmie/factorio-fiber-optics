@@ -2,6 +2,9 @@
 -- Graphics rendering support
 ----------------------------------------------------------------------------------------------------
 
+local Event = require('__stdlib__/stdlib/event/event')
+
+---@class FrameworkRender
 local Rendering = {}
 
 --- Clear all currently outstanding rendered objects.
@@ -27,5 +30,11 @@ function Rendering:renderText(player_index, render_text)
     local render_id = rendering.draw_text(render_text)
     table.insert(storage.rendered_objects, render_id)
 end
+
+local function onSelectedEntityChanged(event)
+    Framework.render:clearRenderedText(event.player_index)
+end
+
+Event.register(defines.events.on_selected_entity_changed, onSelectedEntityChanged)
 
 return Rendering
