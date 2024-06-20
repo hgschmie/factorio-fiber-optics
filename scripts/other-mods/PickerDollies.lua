@@ -9,18 +9,20 @@ local PickerDolliesSupport = {}
 
 --------------------------------------------------------------------------------
 
-local function picker_dollies_moved(event)
-    if not Is.Valid(event.moved_entity) then return end
-    if not event.moved_entity.name == const.filter_combinator_name then return end
-
-    local player = game.players[event.player_index]
-    This.oc:move(event.moved_entity, event.start_pos, player)
-end
 
 --------------------------------------------------------------------------------
 
 PickerDolliesSupport.runtime = function()
     local Event = require('__stdlib__/stdlib/event/event')
+    local Player = require('__stdlib__/stdlib/event/player')
+
+    local picker_dollies_moved = function(event)
+        if not Is.Valid(event.moved_entity) then return end
+        if not event.moved_entity.name == const.filter_combinator_name then return end
+
+        local player = Player.get(event.player_index)
+        This.oc:move(event.moved_entity, event.start_pos, player)
+    end
 
     local picker_dollies_init = function()
         if not remote.interfaces['PickerDollies'] then return end

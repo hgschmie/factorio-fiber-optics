@@ -65,7 +65,7 @@ end
 
 --- @param event EventData.on_pre_build
 local function onPreBuild(event)
-    local player, player_data = Player.get(event.player_index)
+    local _, player_data = Player.get(event.player_index)
 
     -- register the per-player flip state
     player_data.flip_horizontal = event.flip_horizontal
@@ -133,6 +133,7 @@ end
 -- entity destroy
 --------------------------------------------------------------------------------
 
+---@param event EventData.on_entity_destroyed
 local function onEntityDestroyed(event)
     -- is it a known ghost or entity?
     This.attached_entities:delete(event.unit_number)

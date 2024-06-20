@@ -560,7 +560,7 @@ function Oc:rotate(main, player_index, previous_direction)
     local rotated_direction = const.correct_image[main.direction][oc_entity.flip_index]
     main.direction = rotated_direction
 
-    local player = game.players[player_index]
+    local player = game.players[player_index] -- don't use the stdlib players module
     local vetoed, rotated_io_pins = rotate_iopins(main, oc_entity, player)
 
     if vetoed then
