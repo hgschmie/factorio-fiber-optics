@@ -76,16 +76,6 @@ data:extend { iopin_item, iopin_one_item, iopin_entity, iopin_one_entity }
 -- legacy item / entity. Needs to exist for migrating
 ------------------------------------------------------------------------
 
-local legacy_item = {
-    type = 'item',
-    icon = const.empty_icon,
-    icon_size = 1,
-    subgroup = 'circuit-network',
-    order = 'f[iber-optics]',
-    stack_size = 50,
-    flags = const.prototyle_internal_item_flags,
-}
-
 local legacy_entity = {
     -- PrototypeBase
     type = 'lamp',
@@ -120,12 +110,6 @@ local sprite_name = iopin_one_sprite
 
 for idx = 1, const.oc_iopin_count, 1 do
     local name = const:with_prefix('oc-iopin_') .. idx
-
-    local legacy_iopin_item = table.deepcopy(legacy_item)
-    legacy_iopin_item.name = name
-    legacy_iopin_item.place_result = name
-
-    table.insert(legacy_iopin_entities, legacy_iopin_item)
 
     local legacy_iopin_entity = table.deepcopy(legacy_entity)
     legacy_iopin_entity.name = name
