@@ -595,6 +595,24 @@ function Oc:identifyIOPin(iopin_entity)
     return nil
 end
 
+local msg_iopin_caption = const:with_prefix('messages.iopin_caption')
+
+function Oc:displayPinCaption(entity, player_index)
+    local iopin_idx = self:identifyIOPin(entity)
+    if not iopin_idx then return end
+
+    Framework.render:renderText(player_index, {
+        text = { msg_iopin_caption, iopin_idx },
+        surface = entity.surface,
+        target = entity,
+        color = { 1, 1, 1, },
+        only_in_alt_mode = false,
+        alignment = 'center',
+        target_offset = { 0, -0.7 },
+        use_rich_text = true
+    })
+end
+
 ------------------------------------------------------------------------
 -- Ticker
 ------------------------------------------------------------------------

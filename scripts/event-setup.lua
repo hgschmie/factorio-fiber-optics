@@ -190,27 +190,12 @@ end
 --------------------------------------------------------------------------------
 
 local function onSelectedEntityChanged(event)
-    local player, _ = Player.get(event.player_index)
-
-    Framework.render:clearRenderedText(event.player_index)
+    local player = Player.get(event.player_index)
 
     local selected_entity = player.selected --[[@as LuaEntity]]
-
     if not Is.Valid(selected_entity) then return end
 
-    local iopin_idx = This.oc:identifyIOPin(selected_entity)
-    if not iopin_idx then return end
-
-    Framework.render:renderText(event.player_index, {
-        text = '(' .. iopin_idx .. ')',
-        surface = selected_entity.surface,
-        target = selected_entity,
-        color = { 1, 1, 1, },
-        only_in_alt_mode = false,
-        alignment = 'center',
-        target_offset = { 0, -0.7 },
-        use_rich_text = true
-    })
+    This.oc:displayPinCaption(selected_entity, event.player_index)
 end
 
 --------------------------------------------------------------------------------
