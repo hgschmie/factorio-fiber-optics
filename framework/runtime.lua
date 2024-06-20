@@ -2,6 +2,7 @@
 -- access to the framework provided runtime storage - ported from flib
 ----------------------------------------------------------------------------------------------------
 
+local Player = require('__stdlib__/stdlib/event/player')
 local table = require('__stdlib__/stdlib/utils/table')
 
 --- Main class governing the runtime.
@@ -10,9 +11,20 @@ local table = require('__stdlib__/stdlib/utils/table')
 local Runtime = {}
 
 --- Framework storage, not intended for direct access from the mod
+---@return table<string,any?> framework_storage
 function Runtime:storage()
     if (not global[Framework.STORAGE]) then global[Framework.STORAGE] = {} end
-    return global[Framework.STORAGE]
+    return global[Framework.STORAGE] --[[@as table<string, any?>>]]
+end
+
+--- Returns framework managed per-player storage
+---@param player_index integer
+---@return table<string,any?> player_storage
+function Runtime:player_storage(player_index)
+    local _, player_data = Player.get(player_index)
+
+    if (not player_data[Framework.STORAGE]) then player_data[Framework.STORAGE] = {} end
+    return player_data[Framework.STORAGE] --[[@as table<string, any?>>]]
 end
 
 local function get_id(self, name, initial_function)
@@ -35,7 +47,7 @@ end
 --- Must be called from an event (e.g. on_load or on_init)
 ---@return integer game_id
 function Runtime:get_game_id()
-    return get_id(self, 'game_id', function() return math.random(100,999) end)
+    return get_id(self, 'game_id', function() return math.random(100, 999) end)
 end
 
 --- Get (generate if necessary) run ID. run id incremens for each call.

@@ -12,17 +12,18 @@ local Is = require('__stdlib__/stdlib/utils/is')
 --- Framework central access point
 -- The framework singleton, provides access to well known constants and the Framework components
 -- other components.
---- @class FrameworkRoot
---- @field PREFIX string
---- @field NAME string
---- @field STORAGE string
---- @field GAME_ID integer,
---- @field RUN_ID integer,
---- @field settings FrameworkSettings?
---- @field logger FrameworkLogger?
---- @field runtime FrameworkRuntime?
---- @field gui_manager FrameworkGuiManager?
---- @field remote_api table<string, function>?
+---@class FrameworkRoot
+---@field PREFIX string
+---@field NAME string
+---@field STORAGE string
+---@field GAME_ID integer,
+---@field RUN_ID integer,
+---@field settings FrameworkSettings?
+---@field logger FrameworkLogger?
+---@field runtime FrameworkRuntime?
+---@field gui_manager FrameworkGuiManager?
+---@field remote_api table<string, function>?
+---@field render FrameworkRender?
 Framework = {
     --- The non-localised prefix (textual ID) of this mod.
     -- Must be set as the earliest possible time, as virtually all other framework parts use this.
@@ -50,6 +51,8 @@ Framework = {
     gui_manager = nil,
 
     remote_api = nil,
+
+    render = nil,
 }
 
 --- Initialize the core framework.
@@ -80,6 +83,8 @@ function Framework:init(config)
         self.logger:init()
 
         self.gui_manager = require('framework.gui_manager')
+
+        self.render = require('framework.render')
 
         if config.remote_name then
             self.remote_api = {}
