@@ -204,6 +204,7 @@ end
 
 local function onTick()
     This.oc:update_entities()
+    This.attached_entities:update()
 end
 
 --------------------------------------------------------------------------------

@@ -26,6 +26,7 @@
 ---@field orientation float?
 ---@field tags Tags?
 ---@field player_index integer
+---@field tick integer
 
 ----------------------------------------------------------------------------------------------------
 --- scripts/network

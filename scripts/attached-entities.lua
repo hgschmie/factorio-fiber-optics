@@ -3,7 +3,10 @@
 -- Manage all the attached entities and ghosts
 ------------------------------------------------------------------------
 
+local Area = require('__stdlib__/stdlib/area/area')
 local Position = require('__stdlib__/stdlib/area/position')
+
+local const = require('lib.constants')
 
 
 ---@class FiberNetworkAttachedEntities
@@ -44,7 +47,9 @@ function AttachedEntities:registerGhost(entity, player_index)
         position = entity.position,
         orientation = entity.orientation,
         tags = entity.tags,
-        player_index = player_index
+        player_index = player_index,
+        -- allow 10 seconds of dwelling time until a refresh must have happened
+        tick = game.tick + 600,
     }
 end
 
@@ -60,6 +65,8 @@ function AttachedEntities:registerEntity(entity, player_index, tags)
         entity = entity,
         player_index = player_index,
         tags = tags,
+        -- allow 10 seconds of dwelling time until the actual entity was placed and claimed this entity
+        tick = game.tick + 600,
     }
 end
 
@@ -147,6 +154,43 @@ function AttachedEntities:findEntitiesInArea(area)
     end
 
     return entities
+end
+
+--------------------------------------------------------------------------------
+-- ticker
+--------------------------------------------------------------------------------
+
+function AttachedEntities:update()
+    -- deal with placed entities. that is simple because
+    -- the tick time is already set and if no actual oc is
+    -- constructed (e.g. because it collided with water while the IO pin did not),
+    -- it can simply be removed.
+    for id, attached_entity in pairs(global.attached_entities) do
+        if attached_entity.tick < game.tick then
+            self:delete(id)
+        end
+    end
+
+    -- find all placed OC ghosts which may be lingering because e.g. material shortage
+    for _, attached_entity in pairs(global.ghost_entities) do
+        if attached_entity.name == const.optical_connector then
+            attached_entity.tick = game.tick + 600 -- refresh
+            local area = Area.new(attached_entity.entity.selection_box)
+            for _, ghost_entity in pairs(global.ghost_entities) do
+                local pos = Position.new(ghost_entity.position)
+                if pos:inside(area) then
+                    ghost_entity.tick = game.tick + 600 -- refresh
+                end
+            end
+        end
+    end
+
+    -- remove stale ghost entities
+    for id, attached_entity in pairs(global.ghost_entities) do
+        if attached_entity.tick < game.tick then
+            self:delete(id)
+        end
+    end
 end
 
 return AttachedEntities
