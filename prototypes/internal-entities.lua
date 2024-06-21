@@ -5,14 +5,14 @@
 local const = require('lib.constants')
 local Sprites = require('__stdlib__/stdlib/data/modules/sprites')
 
-local oc_icon = const:png('sprite/oc-sprite-128')
+local oc_power_unit = const:png('sprite/oc-power-unit-128')
 
 -- power pole for the copper connections
 local powerpole_item = {
     type = 'item',
     name = const.oc_power_pole,
-    icon = const.empty_icon,
-    icon_size = 1,
+    icon = oc_power_unit,
+    icon_size = 128,
     subgroup = 'circuit-network',
     order = 'f[iber-optics]',
     place_result = const.oc_power_pole,
@@ -48,7 +48,7 @@ local entities = {
         max_health = 1,
 
         -- EntityPrototype
-        icon = oc_icon,
+        icon = oc_power_unit,
         icon_size = 128,
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
         collision_mask = {},
@@ -64,8 +64,8 @@ local entities = {
         -- PrototypeBase
         type = 'power-switch',
         name = const.oc_power_pole,
-        icon = const.empty_icon,
-        icon_size = 1,
+        icon = oc_power_unit,
+        icon_size = 128,
 
         -- PowerSwitchPrototype
         power_on_animation = Sprites.empty_picture(),

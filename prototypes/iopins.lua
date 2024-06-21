@@ -7,6 +7,7 @@ local Sprites = require('__stdlib__/stdlib/data/modules/sprites')
 local const = require('lib.constants')
 
 local circle_sprite = const:png('sprite/circle')
+local oc_iopin = const:png('sprite/oc-iopin-128')
 
 local iopin_sprite = {
     filename = circle_sprite,
@@ -25,8 +26,8 @@ local iopin_one_sprite = {
 local iopin_item = {
     type = 'item',
     name = const.iopin_name,
-    icon = const.empty_icon,
-    icon_size = 1,
+    icon = oc_iopin,
+    icon_size = 128,
     place_result = const.iopin_name,
     subgroup = 'circuit-network',
     order = 'f[iber-optics]',
@@ -38,8 +39,8 @@ local iopin_entity = {
     -- PrototypeBase
     type = 'container',
     name = const.iopin_name,
-    icon = const.empty_icon,
-    icon_size = 1,
+    icon = oc_iopin,
+    icon_size = 128,
 
     -- ContainerPrototype
     inventory_size = 0,
@@ -79,8 +80,8 @@ data:extend { iopin_item, iopin_one_item, iopin_entity, iopin_one_entity }
 local legacy_entity = {
     -- PrototypeBase
     type = 'lamp',
-    icon = const.empty_icon,
-    icon_size = 1,
+    icon = oc_iopin,
+    icon_size = 128,
 
     -- LampPrototype
     energy_usage_per_tick = '1J',
