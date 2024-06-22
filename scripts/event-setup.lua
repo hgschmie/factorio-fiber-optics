@@ -16,6 +16,7 @@ local const = require('lib.constants')
 -- mod init/load code
 --------------------------------------------------------------------------------
 local function onInitOc()
+    This.oc:init()
     This.network:init()
     This.attached_entities:init()
 end
