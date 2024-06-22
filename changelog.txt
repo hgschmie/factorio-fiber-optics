@@ -3,7 +3,11 @@ Version: 0.1.0
 Date: 2024-??-??
   Changes:
     - Replaced Lamp IO Pins with containers. Existing OCs will be migrated, but blueprints will have to be redone.
-    -
+    - Remove invalid entities from networks
+    - Fix a crash when two entities match coordinates and names (reported in the forums)
+    - Fix a crash with modules that initialize data early (reported in the forum)
+    - Add icons for power connector and io pins (no more blank squares in blueprints)
+    - cleanup half-constructed/orphaned IO Pins/IO Pin ghosts
 ---------------------------------------------------------------------------------------------------
 Version: 0.0.2
 Date: 2024-06-18
