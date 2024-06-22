@@ -583,10 +583,10 @@ end
 
 local msg_iopin_caption = const:with_prefix('messages.iopin_caption')
 local text_color = {
-    { 1,   1,   1, },    -- none
-    { 1,   0.5, 0.5 },   -- red
-    { 0.5, 1,   0.5 },   -- green
-    { 1,   1,   0.5 },   -- red and green
+    { 1,   1,   1, },  -- none
+    { 1,   0.5, 0.5 }, -- red
+    { 0.5, 1,   0.5 }, -- green
+    { 1,   1,   0.5 }, -- red and green
 }
 
 function Oc:displayPinCaption(entity, player_index)
@@ -613,7 +613,7 @@ end
 -- Ticker
 ------------------------------------------------------------------------
 
-function Oc:update_entities()
+function Oc:tick()
     for idx, entity in pairs(self:entities()) do
         self:update_entity_status(entity)
 

@@ -17,6 +17,9 @@ local move_to_tail = table.array_to_dictionary {
 }
 
 local function reorder_optical_connectors(blueprint_entity)
+    -- if there are any attached entities in the blueprint, reorder so that they get built
+    -- before the actual oc's. Otherwise any entity built after the oc will not be created
+    -- (and that would lose e.g. wire connections)
     return move_to_tail[blueprint_entity.name]
 end
 
@@ -38,15 +41,12 @@ end
 ---@param splitter function(blueprint_entity: BlueprintEntity): boolean
 ---@return BlueprintEntity[] blueprint_entities
 local function reorder_blueprint(blueprint, splitter)
-    local blueprint_entities = blueprint.get_blueprint_entities()
-    assert(blueprint_entities)
-
-    -- if there are any attached entities in the blueprint, reorder so that they get built
-    -- before the actual oc's. Otherwise any entity built after the oc will not be created
-    -- (and that would lose e.g. wire connections)
 
     ---@type BlueprintEntity[], BlueprintEntity[]
     local head_list, tail_list = {}, {}
+
+    local blueprint_entities = blueprint.get_blueprint_entities()
+    if not blueprint_entities then return head_list end
 
     -- split the blueprint into head and tail
     for _, blueprint_entity in pairs(blueprint_entities) do

@@ -160,7 +160,7 @@ end
 -- ticker
 --------------------------------------------------------------------------------
 
-function AttachedEntities:update()
+function AttachedEntities:tick()
     -- deal with placed entities. that is simple because
     -- the tick time is already set and if no actual oc is
     -- constructed (e.g. because it collided with water while the IO pin did not),

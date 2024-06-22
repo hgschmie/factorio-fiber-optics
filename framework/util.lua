@@ -50,7 +50,7 @@ end
 --------------------------------------------------------------------------------
 
 local function create_matcher(values, entity_matcher)
-    if not (type(values) == 'table') then
+    if type(values) ~= 'table' then
         values = { values }
     end
 

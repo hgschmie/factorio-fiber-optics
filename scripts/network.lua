@@ -131,32 +131,46 @@ function Network:add_endpoint(entity, network_id)
 end
 
 ------------------------------------------------------------------------
--- network debug code
+-- ticker
 ------------------------------------------------------------------------
 
-function Network:fiber_network_debug_output()
+local debug_tick = -1
+function Network:tick()
+    local print_debug_info = debug_tick < 0 or debug_tick < game.tick
+    if print_debug_info then
+        debug_tick = game.tick + 3600 -- tick once a minute
+    end
+
+
     for surface_index, surface_networks in pairs(global.oc_networks.surface_networks) do
         for network_id, fiber_network in pairs(surface_networks.networks) do
             local connectors = ''
             local count = 0
 
-            for id, _ in pairs(fiber_network.endpoints) do
-                count = count + 1
-                if connectors:len() > 0 then
-                    connectors = connectors .. ', '
+            for id, entity in pairs(fiber_network.endpoints) do
+                if not Is.Valid(entity) then
+                    fiber_network.endpoints[id] = nil
+                    fiber_network.endpoint_count = fiber_network.endpoint_count - 1
+                else
+                    count = count + 1
+                    if connectors:len() > 0 then
+                        connectors = connectors .. ', '
+                    end
+                    connectors = connectors .. id
                 end
-                connectors = connectors .. id
             end
 
-            Framework.logger:debugf('Network Id: %d/%d, connected entities: %d', network_id, surface_index, fiber_network.endpoint_count)
-            Framework.logger:debugf('Entities: %s', connectors)
+            if print_debug_info then
+                Framework.logger:debugf('Network Id: %d/%d, connected entities: %d', network_id, surface_index, fiber_network.endpoint_count)
+                Framework.logger:debugf('Entities: %s', connectors)
 
-            for idx, connector in pairs(fiber_network.connectors) do
-                if #connector.circuit_connected_entities.red ~= count then
-                    Framework.logger:debugf('Fiber strand %d has %d connected red endpoints', idx, #connector.circuit_connected_entities.red)
-                end
-                if #connector.circuit_connected_entities.green ~= count then
-                    Framework.logger:debugf('Fiber strand %d has %d connected green endpoints', idx, #connector.circuit_connected_entities.green)
+                for idx, connector in pairs(fiber_network.connectors) do
+                    if table_size(connector.circuit_connected_entities.red) ~= count then
+                        Framework.logger:debugf('Fiber strand %d has %d connected red endpoints', idx, #connector.circuit_connected_entities.red)
+                    end
+                    if table_size(connector.circuit_connected_entities.green) ~= count then
+                        Framework.logger:debugf('Fiber strand %d has %d connected green endpoints', idx, #connector.circuit_connected_entities.green)
+                    end
                 end
             end
         end
