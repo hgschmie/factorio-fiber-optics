@@ -90,7 +90,7 @@ function Framework:init(config)
             self.remote_api = {}
             remote.add_interface(config.remote_name, self.remote_api)
         end
-    elseif (settings) then
+    elseif data.raw['gui-style'] then
         -- prototype stage
         require('framework.prototype')
     end
