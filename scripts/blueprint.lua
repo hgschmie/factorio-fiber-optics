@@ -101,7 +101,6 @@ local function save_to_blueprint(entities, blueprint)
     if not (blueprint and blueprint.is_blueprint_setup()) then return end
 
     local blueprint_entities = reorder_blueprint(blueprint, reorder_optical_connectors)
-    assert(blueprint_entities)
 
     -- look at all the entities that are matched by the current blueprint. For any OC,
     -- find all the pins and create a map from pin unit_number to pin index. This map will
@@ -118,42 +117,53 @@ local function save_to_blueprint(entities, blueprint)
         end
     end
 
+    local iopin_match = table.array_to_dictionary(const.all_iopins)
+
     -- blueprints hold a set of entities without any identifying information besides
     -- the position of the entity. Build a double-index map that allows finding the
     -- index in the blueprint entity list by x/y coordinate.
     local blueprint_index = {}
 
     for idx, blueprint_entity in pairs(blueprint_entities) do
-        local x_map = blueprint_index[blueprint_entity.position.x] or {}
-        local y_map = x_map[blueprint_entity.position.y] or {}
-        x_map[blueprint_entity.position.y] = y_map
-        assert(not y_map[blueprint_entity.name])
-        y_map[blueprint_entity.name] = idx
+        if (blueprint_entity.name == const.optical_connector) or iopin_match[blueprint_entity.name] then
+            local x_map = blueprint_index[blueprint_entity.position.x] or {}
+            blueprint_index[blueprint_entity.position.x] = x_map
+            local y_map = x_map[blueprint_entity.position.y] or {}
+            x_map[blueprint_entity.position.y] = y_map
 
-        blueprint_index[blueprint_entity.position.x] = x_map
+            if y_map[blueprint_entity.name] then
+                Framework.logger:logf('Duplicate entity found at (%d/%d): %s', blueprint_entity.position.x, blueprint_entity.position.y, blueprint_entity.name)
+            else
+                y_map[blueprint_entity.name] = idx
+            end
+        end
     end
 
-    local iopin_match = table.array_to_dictionary(const.all_iopins)
-
-    -- -- all entities here are of interest. Find their index in the blueprint
-    -- -- and assign the config as a tag.
+    -- all entities here are of interest. Find their index in the blueprint
+    -- and assign the config as a tag.
     for _, entity in pairs(entities) do
-        local idx_map = (blueprint_index[entity.position.x] or {})[entity.position.y]
-        if idx_map and idx_map[entity.name] then
-            local blueprint_entry = idx_map[entity.name]
+        local x_map = blueprint_index[entity.position.x]
+        if x_map then
+            local idx_map = x_map[entity.position.y]
+            if idx_map and idx_map[entity.name] then
+                local blueprint_entry = idx_map[entity.name]
 
-            if entity.name == const.optical_connector then
-                -- for all OC entities, record the flip index. This is needed to "unflip" the entity
-                -- when building to place the pins in the right places.
-                local oc_config = This.oc:entity(entity.unit_number)
-                if oc_config then
-                    blueprint.set_blueprint_entity_tag(blueprint_entry, 'flip_index', oc_config.flip_index)
+                if entity.name == const.optical_connector then
+                    -- for all OC entities, record the flip index. This is needed to "unflip" the entity
+                    -- when building to place the pins in the right places.
+                    local oc_config = This.oc:entity(entity.unit_number)
+                    if oc_config then
+                        blueprint.set_blueprint_entity_tag(blueprint_entry, 'flip_index', oc_config.flip_index)
+                    end
+                elseif iopin_match[entity.name] then
+                    -- for io pins, record their index which comes from the map that was built above
+                    local iopin_idx = iopin_index[entity.unit_number]
+                    if iopin_idx then
+                        blueprint.set_blueprint_entity_tag(blueprint_entry, 'iopin_index', iopin_idx)
+                    else
+                        Framework.logger:logf("Found an unknown IO Pin entity, ignoring: %d", entity.unit_number)
+                    end
                 end
-            elseif iopin_match[entity.name] then
-                -- for io pins, record their index which comes from the map that was built above
-                local iopin_idx = iopin_index[entity.unit_number]
-                assert(iopin_idx)
-                blueprint.set_blueprint_entity_tag(blueprint_entry, 'iopin_index', iopin_idx)
             end
         end
     end

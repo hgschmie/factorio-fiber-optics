@@ -2,6 +2,8 @@
 -- Network related code
 ------------------------------------------------------------------------
 
+local Is = require('__stdlib__/stdlib/utils/is')
+
 local const = require('lib.constants')
 
 ---@class FiberNetworkManager
@@ -81,7 +83,9 @@ end
 function Network:destroy_network(entity, network_id)
     local network = self:locate_network(entity, network_id)
 
-    assert(network.endpoint_count == 0, 'can not shut down a fiber network with remaining endpoints!')
+    if network.endpoint_count > 0 then
+        Framework.logger:logf(' Shutting down fiber network ' % d ' with %d remaining endpoints!', network_id, network.endpoint_count)
+    end
 
     for idx = 1, const.max_fiber_count, 1 do
         network.connectors[idx].destroy()

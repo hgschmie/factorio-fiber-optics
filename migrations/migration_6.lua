@@ -36,12 +36,12 @@ for _, oc_entity in pairs(oc:entities()) do
                         local target_pos = target_entity.position
                         target_entity.teleport(iopin_entity.position)
 
-                        assert(iopin_entity.connect_neighbour {
+                        iopin_entity.connect_neighbour {
                             wire = circuit_connection_definition.wire,
                             target_entity = circuit_connection_definition.target_entity,
                             source_circuit_id = circuit_connection_definition.source_circuit_id,
                             target_circuit_id = circuit_connection_definition.target_circuit_id,
-                        })
+                        }
 
                         target_entity.teleport(target_pos)
                     end

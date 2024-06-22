@@ -35,9 +35,10 @@ if global.networks then
             }
 
             for endpoint_id in pairs(old_network.endpoint) do
-                assert(entity_map[endpoint_id])
-                network.endpoints[endpoint_id] = entity_map[endpoint_id]
-                network.endpoint_count = network.endpoint_count + 1
+                if entity_map[endpoint_id] then
+                    network.endpoints[endpoint_id] = entity_map[endpoint_id]
+                    network.endpoint_count = network.endpoint_count + 1
+                end
             end
 
             surface_networks.networks[network_idx] = network

@@ -58,11 +58,8 @@ end
 ---@param entity_id integer The unit_number of the primary
 ---@param oc_entity OpticalConnectorData?
 function Oc:setEntity(entity_id, oc_entity)
-    assert((oc_entity ~= nil and global.oc_data.oc[entity_id] == nil)
-        or (oc_entity == nil and global.oc_data.oc[entity_id] ~= nil))
-
-    if (oc_entity) then
-        assert(Is.Valid(oc_entity.main) and oc_entity.main.unit_number == entity_id)
+    if (oc_entity and global.oc_data.oc[entity_id]) then
+        Framework.logger:logf('[BUG] Overwriting existing oc_entity for unit %d', entity_id)
     end
 
     global.oc_data.oc[entity_id] = oc_entity
@@ -132,14 +129,25 @@ function Oc.create_internal_entity(cfg)
     if ghost and ghost.entity then
         -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
         local _, entity = ghost.entity.silent_revive()
-        assert(entity)
-        entity.teleport { x, y }
-        sub_entity = entity
+        if entity then
+            entity.teleport { x, y }
+            sub_entity = entity
+        else
+            ghost.entity.destroy()
+            Framework.logger:logf("Could not revive ghost for '%s'", cfg.name)
+        end
     elseif attached and attached.entity then
-        -- adopt an actual entity and position it
-        sub_entity = attached.entity
-        sub_entity.teleport { x, y }
-    else
+        if Is.Valid(attached.entity) then
+            -- adopt an actual entity and position it
+            sub_entity = attached.entity
+            sub_entity.teleport { x, y }
+        else
+            attached.entity.destroy()
+            Framework.logger:logf("Could not attach existing entity for '%s'", cfg.name)
+        end
+    end
+
+    if not sub_entity then
         -- otherwise create a new entity
         sub_entity = main.surface.create_entity {
             name = cfg.name,
@@ -151,9 +159,9 @@ function Oc.create_internal_entity(cfg)
             spawn_decorations = false,
             move_stuck_players = true,
         }
-    end
 
-    assert(sub_entity)
+        assert(sub_entity, "Could not create entity for '" .. cfg.name .. "'")
+    end
 
     sub_entity.minable = false
     sub_entity.destructible = false
@@ -186,8 +194,8 @@ local function setup_oc(oc_entity)
         { signal = { type = 'virtual', name = 'signal-2' }, index = 2, count = 0, },
     }
 
-    assert(oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.red, target_entity = oc_entity.ref.status_led_1 })
-    assert(oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.green, target_entity = oc_entity.ref.status_led_2 })
+    oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.red, target_entity = oc_entity.ref.status_led_1 }
+    oc_entity.ref.status_controller.connect_neighbour { wire = defines.wire_type.green, target_entity = oc_entity.ref.status_led_2 }
 end
 
 --- Creates a new entity from the main entity, registers with the mod
@@ -199,7 +207,7 @@ function Oc:create(cfg)
 
     local entity_id = cfg.main.unit_number --[[@as integer]]
 
-    assert(self:entity(entity_id) == nil)
+    assert(self:entity(entity_id) == nil, "[BUG] main entity '" .. entity_id .. "' has already an oc_entity assigned!")
 
     -- deal with flipped entities. This is somewhat convoluted as there are
     -- two transformations: one by the current h/v flip (which can be done by
@@ -298,19 +306,19 @@ end
 ---@param network_id integer
 local function disconnect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
-    assert(network)
+    if network then
+        This.network:remove_endpoint(entity.main, network_id)
 
-    for idx = 1, const.oc_iopin_count, 1 do
-        local iopin = entity.iopin[idx]
-        assert(Is.Valid(iopin), 'IO Pin object invalid!')
-        local fiber_strand = network.connectors[idx]
-        assert(Is.Valid(fiber_strand), 'Fiber strand is invalid!')
+        for idx = 1, const.oc_iopin_count, 1 do
+            local iopin = entity.iopin[idx]
+            local fiber_strand = network.connectors[idx]
 
-        iopin.disconnect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
-        iopin.disconnect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+            if Is.Valid(iopin) and Is.Valid(fiber_strand) then
+                iopin.disconnect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
+                iopin.disconnect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+            end
+        end
     end
-
-    This.network:remove_endpoint(entity.main, network_id)
 
     return true
 end
@@ -319,27 +327,23 @@ end
 ---@param network_id integer
 local function connect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
-    assert(network)
 
-    local connection_success = true
+    if network then
+        This.network:add_endpoint(entity.main, network_id)
 
-    for idx = 1, const.oc_iopin_count, 1 do
-        local iopin = entity.iopin[idx]
-        assert(Is.Valid(iopin), 'IO Pin object invalid!')
+        for idx = 1, const.oc_iopin_count, 1 do
+            local iopin = entity.iopin[idx]
+            local fiber_strand = network.connectors[idx]
 
-        local fiber_strand = network.connectors[idx]
-        assert(Is.Valid(fiber_strand), 'Fiber strand is invalid!')
+            -- bring the connection point close to connect
+            fiber_strand.teleport(entity.main.position)
 
-        -- bring the connection point close to connect
-        fiber_strand.teleport(entity.main.position)
-
-        connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
-        connection_success = connection_success and iopin.connect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+            if Is.Valid(iopin) and Is.Valid(fiber_strand) then
+                iopin.connect_neighbour { wire = defines.wire_type.red, target_entity = fiber_strand }
+                iopin.connect_neighbour { wire = defines.wire_type.green, target_entity = fiber_strand }
+            end
+        end
     end
-
-    assert(connection_success)
-
-    This.network:add_endpoint(entity.main, network_id)
 
     return true
 end
@@ -391,23 +395,21 @@ function Oc:update_entity_status(entity)
 
     if changes then
         local control = entity.ref.status_controller.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
-        assert(control)
+        if control then
+            -- idx is the led to turn on/off, count is 0 for off or 1 for on
+            for idx, count in pairs(signals) do
+                control.set_signal(idx, { signal = { type = 'virtual', name = 'signal-' .. idx }, count = count })
+            end
 
-        -- idx is the led to turn on/off, count is 0 for off or 1 for on
-        for idx, count in pairs(signals) do
-            control.set_signal(idx, { signal = { type = 'virtual', name = 'signal-' .. idx }, count = count })
+            entity.connected_networks = current_networks
+
+            entity.ref.power_entity.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
         end
-
-        entity.connected_networks = current_networks
-
-        entity.ref.power_entity.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
     end
 end
 
 ---@param entity_id integer
 function Oc:destroy(entity_id)
-    assert(Is.Number(entity_id))
-
     local oc_entity = self:entity(entity_id)
     if not oc_entity then return end
 
