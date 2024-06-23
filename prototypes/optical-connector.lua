@@ -66,4 +66,6 @@ local entity = {
     fast_replaceable_group = 'optical-connector',
 }
 
+entity.se_allow_in_space = true
+
 data:extend { entity, item }
