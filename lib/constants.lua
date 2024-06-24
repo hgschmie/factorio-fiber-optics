@@ -16,7 +16,7 @@ local Constants = {}
 Constants.debug_mode = 0
 
 -- the current version that is the result of the latest migration
-Constants.current_version = 6
+Constants.current_version = 7
 
 Constants.prefix = 'hps:fo-'
 Constants.name = 'optical-connector'

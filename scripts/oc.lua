@@ -304,7 +304,7 @@ end
 
 ---@param entity OpticalConnectorData
 ---@param network_id integer
-local function disconnect_network(entity, network_id)
+function Oc:disconnect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
     if network then
         This.network:remove_endpoint(entity.main, network_id)
@@ -325,7 +325,7 @@ end
 
 ---@param entity OpticalConnectorData
 ---@param network_id integer
-local function connect_network(entity, network_id)
+function Oc:connect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
 
     if network then
@@ -383,14 +383,14 @@ function Oc:update_entity_status(entity)
 
     -- disconnect missing networks
     for network_id in pairs(entity.connected_networks) do
-        changes = (not current_networks[network_id] and disconnect_network(entity, network_id)) or changes
+        changes = (not current_networks[network_id] and self:disconnect_network(entity, network_id)) or changes
     end
 
     -- connect new networks
     for network_id, idx in pairs(current_networks) do
         signals[idx] = 1
         active_signals = active_signals + 1
-        changes = (not entity.connected_networks[network_id] and connect_network(entity, network_id)) or changes
+        changes = (not entity.connected_networks[network_id] and self:connect_network(entity, network_id)) or changes
     end
 
     if changes then

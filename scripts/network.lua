@@ -25,7 +25,20 @@ function Network:init()
     }
 end
 
----------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- getters
+------------------------------------------------------------------------
+
+---@return table<integer, SurfaceFiberNetworks> all_surface_networks
+function Network:all_surface_networks()
+    return global.oc_networks.surface_networks
+end
+
+---@return SurfaceFiberNetworks? surface_networks
+function Network:surface_networks(surface_id)
+    return global.oc_networks.surface_networks[surface_id]
+end
+
 
 function Network:create_new_surface_network()
     ---@class SurfaceFiberNetworks
@@ -66,7 +79,7 @@ end
 function Network:locate_network(entity, network_id)
     local surface_index = entity.surface_index
 
-    local surface_networks = global.oc_networks.surface_networks[surface_index] or self:create_new_surface_network()
+    local surface_networks = self:surface_networks(surface_index) or self:create_new_surface_network()
     local fiber_network = surface_networks.networks[network_id] or create_new_network(entity)
 
     if not surface_networks.networks[network_id] then
@@ -75,7 +88,7 @@ function Network:locate_network(entity, network_id)
         global.oc_networks.total_count = global.oc_networks.total_count + 1
     end
 
-    global.oc_networks[surface_index] = global.oc_networks[surface_index] or surface_networks
+    global.oc_networks.surface_networks[surface_index] = global.oc_networks.surface_networks[surface_index] or surface_networks
 
     return fiber_network
 end
@@ -84,18 +97,20 @@ function Network:destroy_network(entity, network_id)
     local network = self:locate_network(entity, network_id)
 
     if network.endpoint_count > 0 then
-        Framework.logger:logf(' Shutting down fiber network ' % d ' with %d remaining endpoints!', network_id, network.endpoint_count)
+        Framework.logger:logf("Shutting down fiber network '%d' with %d remaining endpoints!", network_id, network.endpoint_count)
     end
 
     for idx = 1, const.max_fiber_count, 1 do
         network.connectors[idx].destroy()
     end
 
-    local surface_networks = global.oc_networks.surface_networks[entity.surface.index]
-    surface_networks.networks[network_id] = nil
-    surface_networks.network_count = surface_networks.network_count - 1
+    local surface_networks = self:surface_networks(entity.surface.index)
+    if surface_networks and surface_networks.networks[network_id] then
+        surface_networks.networks[network_id] = nil
+        surface_networks.network_count = surface_networks.network_count - 1
 
-    global.oc_networks.total_count = global.oc_networks.total_count - 1
+        global.oc_networks.total_count = global.oc_networks.total_count - 1
+    end
 end
 
 ------------------------------------------------------------------------
@@ -142,7 +157,7 @@ function Network:tick()
     end
 
 
-    for surface_index, surface_networks in pairs(global.oc_networks.surface_networks) do
+    for surface_index, surface_networks in pairs(self:all_surface_networks()) do
         for network_id, fiber_network in pairs(surface_networks.networks) do
             local connectors = ''
             local count = 0
@@ -158,6 +173,10 @@ function Network:tick()
                     end
                     connectors = connectors .. id
                 end
+            end
+
+            if fiber_network.endpoint_count < 0 then
+                fiber_network.endpoint_count = 0
             end
 
             if print_debug_info then
