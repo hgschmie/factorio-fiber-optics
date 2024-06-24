@@ -96,7 +96,7 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
-        collision_mask = const.entity_collision_mask,
+        collision_mask = {},
         selection_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
 
         flags = const.prototype_internal_entity_flags,

@@ -254,7 +254,7 @@ Constants.deletion_events = {
 
 Constants.empty_icon = '__core__/graphics/empty.png'
 
-Constants.entity_collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', 'not-colliding-with-itself' }
+Constants.entity_collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', }
 
 -- item flags
 Constants.prototype_internal_item_flags = {

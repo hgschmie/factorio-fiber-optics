@@ -3,6 +3,7 @@ Version: 0.1.1
 Date: ????
   Changes:
     - Fix the 'entities not connected to network' problem reported in the forums
+    - Add support for space exploration
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2024-06-22
