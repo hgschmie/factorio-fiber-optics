@@ -41,7 +41,6 @@ end
 ---@param splitter function(blueprint_entity: BlueprintEntity): boolean
 ---@return BlueprintEntity[] blueprint_entities
 local function reorder_blueprint(blueprint, splitter)
-
     ---@type BlueprintEntity[], BlueprintEntity[]
     local head_list, tail_list = {}, {}
 
@@ -94,8 +93,8 @@ local function reorder_blueprint(blueprint, splitter)
     return head_list
 end
 
---- @param blueprint LuaItemStack
---- @param entities LuaEntity[]
+---@param blueprint LuaItemStack
+---@param entities LuaEntity[]
 local function save_to_blueprint(entities, blueprint)
     if not entities or #entities < 1 then return end
     if not (blueprint and blueprint.is_blueprint_setup()) then return end
@@ -161,7 +160,7 @@ local function save_to_blueprint(entities, blueprint)
                     if iopin_idx then
                         blueprint.set_blueprint_entity_tag(blueprint_entry, 'iopin_index', iopin_idx)
                     else
-                        Framework.logger:logf("Found an unknown IO Pin entity, ignoring: %d", entity.unit_number)
+                        Framework.logger:logf('Found an unknown IO Pin entity, ignoring: %d', entity.unit_number)
                     end
                 end
             end
@@ -204,7 +203,7 @@ end
 ---@param player_data table<string, any>
 function Blueprint:configuredBlueprint(player, player_data)
     if player_data.current_blueprint then
-        if has_valid_blueprint(player) and player_data.current_blueprint then
+        if has_valid_blueprint(player) then
             save_to_blueprint(player_data.current_blueprint, player.cursor_stack)
         end
         player_data.current_blueprint = nil
