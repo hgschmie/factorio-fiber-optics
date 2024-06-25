@@ -594,8 +594,9 @@ function Oc:displayPinCaption(entity, player_index)
     if not iopin_idx then return end
 
     local color_index = 1
-    color_index = color_index + ((table_size(entity.circuit_connected_entities.red) > 0) and 1 or 0)
-    color_index = color_index + ((table_size(entity.circuit_connected_entities.green) > 0) and 2 or 0)
+    -- > 1 b/c every pin is connected to a network
+    color_index = color_index + ((table_size(entity.circuit_connected_entities.red) > 1) and 1 or 0)
+    color_index = color_index + ((table_size(entity.circuit_connected_entities.green) > 1) and 2 or 0)
 
     Framework.render:renderText(player_index, {
         text = { msg_iopin_caption, iopin_idx },
