@@ -180,16 +180,8 @@ end
 
 ---@param player LuaPlayer
 ---@param player_data table<string, any>
----@param area BoundingBox
-function Blueprint:setupBlueprint(player, player_data, area)
-    local entities = player.surface.find_entities_filtered {
-        area = area,
-        force = player.force,
-    }
-
-    -- nothing in there for us
-    if #entities < 1 then return end
-
+---@param entities LuaEntity[]
+function Blueprint:setupBlueprint(player, player_data, entities)
     if has_valid_blueprint(player) then
         save_to_blueprint(entities, player.cursor_stack)
     else

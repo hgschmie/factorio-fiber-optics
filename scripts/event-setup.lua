@@ -153,11 +153,21 @@ end
 
 --- @param event EventData.on_player_setup_blueprint
 local function onPlayerSetupBlueprint(event)
-    if not event.area then return end
-
     local player, player_data = Player.get(event.player_index)
 
-    This.blueprint:setupBlueprint(player, player_data, event.area)
+    local entities = event.mapping.get()
+    if not entities then
+        if not event.area then return end
+        entities = player.surface.find_entities_filtered {
+            area = event.area,
+            force = player.force,
+        }
+    end
+
+    -- nothing in there for us
+    if #entities < 1 then return end
+
+    This.blueprint:setupBlueprint(player, player_data, entities)
 end
 
 --- @param event EventData.on_player_configured_blueprint
