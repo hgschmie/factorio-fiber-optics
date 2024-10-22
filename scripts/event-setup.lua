@@ -41,10 +41,10 @@ end
 
 --- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onGhostEntityCreated(event)
-    local entity = event and (event.created_entity or event.entity)
+    local entity = event and event.entity
     if not Is.Valid(entity) then return end
 
-    script.register_on_entity_destroyed(entity)
+    script.register_on_object_destroyed(entity)
 
     This.attached_entities:registerGhost(entity, event.player_index)
 end
@@ -52,10 +52,10 @@ end
 -- record any attached entity
 --- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onAttachedEntityCreated(event)
-    local entity = event and (event.created_entity or event.entity)
+    local entity = event and event.entity
     if not Is.Valid(entity) then return end
 
-    script.register_on_entity_destroyed(entity)
+    script.register_on_object_destroyed(entity)
 
     This.attached_entities:registerEntity(entity, event.player_index, event.tags)
 end
@@ -76,10 +76,10 @@ end
 
 --- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onEntityCreated(event)
-    local entity = event and (event.created_entity or event.entity)
+    local entity = event and event.entity
 
     -- register entity for destruction
-    script.register_on_entity_destroyed(entity)
+    script.register_on_object_destroyed(entity)
 
     local player_index = event.player_index
 
@@ -134,8 +134,8 @@ end
 -- entity destroy
 --------------------------------------------------------------------------------
 
----@param event EventData.on_entity_destroyed
-local function onEntityDestroyed(event)
+---@param event EventData.on_object_destroyed
+local function onObjectDestroyed(event)
     -- is it a known ghost or entity?
     This.attached_entities:delete(event.unit_number)
 
@@ -253,7 +253,7 @@ Event.register(defines.events.on_player_setup_blueprint, onPlayerSetupBlueprint)
 Event.register(defines.events.on_player_configured_blueprint, onPlayerConfiguredBlueprint)
 
 -- entity destroy
-Event.register(defines.events.on_entity_destroyed, onEntityDestroyed)
+Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
 
 -- ticker code
 Event.on_nth_tick(299, onTick)

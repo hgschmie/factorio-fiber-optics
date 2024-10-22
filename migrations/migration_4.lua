@@ -6,7 +6,7 @@
 
 require('lib.init')
 
-if global.oc_networks.VERSION > 3 and global.oc_data.VERSION > 3 then return end
+if storage.oc_networks.VERSION > 3 and storage.oc_data.VERSION > 3 then return end
 
 local oc = require('scripts.oc')
 
@@ -18,5 +18,5 @@ end
 
 
 -- don't use 'const.current_version', otherwise the next migrations are not run!
-global.oc_networks.VERSION = 4
-global.oc_data.VERSION = 4
+storage.oc_networks.VERSION = 4
+storage.oc_data.VERSION = 4

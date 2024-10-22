@@ -54,7 +54,7 @@ local iopin_entity = {
 
     -- EntityPrototype
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    collision_mask = {},
+    collision_mask = const.empty_collision_mask,
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     flags = const.prototype_internal_entity_flags,
     minable = nil,
@@ -97,7 +97,7 @@ local legacy_entity = {
 
     -- EntityPrototype
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
-    collision_mask = {},
+    collision_mask = const.empty_collision_mask,
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     flags = const.prototype_internal_entity_flags,
     minable = nil,

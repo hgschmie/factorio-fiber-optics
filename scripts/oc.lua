@@ -20,10 +20,10 @@ local Oc = {}
 
 --- Setup the global optical connector data structure.
 function Oc:init()
-    if global.oc_data then return end
+    if storage.oc_data then return end
 
     ---@type ModOcData
-    global.oc_data = {
+    storage.oc_data = {
         oc = {},
         iopins = {},
         count = 0,
@@ -38,50 +38,50 @@ end
 --- Returns the registered total count
 ---@return integer count The total count of optical connectors
 function Oc:totalCount()
-    return global.oc_data.count
+    return storage.oc_data.count
 end
 
 --- Returns data for all optical connectors.
 ---@return OpticalConnectorData[] entities
 function Oc:entities()
-    return global.oc_data.oc
+    return storage.oc_data.oc
 end
 
 --- Returns data for a given optical connector
 ---@param entity_id integer main unit number (== entity id)
 ---@return OpticalConnectorData? entity
 function Oc:entity(entity_id)
-    return global.oc_data.oc[entity_id]
+    return storage.oc_data.oc[entity_id]
 end
 
 --- Sets or clears a optical connector entity
 ---@param entity_id integer The unit_number of the primary
 ---@param oc_entity OpticalConnectorData?
 function Oc:setEntity(entity_id, oc_entity)
-    if (oc_entity and global.oc_data.oc[entity_id]) then
+    if (oc_entity and storage.oc_data.oc[entity_id]) then
         Framework.logger:logf('[BUG] Overwriting existing oc_entity for unit %d', entity_id)
     end
 
-    global.oc_data.oc[entity_id] = oc_entity
-    global.oc_data.count = global.oc_data.count + ((oc_entity and 1) or -1)
+    storage.oc_data.oc[entity_id] = oc_entity
+    storage.oc_data.count = storage.oc_data.count + ((oc_entity and 1) or -1)
 
-    if global.oc_data.count < 0 then
-        global.oc_data.count = table_size(global.oc_data.oc)
-        Framework.logger:logf('Optical Connector count got negative (bug), size is now: %d', global.oc_data.count)
+    if storage.oc_data.count < 0 then
+        storage.oc_data.count = table_size(storage.oc_data.oc)
+        Framework.logger:logf('Optical Connector count got negative (bug), size is now: %d', storage.oc_data.count)
     end
 end
 
 --- Returns a map of all IO Pins (for text overlay)
 ---@return table<integer, integer> entities
 function Oc:iopins()
-    return global.oc_data.iopins
+    return storage.oc_data.iopins
 end
 
 -- Sets a new IO Pin reference
 ---@param iopin_id integer unit number of the iopin
 ---@param iopin_index integer? The IO Pin index (1 .. 16)
 function Oc:setIOPin(iopin_id, iopin_index)
-    global.oc_data.iopins[iopin_id] = iopin_index
+    storage.oc_data.iopins[iopin_id] = iopin_index
 end
 
 ------------------------------------------------------------------------

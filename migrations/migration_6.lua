@@ -6,14 +6,14 @@
 
 require('lib.init')
 
-if global.oc_networks.VERSION > 5 and global.oc_data.VERSION > 5 then return end
+if storage.oc_networks.VERSION > 5 and storage.oc_data.VERSION > 5 then return end
 
 local Is = require('__stdlib__/stdlib/utils/is')
 
 local const = require('lib.constants')
 local oc = require('scripts.oc')
 
-global.oc_data.iopins = global.oc_data.iopins or {}
+storage.oc_data.iopins = storage.oc_data.iopins or {}
 
 for _, oc_entity in pairs(oc:entities()) do
     oc_entity.iopin = oc_entity.iopin or {}
@@ -61,5 +61,5 @@ for _, oc_entity in pairs(oc:entities()) do
     end
 end
 
-global.oc_networks.VERSION = 6
-global.oc_data.VERSION = 6
+storage.oc_networks.VERSION = 6
+storage.oc_data.VERSION = 6

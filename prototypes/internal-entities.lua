@@ -17,6 +17,7 @@ local powerpole_item = {
     order = 'f[iber-optics]',
     place_result = const.oc_power_pole,
     stack_size = 50,
+    hidden = true,
     flags = const.prototype_internal_item_flags,
 }
 
@@ -51,8 +52,9 @@ local entities = {
         icon = oc_power_unit,
         icon_size = 128,
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        collision_mask = {},
+        collision_mask = const.empty_collision_mask,
         selection_box = { { -1, -1 }, { 1, 1 } },
+        hidden = true,
         flags = const.prototype_hidden_entity_flags,
         minable = nil,
         allow_copy_paste = false,
@@ -96,9 +98,10 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
-        collision_mask = {},
+        collision_mask = const.empty_collision_mask,
         selection_box = { { -22 / 64, -8 / 64 }, { 24 / 64, 8 / 64 } },
 
+        hidden = true,
         flags = const.prototype_internal_entity_flags,
 
         minable = nil,
@@ -156,8 +159,9 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        collision_mask = {},
+        collision_mask = const.empty_collision_mask,
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+        hidden = true,
         flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,
@@ -183,8 +187,9 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        collision_mask = {},
+        collision_mask = const.empty_collision_mask,
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+        hidden = true,
         flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,
@@ -211,8 +216,9 @@ local entities = {
 
         -- EntityPrototype
         collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
-        collision_mask = {},
+        collision_mask = const.empty_collision_mask,
         selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+        hidden = true,
         flags = const.prototype_hidden_entity_flags,
         minable = nil,
         selectable_in_game = false,

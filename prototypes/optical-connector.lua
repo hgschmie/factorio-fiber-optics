@@ -35,7 +35,7 @@ local item = {
 }
 
 -- represents the main entity of the connector
----@type data.EntityPrototype
+---@type data.SimpleEntityWithOwnerPrototype
 local entity = {
     -- PrototypeBase
     type = 'simple-entity-with-owner',

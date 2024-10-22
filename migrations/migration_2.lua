@@ -6,16 +6,16 @@
 
 require('lib.init')
 
-if global.oc_networks.VERSION > 1 and global.oc_data.VERSION > 1 then return end
+if storage.oc_networks.VERSION > 1 and storage.oc_data.VERSION > 1 then return end
 
-if not global.oc_ghosts then
-    global.oc_ghosts = {}
+if not storage.oc_ghosts then
+    storage.oc_ghosts = {}
 end
 
-if not global.oc_attached then
-    global.oc_attached = {}
+if not storage.oc_attached then
+    storage.oc_attached = {}
 end
 
 -- don't use 'const.current_version', otherwise the next migrations are not run!
-global.oc_networks.VERSION = 2
-global.oc_data.VERSION = 2
+storage.oc_networks.VERSION = 2
+storage.oc_data.VERSION = 2

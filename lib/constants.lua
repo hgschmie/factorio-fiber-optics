@@ -18,7 +18,7 @@ Constants.debug_mode = 0
 -- the current version that is the result of the latest migration
 Constants.current_version = 7
 
-Constants.prefix = 'hps:fo-'
+Constants.prefix = 'hps__fo-'
 Constants.name = 'optical-connector'
 Constants.root = '__fiber-optics__'
 Constants.gfx_location = Constants.root .. '/gfx/'
@@ -254,11 +254,22 @@ Constants.deletion_events = {
 
 Constants.empty_icon = '__core__/graphics/empty.png'
 
-Constants.entity_collision_mask = { 'item-layer', 'object-layer', 'player-layer', 'water-tile', }
+---@type data.CollisionMaskConnector
+Constants.entity_collision_mask = {
+    layers = {
+        item = true,
+        object = true,
+        player = true,
+        water_tile = true,
+    }
+}
+
+Constants.empty_collision_mask = {
+    layers = {},
+}
 
 -- item flags
 Constants.prototype_internal_item_flags = {
-    'hidden',
     'hide-from-bonus-gui',
     'only-in-cursor',
 }
@@ -268,7 +279,6 @@ local base_entity_flags = {
     'placeable-off-grid',
     'not-on-map',
     'not-deconstructable',
-    'hidden', -- includes 'not-made-in'
     'hide-alt-info',
     'not-selectable-in-game',
     'not-upgradable',

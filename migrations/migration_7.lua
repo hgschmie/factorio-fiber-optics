@@ -6,7 +6,7 @@
 
 require('lib.init')
 
-if global.oc_networks.VERSION > 6 and global.oc_data.VERSION > 6 then return end
+if storage.oc_networks.VERSION > 6 and storage.oc_data.VERSION > 6 then return end
 
 local Is = require('__stdlib__/stdlib/utils/is')
 
@@ -22,7 +22,7 @@ local function destroy_networks(networks)
 end
 
 -- fix the electrical networks that ended up in the wrong spots.
-for key, surface_network in pairs(global.oc_networks) do
+for key, surface_network in pairs(storage.oc_networks) do
     if Is.Number(key) and surface_network then
         destroy_networks(surface_network.networks)
     end
@@ -32,7 +32,7 @@ for _, surface_network in pairs(This.network:all_surface_networks()) do
     destroy_networks(surface_network.networks)
 end
 
-global.oc_networks = nil
+storage.oc_networks = nil
 This.network:init()
 
 for _, oc_entity in pairs(This.oc:entities()) do
@@ -43,5 +43,5 @@ for _, oc_entity in pairs(This.oc:entities()) do
     end
 end
 
-global.oc_networks.VERSION = 7
-global.oc_data.VERSION = 7
+storage.oc_networks.VERSION = 7
+storage.oc_data.VERSION = 7

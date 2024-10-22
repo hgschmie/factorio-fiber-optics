@@ -18,7 +18,7 @@ PickerDolliesSupport.runtime = function()
 
     local picker_dollies_moved = function(event)
         if not Is.Valid(event.moved_entity) then return end
-        if not event.moved_entity.name == const.filter_combinator_name then return end
+        if event.moved_entity.name ~= const.optical_connector then return end
 
         local player = Player.get(event.player_index)
         This.oc:move(event.moved_entity, event.start_pos, player)

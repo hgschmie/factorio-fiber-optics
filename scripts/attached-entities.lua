@@ -18,12 +18,12 @@ local AttachedEntities = {}
 
 --- Setup the storage for ghosts and entities
 function AttachedEntities:init()
-    if not global.ghost_entities then
-        global.ghost_entities = {} --[[@as AttachedEntity[] ]]
+    if not storage.ghost_entities then
+        storage.ghost_entities = {} --[[@as AttachedEntity[] ]]
     end
 
-    if not global.attached_entities then
-        global.attached_entities = {} --[[@as AttachedEntity[] ]]
+    if not storage.attached_entities then
+        storage.attached_entities = {} --[[@as AttachedEntity[] ]]
     end
 end
 
@@ -37,7 +37,7 @@ function AttachedEntities:registerGhost(entity, player_index)
     -- if an entity ghost was placed, register information to configure
     -- an entity if it is placed over the ghost
 
-    global.ghost_entities[entity.unit_number] = {
+    storage.ghost_entities[entity.unit_number] = {
         -- maintain entity reference for attached entity ghosts
         entity = entity,
         -- but for matching ghost replacement, all the values
@@ -61,7 +61,7 @@ end
 ---@param player_index integer
 ---@param tags Tags?
 function AttachedEntities:registerEntity(entity, player_index, tags)
-    global.attached_entities[entity.unit_number] = {
+    storage.attached_entities[entity.unit_number] = {
         entity = entity,
         player_index = player_index,
         tags = tags,
@@ -75,14 +75,14 @@ end
 --------------------------------------------------------------------------------
 
 function AttachedEntities:delete(unit_number)
-    if global.ghost_entities[unit_number] then
-        global.ghost_entities[unit_number].entity.destroy()
-        global.ghost_entities[unit_number] = nil
+    if storage.ghost_entities[unit_number] then
+        storage.ghost_entities[unit_number].entity.destroy()
+        storage.ghost_entities[unit_number] = nil
     end
 
-    if global.attached_entities[unit_number] then
-        global.attached_entities[unit_number].entity.destroy()
-        global.attached_entities[unit_number] = nil
+    if storage.attached_entities[unit_number] then
+        storage.attached_entities[unit_number].entity.destroy()
+        storage.attached_entities[unit_number] = nil
     end
 end
 
@@ -94,13 +94,13 @@ end
 ---@return AttachedEntity? attached_entity
 function AttachedEntities:findMatchingGhost(entity)
     -- find a ghost that matches the entity
-    for idx, ghost in pairs(global.ghost_entities) do
+    for idx, ghost in pairs(storage.ghost_entities) do
         -- it provides the tags and player_index for robot builds
         if entity.name == ghost.name
             and entity.position.x == ghost.position.x
             and entity.position.y == ghost.position.y
             and entity.orientation == ghost.orientation then
-            global.ghost_entities[idx] = nil
+            storage.ghost_entities[idx] = nil
             return ghost
         end
     end
@@ -111,7 +111,7 @@ end
 ---@return AttachedEntity[] attached_entities
 function AttachedEntities:findGhostsInArea(area)
     local ghosts = {}
-    for idx, ghost in pairs(global.ghost_entities) do
+    for idx, ghost in pairs(storage.ghost_entities) do
         local pos = Position.new(ghost.position)
         if pos:inside(area) then
             -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
@@ -122,7 +122,7 @@ function AttachedEntities:findGhostsInArea(area)
             else
                 ghosts[ghost.name] = ghost
             end
-            global.ghost_entities[idx] = nil
+            storage.ghost_entities[idx] = nil
         end
     end
 
@@ -138,7 +138,7 @@ end
 function AttachedEntities:findEntitiesInArea(area)
     local entities = {}
 
-    for idx, entity in pairs(global.attached_entities) do
+    for idx, entity in pairs(storage.attached_entities) do
         local pos = Position.new(entity.entity.position)
         if pos:inside(area) then
             -- if the entity has tags with an iopin_index (therefore represents an IO Pin),
@@ -149,7 +149,7 @@ function AttachedEntities:findEntitiesInArea(area)
             else
                 entities[entity.entity.name] = entity
             end
-            global.attached_entities[idx] = nil
+            storage.attached_entities[idx] = nil
         end
     end
 
@@ -165,18 +165,18 @@ function AttachedEntities:tick()
     -- the tick time is already set and if no actual oc is
     -- constructed (e.g. because it collided with water while the IO pin did not),
     -- it can simply be removed.
-    for id, attached_entity in pairs(global.attached_entities) do
+    for id, attached_entity in pairs(storage.attached_entities) do
         if attached_entity.tick < game.tick then
             self:delete(id)
         end
     end
 
     -- find all placed OC ghosts which may be lingering because e.g. material shortage
-    for _, attached_entity in pairs(global.ghost_entities) do
+    for _, attached_entity in pairs(storage.ghost_entities) do
         if attached_entity.name == const.optical_connector then
             attached_entity.tick = game.tick + 600 -- refresh
             local area = Area.new(attached_entity.entity.selection_box)
-            for _, ghost_entity in pairs(global.ghost_entities) do
+            for _, ghost_entity in pairs(storage.ghost_entities) do
                 local pos = Position.new(ghost_entity.position)
                 if pos:inside(area) then
                     ghost_entity.tick = game.tick + 600 -- refresh
@@ -186,7 +186,7 @@ function AttachedEntities:tick()
     end
 
     -- remove stale ghost entities
-    for id, attached_entity in pairs(global.ghost_entities) do
+    for id, attached_entity in pairs(storage.ghost_entities) do
         if attached_entity.tick < game.tick then
             self:delete(id)
         end

@@ -15,10 +15,10 @@ local Network = {}
 
 --- Setup the global network data structure
 function Network:init()
-    if global.oc_networks then return end
+    if storage.oc_networks then return end
 
     ---@type GlobalFiberNetworks
-    global.oc_networks = {
+    storage.oc_networks = {
         VERSION = const.current_version,
         surface_networks = {},
         total_count = 0,
@@ -31,12 +31,12 @@ end
 
 ---@return table<integer, SurfaceFiberNetworks> all_surface_networks
 function Network:all_surface_networks()
-    return global.oc_networks.surface_networks
+    return storage.oc_networks.surface_networks
 end
 
 ---@return SurfaceFiberNetworks? surface_networks
 function Network:surface_networks(surface_id)
-    return global.oc_networks.surface_networks[surface_id]
+    return storage.oc_networks.surface_networks[surface_id]
 end
 
 
@@ -85,10 +85,10 @@ function Network:locate_network(entity, network_id)
     if not surface_networks.networks[network_id] then
         surface_networks.networks[network_id] = fiber_network
         surface_networks.network_count = surface_networks.network_count + 1
-        global.oc_networks.total_count = global.oc_networks.total_count + 1
+        storage.oc_networks.total_count = storage.oc_networks.total_count + 1
     end
 
-    global.oc_networks.surface_networks[surface_index] = global.oc_networks.surface_networks[surface_index] or surface_networks
+    storage.oc_networks.surface_networks[surface_index] = storage.oc_networks.surface_networks[surface_index] or surface_networks
 
     return fiber_network
 end
@@ -109,7 +109,7 @@ function Network:destroy_network(entity, network_id)
         surface_networks.networks[network_id] = nil
         surface_networks.network_count = surface_networks.network_count - 1
 
-        global.oc_networks.total_count = global.oc_networks.total_count - 1
+        storage.oc_networks.total_count = storage.oc_networks.total_count - 1
     end
 end
 

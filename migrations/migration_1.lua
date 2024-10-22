@@ -6,26 +6,26 @@
 
 require('lib.init')
 
-if global.oc_networks and global.oc_data and global.oc_networks.VERSION > 0 and global.oc_data.VERSION > 0 then return end
+if storage.oc_networks and storage.oc_data and storage.oc_networks.VERSION > 0 and storage.oc_data.VERSION > 0 then return end
 
-if not global.oc_networks then
+if not storage.oc_networks then
     This.network:init()
 end
 
-if not global.oc_data then
+if not storage.oc_data then
     This.oc:init()
 end
 
-if global.networks then
+if storage.networks then
     local entity_map = {}
-    for entity_id, context in pairs(global.context) do
+    for entity_id, context in pairs(storage.context) do
         entity_map[entity_id] = context._primary
     end
 
 
-    for idx, old_surface_networks in pairs(global.networks) do
+    for idx, old_surface_networks in pairs(storage.networks) do
         local surface_networks = This.network:create_new_surface_network()
-        global.oc_networks.surface_networks[idx] = surface_networks
+        storage.oc_networks.surface_networks[idx] = surface_networks
 
         for network_idx, old_network in pairs(old_surface_networks) do
             local network = {
@@ -43,14 +43,14 @@ if global.networks then
 
             surface_networks.networks[network_idx] = network
             surface_networks.network_count = surface_networks.network_count + 1
-            global.oc_networks.total_count = global.oc_networks.total_count + 1
+            storage.oc_networks.total_count = storage.oc_networks.total_count + 1
         end
     end
-    global.networks = nil
+    storage.networks = nil
 end
 
-if global.context then
-    for idx, old_connector in pairs(global.context) do
+if storage.context then
+    for idx, old_connector in pairs(storage.context) do
         local new_entity = {
             main = old_connector._primary,
             entities = old_connector._cleanup,
@@ -69,13 +69,13 @@ if global.context then
             new_entity.ref['iopin' .. io_idx ] = entity
         end
 
-        global.oc_data.oc[idx] = new_entity
-        global.oc_data.count = global.oc_data.count + 1
+        storage.oc_data.oc[idx] = new_entity
+        storage.oc_data.count = storage.oc_data.count + 1
     end
 
-    global.context = nil
+    storage.context = nil
 end
 
 -- don't use 'const.current_version', otherwise the next migrations are not run!
-global.oc_networks.VERSION = 1
-global.oc_data.VERSION = 1
+storage.oc_networks.VERSION = 1
+storage.oc_data.VERSION = 1
