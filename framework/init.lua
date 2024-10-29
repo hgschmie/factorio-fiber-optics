@@ -1,3 +1,4 @@
+---@meta
 ------------------------------------------------------------------------
 -- Framework initialization code
 --
@@ -12,6 +13,7 @@ local Is = require('__stdlib__/stdlib/utils/is')
 --- Framework central access point
 -- The framework singleton, provides access to well known constants and the Framework components
 -- other components.
+
 ---@class FrameworkRoot
 ---@field PREFIX string
 ---@field NAME string
@@ -22,6 +24,8 @@ local Is = require('__stdlib__/stdlib/utils/is')
 ---@field logger FrameworkLogger?
 ---@field runtime FrameworkRuntime?
 ---@field gui_manager FrameworkGuiManager?
+---@field ghost_manager FrameworkGhostManager?
+---@field blueprint FrameworkBlueprintManager?
 ---@field remote_api table<string, function>?
 ---@field render FrameworkRender?
 Framework = {
@@ -49,6 +53,10 @@ Framework = {
     runtime = nil,
 
     gui_manager = nil,
+
+    ghost_manager = nil,
+
+    blueprint = nil,
 
     remote_api = nil,
 
@@ -83,6 +91,8 @@ function Framework:init(config)
         self.logger:init()
 
         self.gui_manager = require('framework.gui_manager')
+        self.ghost_manager = require('framework.ghost_manager')
+        self.blueprint = require('framework.blueprint_manager')
 
         self.render = require('framework.render')
 
@@ -101,10 +111,3 @@ end
 ---------------------------------------------------------------------------------------------------
 
 return Framework
-
---- @class FrameworkConfig
---- @field name string The human readable name for the module
---- @field prefix string A prefix for all game registered elements
---- @field root string The module root name
---- @field log_tag string? A custom logger tag
---- @field remote_name string? The name for the remote interface. If defined, the mod will have a remote interface.
