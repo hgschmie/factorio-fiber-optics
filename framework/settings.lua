@@ -3,13 +3,13 @@
 -- framework settings support -- inspired by flib
 ----------------------------------------------------------------------------------------------------
 
-local table = require('__stdlib__/stdlib/utils/table')
+local table = require('stdlib.utils.table')
 
 ----------------------------------------------------------------------------------------------------
 
 --- Access to all mod settings
 ---@class FrameworkSettings
----@field definitions table<string, table>
+---@field definitions table<string, table<string, FrameworkSettingDefault>>
 local FrameworkSettings = {
    --- Contains setting definitions
    -- Each field must be a table with `setting = <default value>` items, as well as containing a
@@ -18,7 +18,7 @@ local FrameworkSettings = {
    definitions = {
       startup = {},
       runtime = {
-        debug_mode = { Framework.PREFIX .. 'debug-mode', false }
+        debug_mode = { name = Framework.PREFIX .. 'debug-mode', default_value = false }
       },
       player = {},
    }
@@ -34,7 +34,7 @@ local loaded = {
    player = nil,
 }
 
----@type table<string, FrameworkSettingDefinition>
+---@type table<string, FrameworkSettingsGroup>
 local settings_table = {
    startup = {
       values = nil,
@@ -81,7 +81,7 @@ local settings_table = {
 
 --- Add setting definitions of the given setting_type to the corresponding table
 ---@param setting_type string
----@param definitions table<string, any>
+---@param definitions table<string, FrameworkSettingDefault>
 ---@return self FrameworkSettings
 function FrameworkSettings:add_all(setting_type, definitions)
    table.merge(self.definitions[setting_type], definitions)
@@ -91,21 +91,21 @@ function FrameworkSettings:add_all(setting_type, definitions)
 end
 
 --- Add setting definitions to the startup table
----@param definitions table<string, any>
+---@param definitions table<string, FrameworkSettingDefault>
 ---@return self FrameworkSettings
 function FrameworkSettings:add_startup(definitions)
    return self:add_all('startup', definitions)
 end
 
 --- Add setting definitions to the runtime table
----@param definitions table<string, any>
+---@param definitions table<string, FrameworkSettingDefault>
 ---@return self FrameworkSettings
 function FrameworkSettings:add_runtime(definitions)
    return self:add_all('runtime', definitions)
 end
 
 --- Add setting definitions to the player table
----@param definitions table<string, any>
+---@param definitions table<string, FrameworkSettingDefault>
 ---@return self FrameworkSettings
 function FrameworkSettings:add_player(definitions)
    return self:add_all('player', definitions)
@@ -116,25 +116,25 @@ end
 ---@param player_index integer? The current player index.
 ---@return table<string, (integer|boolean|double|string|Color)?> result
 function FrameworkSettings:get_settings(setting_type, player_index)
-   local st = settings_table[setting_type]
+   local settings_group = settings_table[setting_type]
 
-   if (not st:get_values(player_index)) then
+   if (not settings_group:get_values(player_index)) then
       local definition = self.definitions[setting_type]
       local values = {}
-      st:set_values(values, player_index)
+      settings_group:set_values(values, player_index)
 
       for key, setting_def in pairs(definition) do
          if (type(setting_def) == 'table') then
-            local value = st.load_value(setting_def[1], player_index).value
+            local value = settings_group.load_value(setting_def.name, player_index).value
             if (value == nil) then
-               value = setting_def[2]
+               value = setting_def.default_value
             end
             values[key] = value
          end
       end
-      Framework.logger:debugf("Loaded '%s' settings: %s", setting_type, serpent.line(st:get_values()))
+      Framework.logger:debugf("Loaded '%s' settings: %s", setting_type, serpent.line(settings_group:get_values()))
    end
-   return st:get_values(player_index) or error('Failed to load ' .. setting_type .. ' settings.')
+   return settings_group:get_values(player_index) or error('Failed to load ' .. setting_type .. ' settings.')
 end
 
 --- Flushes all cached settings.
@@ -166,7 +166,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 if script then
-   local Event = require('__stdlib__/stdlib/event/event')
+   local Event = require('stdlib.event.event')
 
    -- Runtime settings changed
    Event.register(defines.events.on_runtime_mod_setting_changed, function()

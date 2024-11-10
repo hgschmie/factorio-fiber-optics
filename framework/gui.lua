@@ -3,8 +3,8 @@
 -- Represents a single, open gui, loosely inspired by flib
 ------------------------------------------------------------------------
 
-local Is = require('__stdlib__/stdlib/utils/is')
-local table = require('__stdlib__/stdlib/utils/table')
+local Is = require('stdlib.utils.is')
+local table = require('stdlib.utils.table')
 
 ---@class FrameworkGui
 ---@field id number The gui id for this instance

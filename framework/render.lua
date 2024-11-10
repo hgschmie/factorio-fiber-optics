@@ -3,7 +3,7 @@
 -- Graphics rendering support
 ----------------------------------------------------------------------------------------------------
 
-local Event = require('__stdlib__/stdlib/event/event')
+local Event = require('stdlib.event.event')
 
 ---@class FrameworkRender
 local Rendering = {}

@@ -6,8 +6,8 @@
 -- only works in runtime mode
 if not script then return end
 
-local Event = require('__stdlib__/stdlib/event/event')
-local Is = require('__stdlib__/stdlib/utils/is')
+local Event = require('stdlib.event.event')
+local Is = require('stdlib.utils.is')
 
 local FrameworkGui = require('framework.gui')
 

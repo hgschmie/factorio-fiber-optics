@@ -7,7 +7,6 @@
 --- ghost_manager.lua
 ----------------------------------------------------------------------------------------------------
 
-
 ---@class FrameworkAttachedEntity
 ---@field entity LuaEntity
 ---@field name string?
@@ -70,9 +69,13 @@
 --- settings.lua
 ----------------------------------------------------------------------------------------------------
 
----@class FrameworkSettingDefinition
+---@class FrameworkSettingsGroup
 ---@field values table<string,(integer|boolean|double|string|Color)?>|table<string, table<string, (integer|boolean|double|string|Color)?>?>?
 ---@field load_value fun(name: string, player_index: integer?): ModSetting?
----@field get_values fun(self: FrameworkSettingDefinition, player_index: integer?): table<string, (integer|boolean|double|string|Color)?>
----@field set_values fun(self: FrameworkSettingDefinition, values: table<string, (integer|boolean|double|string|Color)?>, player_index: integer?)
----@field clear fun(self: FrameworkSettingDefinition, player_index: integer?)
+---@field get_values fun(self: FrameworkSettingsGroup, player_index: integer?): table<string, (integer|boolean|double|string|Color)?>
+---@field set_values fun(self: FrameworkSettingsGroup, values: table<string, (integer|boolean|double|string|Color)?>, player_index: integer?)
+---@field clear fun(self: FrameworkSettingsGroup, player_index: integer?)
+
+---@class FrameworkSettingDefault
+---@field name string
+---@field default_value (integer|boolean|double|string|Color)

@@ -6,7 +6,7 @@
 --
 ------------------------------------------------------------------------
 
-local Is = require('__stdlib__/stdlib/utils/is')
+local Is = require('stdlib.utils.is')
 
 ----------------------------------------------------------------------------------------------------
 
@@ -63,10 +63,38 @@ Framework = {
     render = nil,
 }
 
+--- called in runtime stage
+---@param config FrameworkConfig
+function Framework:init_runtime(config)
+    if not script then return end
+    -- runtime stage
+    self.runtime = self.runtime or require('framework.runtime')
+
+    self.logger:init()
+
+    self.gui_manager = self.gui_manager or require('framework.gui_manager')
+    self.ghost_manager = self.ghost_manager or require('framework.ghost_manager')
+    self.blueprint = self.blueprint or require('framework.blueprint_manager')
+
+    self.render = self.render or require('framework.render')
+
+    if config.remote_name and not self.remote_api then
+        self.remote_api = {}
+        remote.add_interface(config.remote_name, self.remote_api)
+    end
+end
+
+--- called in data stage
+---@param config FrameworkConfig
+function Framework:init_data(config)
+    require('framework.prototype')
+end
+
 --- Initialize the core framework.
 --- the code itself references the global Framework table.
 ---@param config FrameworkConfig|function():FrameworkConfig config provider
-function Framework:init(config)
+---@param stage 'data', 'settings' or 'runtime'
+function Framework:init(config, stage)
     assert(Is.Function(config) or Is.Table(config), 'configuration must either be a table or a function that provides a table')
     if Is.Function(config) then
         config = config()
@@ -81,28 +109,12 @@ function Framework:init(config)
     self.PREFIX = config.prefix
     self.ROOT = config.root
 
-    self.settings = require('framework.settings') --[[ @as FrameworkSettings ]]
-    self.logger = require('framework.logger') --[[ @as FrameworkLogger ]]
+    self.settings = self.settings or require('framework.settings') --[[ @as FrameworkSettings ]]
+    self.logger = self.logger or require('framework.logger') --[[ @as FrameworkLogger ]]
 
-    if (script) then
-        -- runtime stage
-        self.runtime = require('framework.runtime')
-
-        self.logger:init()
-
-        self.gui_manager = require('framework.gui_manager')
-        self.ghost_manager = require('framework.ghost_manager')
-        self.blueprint = require('framework.blueprint_manager')
-
-        self.render = require('framework.render')
-
-        if config.remote_name then
-            self.remote_api = {}
-            remote.add_interface(config.remote_name, self.remote_api)
-        end
-    elseif data.raw['gui-style'] then
-        -- prototype stage
-        require('framework.prototype')
+    local stage_name = 'init_' .. stage
+    if self[stage_name] then
+        self[stage_name](self, config --[[@as FrameworkConfig]])
     end
 
     return self
