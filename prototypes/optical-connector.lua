@@ -6,6 +6,8 @@ local const = require('lib.constants')
 
 local oc_sprite = {}
 for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
+
+    ---@type data.Sprite
     oc_sprite[direction] = {
         filename = const:png('entity/oc-entity-shadow'),
         width = 128,
@@ -24,13 +26,13 @@ local item = {
     -- Prototype Base
     type = 'item',
     name = const.optical_connector,
-    order = 'f[iber-optics]',
+    place_result = const.optical_connector,
 
     -- ItemPrototype
     stack_size = 50,
     icon = oc_icon,
     icon_size = 128,
-    place_result = const.optical_connector,
+    order = 'f[iber-optics]',
     subgroup = 'circuit-network',
 }
 
@@ -42,7 +44,7 @@ local entity = {
     name = const.optical_connector,
 
     -- SimpleEntityWithOwnerPrototype
-    render_layer = 'floor-mechanics',
+    -- render_layer = 'floor-mechanics',
     picture = oc_sprite,
 
     -- EntityWithHealthPrototype
@@ -56,14 +58,13 @@ local entity = {
     collision_box = { { -0.95, -0.95 }, { 0.95, 0.95 } },
     collision_mask = const.entity_collision_mask,
     selection_box = { { -1, -1 }, { 1, 1 } },
-    selection_priority = 20,
-    minable = { mining_time = 1, result = const.optical_connector },
     flags = {
         'player-creation',
         'placeable-neutral',
         'not-upgradable',
     },
-    fast_replaceable_group = 'optical-connector',
+    minable = { mining_time = 1, result = const.optical_connector },
+    selection_priority = 20,
 }
 
 data:extend { entity, item }
