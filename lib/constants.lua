@@ -4,7 +4,7 @@
 -- can be loaded into scripts and data
 ------------------------------------------------------------------------
 
-local table = require('__stdlib__/stdlib/utils/table')
+local table = require('stdlib.utils.table')
 
 local Constants = {}
 
@@ -262,10 +262,6 @@ Constants.entity_collision_mask = {
         player = true,
         water_tile = true,
     }
-}
-
-Constants.empty_collision_mask = {
-    layers = {},
 }
 
 -- item flags

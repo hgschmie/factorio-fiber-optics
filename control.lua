@@ -2,7 +2,7 @@
 -- runtime code
 ------------------------------------------------------------------------
 
-require('lib.init')
+require('lib.init')('runtime')
 
 -- setup events
 require('scripts.event-setup')

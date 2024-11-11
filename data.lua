@@ -2,7 +2,7 @@
 -- data phase 1
 ------------------------------------------------------------------------
 
-require('lib.init')
+require('lib.init')('data')
 
 local const = require('lib.constants')
 

@@ -2,10 +2,12 @@
 --- Global definitions included in all phases
 ----------------------------------------------------------------------------------------------------
 
-local const = require('lib.constants')
+return function(stage)
+    local const = require('lib.constants')
 
--- Framework core
-require('framework.init'):init(const.framework_init)
+    -- Framework core
+    require('framework.init'):init(const.framework_init, stage)
 
--- mod code
-This = require("lib.this")
+    -- mod code
+    This = require('lib.this')(stage)
+end
