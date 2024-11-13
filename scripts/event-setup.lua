@@ -2,13 +2,13 @@
 -- event setup for the mod
 --------------------------------------------------------------------------------
 
-local Event = require('__stdlib__/stdlib/event/event')
-local Is = require('__stdlib__/stdlib/utils/is')
-local Player = require('__stdlib__/stdlib/event/player')
-local Area = require('__stdlib__/stdlib/area/area')
-local table = require('__stdlib__/stdlib/utils/table')
+local Event = require('stdlib.event.event')
+local Is = require('stdlib.utils.is')
+local Player = require('stdlib.event.player')
+local Area = require('stdlib.area.area')
+local table = require('stdlib.utils.table')
 
-local Util = require('framework.util')
+local tools = require('framework.tools')
 
 local const = require('lib.constants')
 
@@ -39,18 +39,8 @@ end
 -- manage attached entities
 --------------------------------------------------------------------------------
 
---- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
-local function onGhostEntityCreated(event)
-    local entity = event and event.entity
-    if not Is.Valid(entity) then return end
-
-    script.register_on_object_destroyed(entity)
-
-    This.attached_entities:registerGhost(entity, event.player_index)
-end
-
 -- record any attached entity
---- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
+---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onAttachedEntityCreated(event)
     local entity = event and event.entity
     if not Is.Valid(entity) then return end
@@ -64,7 +54,7 @@ end
 -- entity create / delete
 --------------------------------------------------------------------------------
 
---- @param event EventData.on_pre_build
+---@param event EventData.on_pre_build
 local function onPreBuild(event)
     local _, player_data = Player.get(event.player_index)
 
@@ -74,7 +64,7 @@ local function onPreBuild(event)
 end
 
 
---- @param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
+---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function onEntityCreated(event)
     local entity = event and event.entity
 
@@ -85,7 +75,7 @@ local function onEntityCreated(event)
 
     local tags = event.tags
 
-    local entity_ghost = This.attached_entities:findMatchingGhost(entity)
+    local entity_ghost = Framework.ghost_manager:findMatchingGhost(entity)
     if entity_ghost then
         player_index = player_index or entity_ghost.player_index
         tags = tags or entity_ghost.tags
@@ -104,7 +94,17 @@ local function onEntityCreated(event)
     -- find all the ghosts that are covered by the new entity
     -- Those would be placed by paste / blueprint and the main entity
     -- will pick them up and revive (to keep e.g. wire connections)
-    local attached_ghosts = This.attached_entities:findGhostsInArea(area)
+    local attached_ghosts = Framework.ghost_manager:findGhostsInArea(area, function(ghost)
+
+        -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
+        -- store it under the iopin index value, not its name. The creation code will
+        -- pick it up using the index because most pins have the same name.
+        if ghost.tags and ghost.tags.iopin_index then
+            return ghost.tags.iopin_index
+        else
+            return ghost.name
+        end
+    end)
 
     -- when doing direct build with cut and paste, then all the entities
     -- (iopins and power) have already been built before the main oc is
@@ -137,44 +137,14 @@ end
 ---@param event EventData.on_object_destroyed
 local function onObjectDestroyed(event)
     -- is it a known ghost or entity?
-    This.attached_entities:delete(event.unit_number)
+    This.attached_entities:delete(event.useful_id)
 
     -- or a main entity?
-    local oc_entity = This.oc:entity(event.unit_number)
+    local oc_entity = This.oc:entity(event.useful_id)
     if oc_entity then
         -- main entity destroyed
-        This.oc:destroy(event.unit_number)
+        This.oc:destroy(event.useful_id)
     end
-end
-
---------------------------------------------------------------------------------
--- Blueprint / copy&paste management
---------------------------------------------------------------------------------
-
---- @param event EventData.on_player_setup_blueprint
-local function onPlayerSetupBlueprint(event)
-    local player, player_data = Player.get(event.player_index)
-
-    local entities = event.mapping.get()
-    if not entities then
-        if not event.area then return end
-        entities = player.surface.find_entities_filtered {
-            area = event.area,
-            force = player.force,
-        }
-    end
-
-    -- nothing in there for us
-    if #entities < 1 then return end
-
-    This.blueprint:setupBlueprint(player, player_data, entities)
-end
-
---- @param event EventData.on_player_configured_blueprint
-local function onPlayerConfiguredBlueprint(event)
-    local player, player_data = Player.get(event.player_index)
-
-    This.blueprint:configuredBlueprint(player, player_data)
 end
 
 --------------------------------------------------------------------------------
@@ -230,27 +200,27 @@ Event.on_load(onLoadOc)
 Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
 Event.register(defines.events.on_selected_entity_changed, onSelectedEntityChanged)
 
-local oc_entity_filter = Util.create_event_entity_matcher('name', const.optical_connector)
-local oc_attached_entities_filter = Util.create_event_entity_matcher('name', const.attached_entities)
-local oc_ghost_filter = Util.create_event_ghost_entity_matcher(const.ghost_entities)
+local oc_entity_filter = tools.create_event_entity_matcher('name', const.optical_connector)
+local oc_attached_entities_filter = tools.create_event_entity_matcher('name', const.attached_entities)
 
 -- rotation
 Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity, oc_entity_filter)
 
 -- manage ghost building (robot building)
-Util.event_register(const.creation_events, onGhostEntityCreated, oc_ghost_filter)
+Framework.ghost_manager.register_for_ghost_names(const.ghost_entities)
 
 -- entity create / delete
 Event.register(defines.events.on_pre_build, onPreBuild)
 
-Util.event_register(const.creation_events, onEntityCreated, oc_entity_filter)
-Util.event_register(const.creation_events, onAttachedEntityCreated, oc_attached_entities_filter)
+tools.event_register(tools.CREATION_EVENTS, onEntityCreated, oc_entity_filter)
+tools.event_register(tools.CREATION_EVENTS, onAttachedEntityCreated, oc_attached_entities_filter)
 
-Util.event_register(const.deletion_events, onEntityDeleted, oc_entity_filter)
+tools.event_register(tools.DELETION_EVENTS, onEntityDeleted, oc_entity_filter)
 
--- Blueprint / copy&paste management
-Event.register(defines.events.on_player_setup_blueprint, onPlayerSetupBlueprint)
-Event.register(defines.events.on_player_configured_blueprint, onPlayerConfiguredBlueprint)
+-- Manage blueprint configuration setting
+Framework.blueprint:register_callback(const.optical_connector, This.blueprint.oc_callback, This.blueprint.oc_map_callback)
+Framework.blueprint:register_callback(const.all_iopins, This.blueprint.iopin_callback)
+Framework.blueprint:register_preprocessor(This.blueprint.prepare_blueprint)
 
 -- entity destroy
 Event.register(defines.events.on_object_destroyed, onObjectDestroyed)

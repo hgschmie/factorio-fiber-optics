@@ -7,7 +7,7 @@
 --- lib/this
 ----------------------------------------------------------------------------------------------------
 
----@class ModThis
+---@class FiberOpticsThis
 ---@field other_mods string[]
 ---@field debug_mode integer
 ---@field oc ModOc

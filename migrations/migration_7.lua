@@ -8,7 +8,7 @@ require('lib.init')
 
 if storage.oc_networks.VERSION > 6 and storage.oc_data.VERSION > 6 then return end
 
-local Is = require('__stdlib__/stdlib/utils/is')
+local Is = require('stdlib.utils.is')
 
 local function destroy_networks(networks)
     if not networks then return end

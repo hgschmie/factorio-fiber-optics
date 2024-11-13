@@ -66,7 +66,7 @@ local power_entity = {
     minable = nil,
     allow_copy_paste = false,
     selectable_in_game = false,
-    selection_priority = 0,
+    selection_priority = 1,
 }
 
 -- connection point for the power wires
@@ -120,8 +120,6 @@ local connection_entity = {
     allow_copy_paste = false,
 }
 
--- led lamp to show the connection state
---- @type data.LampPrototype
 local led_entity = {
     -- PrototypeBase
     type = 'lamp',
@@ -136,14 +134,12 @@ local led_entity = {
         width = 72,
         height = 44,
         scale = 0.5,
-        draw_as_glow = true,
     },
     picture_off = {
         filename = '__base__/graphics/entity/wall/wall-diode-red.png',
         priority = 'extra-high',
         width = 72,
         height = 44,
-        draw_as_glow = true,
         scale = 0.5,
     },
     energy_usage_per_tick = '1J',
@@ -162,7 +158,7 @@ local led_entity = {
     selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
     flags = const.prototype_hidden_entity_flags,
     minable = nil,
-    selection_priority = 0,
+    selection_priority = 1,
     allow_copy_paste = false,
     selectable_in_game = false,
 }
@@ -193,14 +189,14 @@ local controller_entity = {
     selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
     flags = const.prototype_hidden_entity_flags,
     minable = nil,
-    selection_priority = 0,
+    selection_priority = 1,
     allow_copy_paste = false,
     selectable_in_game = false,
 }
 
 -- network connection entities
 --- @type data.ContainerPrototype
-local iopin_entity = {
+local fiber_strand_entity = {
     -- PrototypeBase
     type = 'container',
     name = const.network_connector,
@@ -218,16 +214,15 @@ local iopin_entity = {
     max_health = 1,
 
     -- EntityPrototype
-    icon = const.empty_icon,
-    icon_size = 1,
+    icons = { util.empty_icon() },
     collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
     collision_mask = collision_mask_util.new_mask(),
     selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
     flags = const.prototype_hidden_entity_flags,
     minable = nil,
-    selection_priority = 0,
+    selection_priority = 1,
     allow_copy_paste = false,
     selectable_in_game = false,
 }
 
-data:extend { power_entity, connection_entity, led_entity, controller_entity, iopin_entity }
+data:extend { power_entity, connection_entity, led_entity, controller_entity, fiber_strand_entity }

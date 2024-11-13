@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 local const = require('lib.constants')
-local Is = require('__stdlib__/stdlib/utils/is')
+local Is = require('stdlib.utils.is')
 
 local PickerDolliesSupport = {}
 
@@ -13,8 +13,8 @@ local PickerDolliesSupport = {}
 --------------------------------------------------------------------------------
 
 PickerDolliesSupport.runtime = function()
-    local Event = require('__stdlib__/stdlib/event/event')
-    local Player = require('__stdlib__/stdlib/event/player')
+    local Event = require('stdlib.event.event')
+    local Player = require('stdlib.event.player')
 
     local picker_dollies_moved = function(event)
         if not Is.Valid(event.moved_entity) then return end

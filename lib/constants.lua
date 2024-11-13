@@ -231,28 +231,23 @@ Constants.total_flip = {
 }
 
 --------------------------------------------------------------------------------
--- Events
+-- wire stretch checking
 --------------------------------------------------------------------------------
 
-Constants.creation_events = {
-    defines.events.on_built_entity,
-    defines.events.on_robot_built_entity,
-    defines.events.script_raised_built,
-    defines.events.script_raised_revive,
-}
+Constants.internal_entities = table.array_to_dictionary({
+    Constants.oc_power_interface,
+    Constants.oc_power_pole,
+    Constants.oc_led_lamp,
+    Constants.oc_cc,
+    Constants.network_connector,
 
-Constants.deletion_events = {
-    defines.events.on_player_mined_entity,
-    defines.events.on_robot_mined_entity,
-    defines.events.on_entity_died,
-    defines.events.script_raised_destroy,
-}
+    Constants.iopin_name,
+    Constants.iopin_one_name,
+}, true)
 
 --------------------------------------------------------------------------------
 -- data phase
 --------------------------------------------------------------------------------
-
-Constants.empty_icon = '__core__/graphics/empty.png'
 
 ---@type data.CollisionMaskConnector
 Constants.entity_collision_mask = {

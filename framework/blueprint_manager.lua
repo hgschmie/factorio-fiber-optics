@@ -8,12 +8,18 @@ local Is = require('stdlib.utils.is')
 local Player = require('stdlib.event.player')
 local table = require('stdlib.utils.table')
 
----@alias FrameworkBlueprintMatcher fun(blueprint: LuaItemStack, idx: integer, entity: LuaEntity)
+---@alias FrameworkBlueprintPrepareCallback fun(blueprint: LuaItemStack): BlueprintEntity[]?
+---@alias FrameworkBlueprintMapCallback fun(entity: LuaEntity, idx: integer, context: table<string, any>)
+---@alias FrameworkBlueprintCallback fun(entity: LuaEntity, idx: integer, blueprint: LuaItemStack, context: table<string, any>)
 
 ---@class FrameworkBlueprintManager
----@field callbacks table<string, FrameworkBlueprintMatcher>
+---@field map_callbacks table<string, FrameworkBlueprintMapCallback>
+---@field callbacks table<string, FrameworkBlueprintCallback>
+---@field prepare_blueprint FrameworkBlueprintPrepareCallback?
 local FrameworkBlueprintManager = {
+    map_callbacks = {},
     callbacks = {},
+    prepare_blueprint = nil,
 }
 
 ------------------------------------------------------------------------
@@ -30,11 +36,11 @@ end
 
 ---@param blueprint LuaItemStack
 ---@param entity_map table<integer, table<integer, table<string, LuaEntity>>>
-function FrameworkBlueprintManager:augment_blueprint(blueprint, entity_map)
+function FrameworkBlueprintManager:augment_blueprint(blueprint, entity_map, context)
     if not entity_map or (table_size(entity_map) < 1) then return end
     if not (blueprint and blueprint.is_blueprint_setup()) then return end
 
-    local blueprint_entities = blueprint.get_blueprint_entities()
+    local blueprint_entities = self.prepare_blueprint and self.prepare_blueprint(blueprint) or blueprint.get_blueprint_entities()
     if not blueprint_entities then return end
 
     -- at this point, the entity_map contains all entities that were captured in the
@@ -49,7 +55,7 @@ function FrameworkBlueprintManager:augment_blueprint(blueprint, entity_map)
                 local callback = self.callbacks[entity.name]
                 if callback then
                     local mapped_entity = y_map[entity.name]
-                    callback(blueprint, idx, mapped_entity)
+                    callback(mapped_entity, idx, blueprint, context)
                 end
             end
         end
@@ -57,12 +63,17 @@ function FrameworkBlueprintManager:augment_blueprint(blueprint, entity_map)
 end
 
 ---@param entity_mapping table<integer, LuaEntity>
+---@param context table<string, any>
 ---@return table<integer, table<integer, table<string, LuaEntity>>> entity_map
-function FrameworkBlueprintManager:create_entity_map(entity_mapping)
+function FrameworkBlueprintManager:create_entity_map(entity_mapping, context)
     local entity_map = {}
     if entity_mapping then
-        for _, mapped_entity in pairs(entity_mapping) do
+        for idx, mapped_entity in pairs(entity_mapping) do
             if self.callbacks[mapped_entity.name] then -- there is a callback for this entity
+                local map_callback = self.map_callbacks[mapped_entity.name]
+                if map_callback then
+                    map_callback(mapped_entity, idx, context)
+                end
                 local x_map = entity_map[mapped_entity.position.x] or {}
                 entity_map[mapped_entity.position.x] = x_map
                 local y_map = x_map[mapped_entity.position.y] or {}
@@ -101,14 +112,16 @@ local function onPlayerSetupBlueprint(event)
         }
     end
 
-    local entity_map = Framework.blueprint:create_entity_map(blueprinted_entities)
+    local context = {}
+    local entity_map = Framework.blueprint:create_entity_map(blueprinted_entities, context)
 
     if can_access_blueprint(player) then
-        Framework.blueprint:augment_blueprint(player.cursor_stack, entity_map)
+        Framework.blueprint:augment_blueprint(player.cursor_stack, entity_map, context)
     else
         -- Player is editing the blueprint, no access for us yet.
         -- onPlayerConfiguredBlueprint picks this up and stores it.
         player_data.current_blueprint_entity_map = entity_map
+        player_data.current_blueprint_context = context
     end
 end
 
@@ -117,22 +130,40 @@ local function onPlayerConfiguredBlueprint(event)
     local player, player_data = Player.get(event.player_index)
 
     local entity_map = player_data.current_blueprint_entity_map
+    local context = player_data.current_blueprint_context or {}
 
     if entity_map and can_access_blueprint(player) then
-        Framework.blueprint:augment_blueprint(player.cursor_stack, entity_map)
+        Framework.blueprint:augment_blueprint(player.cursor_stack, entity_map, context)
     end
 
     player_data.current_blueprint_entity_map = nil
+    player_data.current_blueprint_context = nil
 end
 
 ------------------------------------------------------------------------
 -- Registration code
 ------------------------------------------------------------------------
 
----@param name string
----@param callback FrameworkBlueprintMatcher
-function FrameworkBlueprintManager:register_callback(name, callback)
-    self.callbacks[name] = callback
+---@param names string|string[]
+---@param callback FrameworkBlueprintCallback
+---param map_callback FrameworkBlueprintMapCallback?
+function FrameworkBlueprintManager:register_callback(names, callback, map_callback)
+
+    if type(names) ~= 'table' then
+        names = { names }
+    end
+
+    for _, name in pairs(names) do
+        self.callbacks[name] = callback
+        if map_callback then
+            self.map_callbacks[name] = map_callback
+        end
+    end
+end
+
+---@param callback FrameworkBlueprintPrepareCallback
+function FrameworkBlueprintManager:register_preprocessor(callback)
+    self.prepare_blueprint = callback
 end
 
 -- Blueprint management

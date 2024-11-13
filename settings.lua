@@ -1,4 +1,4 @@
-require('lib.init')
+require('lib.init')('settings')
 
 data:extend {
     {

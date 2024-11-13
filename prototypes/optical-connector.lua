@@ -44,7 +44,7 @@ local entity = {
     name = const.optical_connector,
 
     -- SimpleEntityWithOwnerPrototype
-    -- render_layer = 'floor-mechanics',
+    render_layer = 'floor-mechanics',
     picture = oc_sprite,
 
     -- EntityWithHealthPrototype

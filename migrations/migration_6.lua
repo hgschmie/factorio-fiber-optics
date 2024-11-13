@@ -8,7 +8,7 @@ require('lib.init')
 
 if storage.oc_networks.VERSION > 5 and storage.oc_data.VERSION > 5 then return end
 
-local Is = require('__stdlib__/stdlib/utils/is')
+local Is = require('stdlib.utils.is')
 
 local const = require('lib.constants')
 local oc = require('scripts.oc')

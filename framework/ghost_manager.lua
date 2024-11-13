@@ -5,6 +5,7 @@
 
 local Event = require('stdlib.event.event')
 local Is = require('stdlib.utils.is')
+local Position = require('stdlib.area.position')
 
 local tools = require('framework.tools')
 
@@ -75,6 +76,27 @@ function FrameworkGhostManager:findMatchingGhost(entity)
         end
     end
     return nil
+end
+
+---@param area BoundingBox
+---@param callback fun(ghost: FrameworkAttachedEntity) : any?
+---@return table<any, FrameworkAttachedEntity> attached_entities
+function FrameworkGhostManager:findGhostsInArea(area, callback)
+    local state = self:state()
+
+    local ghosts = {}
+    for idx, ghost in pairs(state.ghost_entities) do
+        local pos = Position.new(ghost.position)
+        if pos:inside(area) then
+            local key = callback(ghost)
+            if key then
+                ghosts[key] = ghost
+                storage.ghost_entities[idx] = nil
+            end
+        end
+    end
+
+    return ghosts
 end
 
 ---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built

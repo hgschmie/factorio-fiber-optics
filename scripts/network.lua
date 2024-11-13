@@ -2,7 +2,7 @@
 -- Network related code
 ------------------------------------------------------------------------
 
-local Is = require('__stdlib__/stdlib/utils/is')
+local Is = require('stdlib.utils.is')
 
 local const = require('lib.constants')
 
@@ -39,7 +39,6 @@ function Network:surface_networks(surface_id)
     return storage.oc_networks.surface_networks[surface_id]
 end
 
-
 function Network:create_new_surface_network()
     ---@class SurfaceFiberNetworks
     ---@field networks table<integer, FiberNetwork>
@@ -73,9 +72,9 @@ end
 
 --- returns a specific fiber network for a given entity to connect to.
 ---
---- @param entity LuaEntity
---- @param network_id integer
---- @return FiberNetwork fiber_network
+---@param entity LuaEntity
+---@param network_id integer
+---@return FiberNetwork fiber_network
 function Network:locate_network(entity, network_id)
     local surface_index = entity.surface_index
 
@@ -184,11 +183,13 @@ function Network:tick()
                 Framework.logger:debugf('Entities: %s', connectors)
 
                 for idx, connector in pairs(fiber_network.connectors) do
-                    if table_size(connector.circuit_connected_entities.red) ~= count then
-                        Framework.logger:debugf('Fiber strand %d has %d connected red endpoints', idx, #connector.circuit_connected_entities.red)
+                    local red_connector = connector.get_wire_connector(defines.wire_connector_id.circuit_red, true)
+                    if red_connector.connection_count ~= count then
+                        Framework.logger:debugf('Fiber strand %d has %d connected red endpoints', idx, red_connector.connection_count)
                     end
-                    if table_size(connector.circuit_connected_entities.green) ~= count then
-                        Framework.logger:debugf('Fiber strand %d has %d connected green endpoints', idx, #connector.circuit_connected_entities.green)
+                    local green_connector = connector.get_wire_connector(defines.wire_connector_id.circuit_green, true)
+                    if green_connector.connection_count ~= count then
+                        Framework.logger:debugf('Fiber strand %d has %d connected green endpoints', idx, green_connector.connection_count)
                     end
                 end
             end
