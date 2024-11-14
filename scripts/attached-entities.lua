@@ -6,9 +6,6 @@
 local Area = require('stdlib.area.area')
 local Position = require('stdlib.area.position')
 
-local const = require('lib.constants')
-
-
 ---@class FiberNetworkAttachedEntities
 local AttachedEntities = {}
 
@@ -41,7 +38,7 @@ function AttachedEntities:registerEntity(entity, player_index, tags)
 end
 
 --------------------------------------------------------------------------------
--- remove registered ghost/entity
+-- remove attached entity
 --------------------------------------------------------------------------------
 
 function AttachedEntities:delete(unit_number)
@@ -92,27 +89,32 @@ function AttachedEntities:tick()
             self:delete(id)
         end
     end
+end
+
+--------------------------------------------------------------------------------
+-- ghost refresh
+--------------------------------------------------------------------------------
+
+---@param entity FrameworkAttachedEntity
+---@param all_entities FrameworkAttachedEntity[]
+---@return table<integer, FrameworkAttachedEntity>
+function AttachedEntities.ghost_refresh(entity, all_entities)
+    local entities = {
+        [entity.entity.unit_number] = entity
+    }
 
     -- find all placed OC ghosts which may be lingering because e.g. material shortage
-    for _, attached_entity in pairs(storage.ghost_entities) do
-        if attached_entity.name == const.optical_connector then
-            attached_entity.tick = game.tick + 600 -- refresh
-            local area = Area.new(attached_entity.entity.selection_box)
-            for _, ghost_entity in pairs(storage.ghost_entities) do
-                local pos = Position.new(ghost_entity.position)
-                if pos:inside(area) then
-                    ghost_entity.tick = game.tick + 600 -- refresh
-                end
-            end
+    -- all oc ghosts (and the oc itself) are refreshed so that they do not disappear if
+    -- no robot is around.
+    local area = Area.new(entity.entity.selection_box)
+    for _, ghost_entity in pairs(all_entities) do
+        local pos = Position.new(ghost_entity.position)
+        if pos:inside(area) then
+            entities[ghost_entity.entity.unit_number] = ghost_entity
         end
     end
 
-    -- remove stale ghost entities
-    for id, attached_entity in pairs(storage.ghost_entities) do
-        if attached_entity.tick < game.tick then
-            self:delete(id)
-        end
-    end
+    return entities
 end
 
 return AttachedEntities

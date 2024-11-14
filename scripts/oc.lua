@@ -189,19 +189,19 @@ local function setup_oc(oc_entity)
     sl1_control.circuit_enable_disable = true
     sl1_control.use_colors = false
     sl1_control.circuit_condition = {
-            comparator = '=',
-            first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', },
-            constant = 1,
+        comparator = '=',
+        first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', },
+        constant = 1,
     } --[[@as CircuitCondition ]]
 
     local sl2_control = oc_entity.ref.status_led_2.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
     sl2_control.circuit_enable_disable = true
     sl1_control.use_colors = false
     sl2_control.circuit_condition = {
-            comparator = '=',
-            first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', }, 
-            constant = 1,
-    }  --[[@as CircuitCondition ]]
+        comparator = '=',
+        first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', },
+        constant = 1,
+    } --[[@as CircuitCondition ]]
 
     local sc_control = oc_entity.ref.status_controller.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior?]]
     assert(sc_control)
@@ -280,7 +280,7 @@ function Oc:create(cfg)
             entity = oc_entity,
             name = sub_entity.name,
             ghost = cfg.ghosts[sub_entity.name],
-            attached = cfg.attached[sub_entity.name],
+            attached = cfg.attached [sub_entity.name],
             dx = sub_entity.dx,
             dy = sub_entity.dy,
         }
@@ -374,7 +374,6 @@ function Oc:connect_network(entity, network_id)
     return true
 end
 
-
 local connectors = { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper }
 
 ---@param power_pole LuaEntity
@@ -384,7 +383,7 @@ local function get_connected_networks(power_pole)
     if not Is.Valid(power_pole) then return result end
 
     local idx = 1
-    for _,connector in pairs(connectors) do
+    for _, connector in pairs(connectors) do
         local wire_connector = power_pole.get_wire_connector(connector, true)
         if wire_connector.network_id > 0 and not result[wire_connector.network_id] then
             result[wire_connector.network_id] = idx
@@ -453,36 +452,6 @@ end
 -- Move OC (Picker Dollies code)
 ------------------------------------------------------------------------
 
-local wire_checks = {
-    [const.check_circuit_wires] = function(entity)
-        local wire_connections = entity.circuit_connected_entities
-        if wire_connections then
-            for _, connected_entities in pairs(wire_connections) do
-                for _, connected_entity in pairs(connected_entities) do
-                    if entity.surface == connected_entity.surface and connected_entity.name ~= const.network_connector then
-                        if not entity.can_wires_reach(connected_entity) then
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-        return false
-    end,
-    [const.check_power_wires] = function(entity)
-        if entity.neighbours and entity.neighbours.copper then
-            for _, neighbor in pairs(entity.neighbours.copper) do
-                if entity.surface == neighbor.surface then
-                    if not entity.can_wires_reach(neighbor) then
-                        return true
-                    end
-                end
-            end
-        end
-        return false
-    end,
-}
-
 local msg_wires_too_long = const:with_prefix('messages.wires_too_long')
 
 --- check whether connected wires can be stretched. Returns false if the wire
@@ -505,8 +474,8 @@ local function check_wire_stretch(entity, new_pos, player)
 
                 if vetoed then
                     player.create_local_flying_text {
-                    position = entity.position,
-                    text = { msg_wires_too_long },
+                        position = entity.position,
+                        text = { msg_wires_too_long },
                     }
 
                     -- move back
@@ -631,7 +600,7 @@ local function get_connection_count(wire_connector)
     if not wire_connector or wire_connector.connection_count == 0 then return 0 end
 
     local count = 0
-    for _,connection in pairs(wire_connector.connections) do
+    for _, connection in pairs(wire_connector.connections) do
         -- do not count connections to internal things
         if not const.internal_entities[connection.target.owner.name] then
             count = count + 1

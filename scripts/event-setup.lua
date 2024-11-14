@@ -207,7 +207,8 @@ local oc_attached_entities_filter = tools.create_event_entity_matcher('name', co
 Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity, oc_entity_filter)
 
 -- manage ghost building (robot building)
-Framework.ghost_manager.register_for_ghost_names(const.ghost_entities)
+Framework.ghost_manager:register_for_ghost_names(const.ghost_entities)
+Framework.ghost_manager:register_for_ghost_refresh(const.optical_connector, This.attached_entities.ghost_refresh)
 
 -- entity create / delete
 Event.register(defines.events.on_pre_build, onPreBuild)
