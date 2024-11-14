@@ -9,8 +9,13 @@ local Position = require('stdlib.area.position')
 
 local tools = require('framework.tools')
 
+---@alias FrameworkGhostManagerRefreshCallback function(entity: FrameworkAttachedEntity, all_entities: FrameworkAttachedEntity[]): FrameworkAttachedEntity[]
+
 ---@class FrameworkGhostManager
-local FrameworkGhostManager = {}
+---@field refresh_callbacks FrameworkGhostManagerRefreshCallback[]
+local FrameworkGhostManager = {
+    refresh_callbacks = {},
+}
 
 ---@return FrameworkGhostManagerState state Manages ghost state
 function FrameworkGhostManager:state()
@@ -60,7 +65,7 @@ function FrameworkGhostManager:deleteGhost(unit_number)
 end
 
 ---@param entity LuaEntity
----@return FrameworkAttachedEntity? attached_entity
+---@return FrameworkAttachedEntity? ghost_entities
 function FrameworkGhostManager:findMatchingGhost(entity)
     local state = self:state()
 
@@ -78,9 +83,14 @@ function FrameworkGhostManager:findMatchingGhost(entity)
     return nil
 end
 
+--- Find all ghosts within a given area. If a ghost is found, pass
+--- it to the callback. If the callback returns a key, move the ghost
+--- into the ghost_entities return array under the given key and remove
+--- it from storage. 
+---
 ---@param area BoundingBox
 ---@param callback fun(ghost: FrameworkAttachedEntity) : any?
----@return table<any, FrameworkAttachedEntity> attached_entities
+---@return table<any, FrameworkAttachedEntity> ghost_entities
 function FrameworkGhostManager:findGhostsInArea(area, callback)
     local state = self:state()
 
@@ -91,7 +101,7 @@ function FrameworkGhostManager:findGhostsInArea(area, callback)
             local key = callback(ghost)
             if key then
                 ghosts[key] = ghost
-                storage.ghost_entities[idx] = nil
+                state.ghost_entities[idx] = nil
             end
         end
     end
@@ -110,20 +120,69 @@ function FrameworkGhostManager.onGhostEntityCreated(event)
 end
 
 ---@param event EventData.on_object_destroyed
-function FrameworkGhostManager.onObjectDestroyed(event)
+local function onObjectDestroyed(event)
     Framework.ghost_manager:deleteGhost(event.useful_id)
 end
 
-function FrameworkGhostManager.register_for_ghost_names(values)
-    local ghost_filter = tools.create_event_ghost_entity_name_matcher(values)
-    tools.event_register(tools.CREATION_EVENTS, Framework.ghost_manager.onGhostEntityCreated, ghost_filter)
+--------------------------------------------------------------------------------
+-- ticker
+--------------------------------------------------------------------------------
+
+local function onTick()
+    Framework.ghost_manager:tick()
 end
 
-function FrameworkGhostManager.register_for_ghost_attributes(attribute, values)
-    local ghost_filter = tools.create_event_ghost_entity_matcher(attribute, values)
-    tools.event_register(tools.CREATION_EVENTS, Framework.ghost_manager.onGhostEntityCreated, ghost_filter)
+-- entities that do not get refreshed will disappear after 10 seconds
+local timeout_for_ghosts = 600
+
+function FrameworkGhostManager:tick()
+    local state = self:state()
+
+    local all_ghosts = state.ghost_entities --[[@as FrameworkAttachedEntity[] ]]
+
+    for _, ghost_entity in pairs(all_ghosts) do
+        local callback = self.refresh_callbacks[ghost_entity.name]
+        if callback then
+            local entities = callback(ghost_entity, all_ghosts)
+            for _, entity in pairs(entities) do
+                entity.tick = game.tick + timeout_for_ghosts -- refresh
+            end
+        end
+    end
+
+    -- remove stale ghost entities
+    for id, ghost_entity in pairs(all_ghosts) do
+        if ghost_entity.tick < game.tick then
+            self:deleteGhost(id)
+        end
+    end
 end
 
-Event.register(defines.events.on_object_destroyed, FrameworkGhostManager.onObjectDestroyed)
+function FrameworkGhostManager:register_for_ghost_names(ghost_names)
+    local event_matcher = tools.create_event_ghost_entity_name_matcher(ghost_names)
+    tools.event_register(tools.CREATION_EVENTS, Framework.ghost_manager.onGhostEntityCreated, event_matcher)
+end
+
+function FrameworkGhostManager:register_for_ghost_attributes(attribute, values)
+    local event_matcher = tools.create_event_ghost_entity_matcher(attribute, values)
+    tools.event_register(tools.CREATION_EVENTS, Framework.ghost_manager.onGhostEntityCreated, event_matcher)
+end
+
+--- Registers a ghost entity for refresh. The callback will receive the entity and must return
+--- at least the entity itself to refresh it. It may return additional entities to refresh.
+---@param names string|string[]
+---@param callback FrameworkGhostManagerRefreshCallback
+function FrameworkGhostManager:register_for_ghost_refresh(names, callback)
+    if type(names) ~= 'table' then
+        names = { names }
+    end
+    for _, name in pairs(names) do
+        self.refresh_callbacks[name] = callback
+    end
+end
+
+Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
+
+Event.on_nth_tick(61, onTick)
 
 return FrameworkGhostManager

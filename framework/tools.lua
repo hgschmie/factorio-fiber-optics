@@ -33,7 +33,7 @@ local Tools = {
         defines.events.script_raised_destroy,
     },
 
-    copy = lualib_util.copy  -- allow `tools.copy`
+    copy = lualib_util.copy -- allow `tools.copy`
 }
 
 --------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ Tools.STATUS_TABLE = {
 }
 
 for name, idx in pairs(defines.entity_status) do
-   Tools.STATUS_NAMES[idx] = 'entity-status.' .. string.gsub(name, '_', '-')
+    Tools.STATUS_NAMES[idx] = 'entity-status.' .. string.gsub(name, '_', '-')
 end
 
 for status, led in pairs(Tools.STATUS_TABLE) do
@@ -73,37 +73,50 @@ local function create_matcher(values, entity_matcher)
     if type(values) ~= 'table' then
         values = { values }
     end
-
     local matcher_map = table.array_to_dictionary(values, true)
+
+    return function(entity, pattern)
+        if not Is.Valid(entity) then return false end
+        return matcher_map[entity_matcher(entity, pattern)]
+    end
+end
+
+local function create_event_matcher(matcher_function)
     return function(event, pattern)
         if not event then return false end
         -- move / clone events
         if event.source and event.destination then
-            return matcher_map[entity_matcher(event.source, pattern)] and matcher_map[entity_matcher(event.destination, pattern)]
+            return matcher_function(event.source, pattern) and matcher_function(event.destination, pattern)
         end
 
-        return matcher_map[entity_matcher(event.entity, pattern)]
+        return matcher_function(event.entity, pattern)
     end
 end
 
 ---@param attribute string The entity attribute to match.
 ---@param values string|string[] One or more values to match.
----@return function(ev: EventData, pattern: any): boolean
+---@return function(ev: EventData, pattern: any): boolean event_matcher
 function Tools.create_event_entity_matcher(attribute, values)
-    local matcher = function(entity) return entity and entity[attribute] end
-    return create_matcher(values, matcher)
+    local matcher_function = create_matcher(values, function(entity)
+        return entity and entity[attribute]
+    end)
+
+    return create_event_matcher(matcher_function)
 end
 
 ---@param attribute string The entity attribute to match.
 ---@param values string|string[] One or more values to match.
----@return function(ev: EventData, pattern: any): boolean
+---@return function(ev: EventData, pattern: any): boolean event_matcher
 function Tools.create_event_ghost_entity_matcher(attribute, values)
-    local matcher = function(entity) return entity and entity.type == 'entity-ghost' and entity[attribute] end
-    return create_matcher(values, matcher)
+    local matcher_function = create_matcher(values, function(entity)
+        return entity and entity.type == 'entity-ghost' and entity[attribute]
+    end)
+
+    return create_event_matcher(matcher_function)
 end
 
 ---@param values string|string[] One or more names to match to the ghost_name field.
----@return function(ev: EventData, pattern: any): boolean
+---@return function(ev: EventData, pattern: any): boolean event_matcher
 function Tools.create_event_ghost_entity_name_matcher(values)
     return Tools.create_event_ghost_entity_matcher('ghost_name', values)
 end
