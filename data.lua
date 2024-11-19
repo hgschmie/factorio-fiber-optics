@@ -15,8 +15,6 @@ local recipe_technology = {
     {
         type = 'recipe',
         name = const.optical_connector,
-        icon_size = 128,
-        icon = const:png('oc-tech'),
 
         ingredients = {
             { type = 'item', name = 'advanced-circuit', amount = 2 },
