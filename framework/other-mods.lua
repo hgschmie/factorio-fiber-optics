@@ -19,7 +19,7 @@ local OtherMods = {}
 local OtherMods_mt = {
     __index = function(_, stage)
         return function()
-            if not This then return end
+            if not (This and This.other_mods) then return end
             for mod_name, alias in pairs(This.other_mods) do
                 if (script and script.active_mods[mod_name]) or (mods and mods[mod_name]) or mod_name == 'framework' then
                     local mod_support = require('scripts.other-mods.' .. alias)
