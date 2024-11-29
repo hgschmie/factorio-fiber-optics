@@ -2,9 +2,10 @@
 Version: 1.0.1
 Date: ????
   Changes:
+    - support space platform building
+    - remove space exploration support, not ported to 2.0
   Bugfixes:
     - restore correct image for item
-    - support space platform building
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2024-11-14
