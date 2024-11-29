@@ -64,7 +64,7 @@ local function onPreBuild(event)
 end
 
 
----@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built
+---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.script_raised_revive | EventData.script_raised_built | EventData.on_space_platform_built_entity
 local function onEntityCreated(event)
     local entity = event and event.entity
 
