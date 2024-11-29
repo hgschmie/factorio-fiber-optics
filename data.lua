@@ -18,9 +18,8 @@ local recipe_technology = {
 
         ingredients = {
             { type = 'item', name = 'advanced-circuit', amount = 2 },
-            { type = 'item', name = 'red-wire',       amount = 4 },
-            { type = 'item', name = 'green-wire',     amount = 4 },
-            { type = 'item', name = 'copper-cable',   amount = 2 },
+            { type = 'item', name = 'plastic-bar',      amount = 4 },
+            { type = 'item', name = 'copper-cable',     amount = 4 },
         },
 
         results = {
