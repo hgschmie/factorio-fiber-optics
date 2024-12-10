@@ -190,6 +190,19 @@ local function onTick()
 end
 
 --------------------------------------------------------------------------------
+-- config changes
+--------------------------------------------------------------------------------
+
+---@param ev ConfigurationChangedData?
+local function onConfigurationChanged(ev)
+    for _, force in pairs(game.forces) do
+        if force.recipes[const.optical_connector] then
+            force.recipes[const.optical_connector].enabled = force.technologies[const.optical_connector_technology].researched
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Event registration
 --------------------------------------------------------------------------------
 
@@ -225,6 +238,10 @@ Framework.blueprint:register_preprocessor(This.blueprint.prepare_blueprint)
 
 -- entity destroy
 Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
+
+-- config changes
+Event.on_configuration_changed(onConfigurationChanged)
+Event.register(defines.events.on_runtime_mod_setting_changed, onConfigurationChanged)
 
 -- ticker code
 Event.on_nth_tick(299, onTick)
