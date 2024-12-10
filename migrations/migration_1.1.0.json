@@ -1,0 +1,24 @@
+{
+    "item": [
+        [ "hps:fo-optical-connector", "hps__fo-optical-connector" ],
+        [ "hps:fo-oc-power-pole", "hps__fo-oc-power-pole" ],
+        [ "hps:fo-oc-io_pin", "hps__fo-oc-io_pin" ],
+        [ "hps:fo-oc-io_pin_one", "hps__fo-oc-io_pin_one" ]
+    ],
+    "recipe": [
+        [ "hps:fo-optical-connector", "hps__fo-optical-connector" ]
+    ],
+    "technology": [
+        [ "hps:fo-optical-connector-technology", "hps__fo-optical-connector-technology" ]
+    ],
+    "entity": [
+        [ "hps:fo-optical-connector", "hps__fo-optical-connector" ],
+        [ "hps:fo-oc-power-interface", "hps__fo-oc-power-interface" ],
+        [ "hps:fo-oc-power-pole", "hps__fo-oc-power-pole" ],
+        [ "hps:fo-oc-led-lamp", "hps__fo-oc-led-lamp" ],
+        [ "hps:fo-oc-constant-combinator", "hps__fo-oc-constant-combinator" ],
+        [ "hps:fo-network-connector", "hps__fo-network-connector" ],
+        [ "hps:fo-oc-io_pin", "hps__fo-oc-io_pin" ],
+        [ "hps:fo-oc-io_pin_one", "hps__fo-oc-io_pin_one" ]
+    ]
+}
