@@ -2,6 +2,7 @@
 --------------------------------------------------------------------------------
 -- Blueprint / copy&paste management
 --------------------------------------------------------------------------------
+assert(script)
 
 local Is = require('stdlib.utils.is')
 local table = require('stdlib.utils.table')

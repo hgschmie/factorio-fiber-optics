@@ -2,6 +2,7 @@
 ------------------------------------------------------------------------
 -- all the optical connector management code
 ------------------------------------------------------------------------
+assert(script)
 
 local Is = require('stdlib.utils.is')
 

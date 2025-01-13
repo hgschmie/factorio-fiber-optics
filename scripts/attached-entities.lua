@@ -2,6 +2,7 @@
 ------------------------------------------------------------------------
 -- Manage all the attached entities and ghosts
 ------------------------------------------------------------------------
+assert(script)
 
 local Area = require('stdlib.area.area')
 local Position = require('stdlib.area.position')

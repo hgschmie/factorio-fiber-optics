@@ -2,10 +2,10 @@
 -- runtime code
 ------------------------------------------------------------------------
 
-require('lib.init')('runtime')
+require('lib.init')
 
 -- setup events
 require('scripts.event-setup')
 
 -- other mods code
-require('framework.other-mods').runtime()
+Framework.post_runtime_stage()

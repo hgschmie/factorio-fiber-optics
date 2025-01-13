@@ -1,6 +1,8 @@
+---@meta
 --------------------------------------------------------------------------------
 -- event setup for the mod
 --------------------------------------------------------------------------------
+assert(script)
 
 local Event = require('stdlib.event.event')
 local Is = require('stdlib.utils.is')

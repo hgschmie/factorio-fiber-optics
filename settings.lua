@@ -1,4 +1,4 @@
-require('lib.init')('settings')
+require('lib.init')
 
 data:extend {
     {
@@ -12,4 +12,4 @@ data:extend {
 }
 
 --------------------------------------------------------------------------------
-require('framework.other-mods').settings()
+Framework.post_settings_stage()
