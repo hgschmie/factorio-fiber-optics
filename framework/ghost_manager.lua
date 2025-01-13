@@ -9,6 +9,9 @@ local Position = require('stdlib.area.position')
 
 local tools = require('framework.tools')
 
+local TICK_INTERVAL = 61 -- run all 61 ticks
+local ATTACHED_GHOST_LINGER_TIME = 600
+
 ---@alias FrameworkGhostManagerRefreshCallback function(entity: FrameworkAttachedEntity, all_entities: FrameworkAttachedEntity[]): FrameworkAttachedEntity[]
 
 ---@class FrameworkGhostManager
@@ -21,12 +24,10 @@ local FrameworkGhostManager = {
 function FrameworkGhostManager:state()
     local storage = Framework.runtime:storage()
 
-    if not storage.ghost_manager then
-        ---@type FrameworkGhostManagerState
-        storage.ghost_manager = {
-            ghost_entities = {},
-        }
-    end
+    ---@type FrameworkGhostManagerState
+    storage.ghost_manager = storage.ghost_manager or {
+        ghost_entities = {},
+    }
 
     return storage.ghost_manager
 end
@@ -50,18 +51,17 @@ function FrameworkGhostManager:registerGhost(entity, player_index)
         orientation = entity.orientation,
         tags = entity.tags,
         player_index = player_index,
-        -- allow 10 seconds of dwelling time until a refresh must have happened
-        tick = game.tick + 600,
+        -- allow 10 seconds of lingering time until a refresh must have happened
+        tick = game.tick + ATTACHED_GHOST_LINGER_TIME,
     }
 end
 
 function FrameworkGhostManager:deleteGhost(unit_number)
     local state = self:state()
 
-    if state.ghost_entities[unit_number] then
-        state.ghost_entities[unit_number].entity.destroy()
-        state.ghost_entities[unit_number] = nil
-    end
+    if not state.ghost_entities[unit_number] then return end
+    state.ghost_entities[unit_number].entity.destroy()
+    state.ghost_entities[unit_number] = nil
 end
 
 ---@param entity LuaEntity
@@ -76,7 +76,7 @@ function FrameworkGhostManager:findMatchingGhost(entity)
             and entity.position.x == ghost.position.x
             and entity.position.y == ghost.position.y
             and entity.orientation == ghost.orientation then
-            state.ghost_entities[idx] = nil
+            self:deleteGhost(idx)
             return ghost
         end
     end
@@ -128,24 +128,19 @@ end
 -- ticker
 --------------------------------------------------------------------------------
 
-local function onTick()
-    Framework.ghost_manager:tick()
-end
-
--- entities that do not get refreshed will disappear after 10 seconds
-local timeout_for_ghosts = 600
-
 function FrameworkGhostManager:tick()
     local state = self:state()
 
     local all_ghosts = state.ghost_entities --[[@as FrameworkAttachedEntity[] ]]
+
+    if table_size(all_ghosts) == 0 then return end
 
     for _, ghost_entity in pairs(all_ghosts) do
         local callback = self.refresh_callbacks[ghost_entity.name]
         if callback then
             local entities = callback(ghost_entity, all_ghosts)
             for _, entity in pairs(entities) do
-                entity.tick = game.tick + timeout_for_ghosts -- refresh
+                entity.tick = game.tick + ATTACHED_GHOST_LINGER_TIME -- refresh
             end
         end
     end
@@ -179,13 +174,23 @@ function FrameworkGhostManager:register_for_ghost_refresh(names, callback)
     if type(names) ~= 'table' then
         names = { names }
     end
+
+    Event.register_if(table_size(self.refresh_callbacks) == 0, -TICK_INTERVAL, function(ev) Framework.ghost_manager:tick() end)
+
     for _, name in pairs(names) do
         self.refresh_callbacks[name] = callback
     end
 end
 
-Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
+--------------------------------------------------------------------------------
+-- event registration
+--------------------------------------------------------------------------------
 
-Event.on_nth_tick(61, onTick)
+local function register_events()
+    Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
+end
+
+Event.on_init(register_events)
+Event.on_load(register_events)
 
 return FrameworkGhostManager
