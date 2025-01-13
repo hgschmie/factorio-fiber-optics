@@ -2,27 +2,26 @@
 --- Initialize this mod's globals
 ----------------------------------------------------------------------------------------------------
 
----@type FiberOpticsThis
-local This = {
+---@class FiberOpticsMod
+---@field other_mods string[]
+---@field debug_mode integer
+---@field oc ModOc
+---@field network FiberNetworkManager
+---@field blueprint FiberNetworkBlueprint
+---@field attached_entities FiberNetworkAttachedEntities
+This = {
     other_mods = {
         PickerDollies = 'PickerDollies',
         ['even-pickier-dollies'] = 'PickerDollies',
     },
     debug_mode = 0, -- bit 0 (0/1): network debug, bit 1 (0/2): entity debug
-
-    oc = require('scripts.oc'),
-    network = require('scripts.network'),
-    blueprint = require('scripts.blueprint'),
-    attached_entities = require('scripts.attached-entities')
 }
 
-----------------------------------------------------------------------------------------------------
-
-----------------------------------------------------------------------------------------------------
-return function(stage)
-    if This['this_' .. stage] then
-        This['this_' .. stage](This)
-    end
-
-    return This
+if script then
+    This.oc = require('scripts.oc')
+    This.network = require('scripts.network')
+    This.blueprint = require('scripts.blueprint')
+    This.attached_entities = require('scripts.attached-entities')
 end
+
+return This

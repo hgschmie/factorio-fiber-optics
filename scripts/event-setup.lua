@@ -15,18 +15,6 @@ local tools = require('framework.tools')
 local const = require('lib.constants')
 
 --------------------------------------------------------------------------------
--- mod init/load code
---------------------------------------------------------------------------------
-local function onInitOc()
-    This.oc:init()
-    This.network:init()
-    This.attached_entities:init()
-end
-
-local function onLoadOc()
-end
-
---------------------------------------------------------------------------------
 -- rotation
 --------------------------------------------------------------------------------
 
@@ -97,7 +85,6 @@ local function onEntityCreated(event)
     -- Those would be placed by paste / blueprint and the main entity
     -- will pick them up and revive (to keep e.g. wire connections)
     local attached_ghosts = Framework.ghost_manager:findGhostsInArea(area, function(ghost)
-
         -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
         -- store it under the iopin index value, not its name. The creation code will
         -- pick it up using the index because most pins have the same name.
@@ -208,42 +195,59 @@ end
 -- Event registration
 --------------------------------------------------------------------------------
 
+local function register_events()
+    Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
+    Event.register(defines.events.on_selected_entity_changed, onSelectedEntityChanged)
+
+    local oc_entity_filter = tools.create_event_entity_matcher('name', const.optical_connector)
+    local oc_attached_entities_filter = tools.create_event_entity_matcher('name', const.attached_entities)
+
+    -- rotation
+    Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity, oc_entity_filter)
+
+    -- manage ghost building (robot building)
+    Framework.ghost_manager:register_for_ghost_names(const.ghost_entities)
+    Framework.ghost_manager:register_for_ghost_refresh(const.optical_connector, This.attached_entities.ghost_refresh)
+
+    -- entity create / delete
+    Event.register(defines.events.on_pre_build, onPreBuild)
+
+    tools.event_register(tools.CREATION_EVENTS, onEntityCreated, oc_entity_filter)
+    tools.event_register(tools.CREATION_EVENTS, onAttachedEntityCreated, oc_attached_entities_filter)
+
+    tools.event_register(tools.DELETION_EVENTS, onEntityDeleted, oc_entity_filter)
+
+    -- Manage blueprint configuration setting
+    Framework.blueprint:register_callback(const.optical_connector, This.blueprint.oc_callback, This.blueprint.oc_map_callback)
+    Framework.blueprint:register_callback(const.all_iopins, This.blueprint.iopin_callback)
+    Framework.blueprint:register_preprocessor(This.blueprint.prepare_blueprint)
+
+    -- entity destroy
+    Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
+
+    -- config changes
+    Event.on_configuration_changed(onConfigurationChanged)
+    Event.register(defines.events.on_runtime_mod_setting_changed, onConfigurationChanged)
+
+    -- ticker code
+    Event.on_nth_tick(299, onTick)
+end
+
 -- mod init/load code
+
+--------------------------------------------------------------------------------
+-- mod init/load code
+--------------------------------------------------------------------------------
+local function onInitOc()
+    This.oc:init()
+    This.network:init()
+    This.attached_entities:init()
+    register_events()
+end
+
+local function onLoadOc()
+    register_events()
+end
+
 Event.on_init(onInitOc)
 Event.on_load(onLoadOc)
-
-Event.register(defines.events.on_player_cursor_stack_changed, onPlayerCursorStackChanged)
-Event.register(defines.events.on_selected_entity_changed, onSelectedEntityChanged)
-
-local oc_entity_filter = tools.create_event_entity_matcher('name', const.optical_connector)
-local oc_attached_entities_filter = tools.create_event_entity_matcher('name', const.attached_entities)
-
--- rotation
-Event.register(defines.events.on_player_rotated_entity, onPlayerRotatedEntity, oc_entity_filter)
-
--- manage ghost building (robot building)
-Framework.ghost_manager:register_for_ghost_names(const.ghost_entities)
-Framework.ghost_manager:register_for_ghost_refresh(const.optical_connector, This.attached_entities.ghost_refresh)
-
--- entity create / delete
-Event.register(defines.events.on_pre_build, onPreBuild)
-
-tools.event_register(tools.CREATION_EVENTS, onEntityCreated, oc_entity_filter)
-tools.event_register(tools.CREATION_EVENTS, onAttachedEntityCreated, oc_attached_entities_filter)
-
-tools.event_register(tools.DELETION_EVENTS, onEntityDeleted, oc_entity_filter)
-
--- Manage blueprint configuration setting
-Framework.blueprint:register_callback(const.optical_connector, This.blueprint.oc_callback, This.blueprint.oc_map_callback)
-Framework.blueprint:register_callback(const.all_iopins, This.blueprint.iopin_callback)
-Framework.blueprint:register_preprocessor(This.blueprint.prepare_blueprint)
-
--- entity destroy
-Event.register(defines.events.on_object_destroyed, onObjectDestroyed)
-
--- config changes
-Event.on_configuration_changed(onConfigurationChanged)
-Event.register(defines.events.on_runtime_mod_setting_changed, onConfigurationChanged)
-
--- ticker code
-Event.on_nth_tick(299, onTick)
