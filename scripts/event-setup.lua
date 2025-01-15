@@ -185,7 +185,7 @@ end
 ---@param ev ConfigurationChangedData?
 local function onConfigurationChanged(ev)
     for _, force in pairs(game.forces) do
-        if force.recipes[const.optical_connector] then
+        if force.recipes[const.optical_connector] and force.technologies[const.optical_connector] then
             force.recipes[const.optical_connector].enabled = force.technologies[const.optical_connector_technology].researched
         end
     end

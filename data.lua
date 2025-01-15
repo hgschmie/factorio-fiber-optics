@@ -15,6 +15,7 @@ local recipe_technology = {
     {
         type = 'recipe',
         name = const.optical_connector,
+        enabled = false,
 
         ingredients = {
             { type = 'item', name = 'advanced-circuit', amount = 2 },
