@@ -2,12 +2,11 @@
 ------------------------------------------------------------------------
 -- Manage GUIs and GUI state -- loosely inspired by flib
 ------------------------------------------------------------------------
-
--- only works in runtime mode
-if not script then return {} end
+assert(script)
 
 local Event = require('stdlib.event.event')
 local Is = require('stdlib.utils.is')
+local table = require('stdlib.utils.table')
 
 require('stdlib.utils.string')
 
@@ -19,22 +18,34 @@ local GUI_UPDATE_TICK_INTERVAL = 11
 -- types
 ------------------------------------------------------------------------
 
+--- A handler function to invoke when receiving GUI events for this element.
+---@alias framework.gui.element_handler fun(e: framework.gui.event_data, gui: framework.gui)
+---@alias framework.gui.update_callback fun(gui: framework.gui): boolean
 ---@alias framework.gui.context table<string, any?>
----@alias framework.gui.update_callback fun(gui: framework.gui, context: framework.gui.context): boolean
+---@alias framework.gui_events table<string, string>
+
+--- Aggregate type of all possible GUI events.
+---@alias framework.gui.event_data EventData.on_gui_checked_state_changed|EventData.on_gui_click|EventData.on_gui_closed|EventData.on_gui_confirmed|EventData.on_gui_elem_changed|EventData.on_gui_location_changed|EventData.on_gui_opened|EventData.on_gui_selected_tab_changed|EventData.on_gui_selection_state_changed|EventData.on_gui_switch_state_changed|EventData.on_gui_text_changed|EventData.on_gui_value_changed
 
 ---@class framework.gui_manager.create_gui
 ---@field player_index number
+---@field type string GUI type
 ---@field parent LuaGuiElement
----@field ui_tree framework.gui.element_definitions The element definition, or an array of element definitions.
+---@field ui_tree_provider fun(context: framework.gui): framework.gui.element_definitions
 ---@field existing_elements table<string, LuaGuiElement>? Optional set of existing GUI elements.
 ---@field context framework.gui.context? Context element
 ---@field entity_id number The entity for which a gui is created
----@field update_callback framework.gui.update_callback?
+
+---@class framework.gui_manager.event_definition
+---@field events table<string, framework.gui.element_handler>
+---@field callback framework.gui.update_callback?
 
 ---@class framework.gui_manager
 ---@field GUI_PREFIX string The prefix for all registered handlers and other global information.
+---@field known_gui_types table<string, framework.gui_manager.event_definition>
 local FrameworkGuiManager = {
     GUI_PREFIX = Framework.PREFIX .. 'gui-',
+    known_gui_types = {},
 }
 
 ------------------------------------------------------------------------
@@ -66,12 +77,25 @@ function FrameworkGuiManager:dispatch(event)
     local elem = event.element
     if not Is.Valid(elem) then return false end
 
+    -- find the GUI for the player
     local player_index = event.player_index
     local gui = self:find_gui(player_index)
     if not gui then return false end
 
-    -- dispatch to the UI instance
-    return gui:dispatch(event)
+    -- find the event mapping for the GUI
+    local gui_type = self.known_gui_types[gui.type]
+    assert(gui_type)
+
+    local event_handler_map = gui.event_handlers[event.name]
+    assert(event_handler_map)
+    local handler_id = event_handler_map[elem.name]
+
+    if not handler_id then return false end
+    local event_handler = gui_type.events[handler_id]
+
+    if not event_handler then return false end
+    event_handler(event, gui)
+    return true
 end
 
 ------------------------------------------------------------------------
@@ -85,40 +109,81 @@ function FrameworkGuiManager:find_gui(player_index)
 end
 
 ---@param player_index number
----@parameter gui framework.gui?
+---@parameter gui framework.gui
 function FrameworkGuiManager:set_gui(player_index, gui)
+    assert(gui)
     local state = self:state()
     state.guis[player_index] = gui
 end
 
+---@param player_index number
+---@return framework.gui?
+function FrameworkGuiManager:clear_gui(player_index)
+    local state = self:state()
+    local root = state.guis[player_index]
+    state.guis[player_index] = nil
+
+    return root
+end
+
+---@return table<number, framework.gui>
+function FrameworkGuiManager:all_guis()
+    local state = self:state()
+    return state.guis
+end
+
 ------------------------------------------------------------------------
+
+--- Registers a GUI type with the event table and callback with the GUI manager.
+---@param type string
+---@param event_definition framework.gui_manager.event_definition
+function FrameworkGuiManager:register_gui_type(type, event_definition)
+    assert(type)
+    assert(event_definition.events, 'events is unset!')
+
+    self.known_gui_types[type] = event_definition
+end
 
 --- Creates a new GUI instance.
 ---@param map framework.gui_manager.create_gui
 ---@return framework.gui A framework gui instance
 function FrameworkGuiManager:create_gui(map)
     assert(map)
-    assert(map.parent)
-    assert(map.entity_id)
+
+    assert(map.type)
+    local type = map.type
 
     assert(map.player_index)
     local player_index = map.player_index
 
-    local ui_tree = map.ui_tree
+    local gui_type = self.known_gui_types[type]
+
+    assert(gui_type, 'No Gui definition for "' .. map.type .. '" registered!')
+
+    -- must be set
+    assert(map.parent)
+    assert(map.entity_id)
+
+    local gui = FrameworkGui.create {
+        type = type,
+        prefix = self.GUI_PREFIX,
+        gui_events = table.array_to_dictionary(table.keys(gui_type.events)),
+        entity_id = map.entity_id,
+        context = map.context or {},
+    }
+
+    local ui_tree = map.ui_tree_provider(gui)
     -- do not change to table_size, '#' returning 0 is the whole point of the check...
     assert(Is.Table(ui_tree) and #ui_tree == 0, 'The UI tree must have a single root!')
 
-    local gui = FrameworkGui.create()
-    gui.prefix = self.GUI_PREFIX
-    gui.context = map.context or {}
-    gui.update_callback = map.update_callback
-    gui.entity_id = map.entity_id
 
     self:destroy_gui(player_index)
-    self:set_gui(player_index, gui)
-
     local root = gui:add_child_elements(map.parent, ui_tree, map.existing_elements)
     gui.root = root
+
+    self:set_gui(player_index, gui)
+
+    self.gui_update_tick()
 
     return gui
 end
@@ -152,28 +217,33 @@ function FrameworkGuiManager:destroy_gui(player_index)
     local gui = self:find_gui(player_index)
     if not gui then return end
 
-    self:set_gui(player_index, nil)
     if gui.root then gui.root.destroy() end
+
+    self:clear_gui(player_index)
 end
 
 ------------------------------------------------------------------------
 -- Update ticker
 ------------------------------------------------------------------------
 
-local function gui_update_tick()
-    local state = Framework.gui_manager:state()
-    if table_size(state.guis) == 0 then return end
+function FrameworkGuiManager.gui_update_tick()
+    local guis = FrameworkGuiManager:all_guis()
+    if table_size(guis) == 0 then return end
 
     local destroy_list = {}
-    for gui_id, gui in pairs(state.guis) do
-        if not gui:update() then
-            table.insert(destroy_list, gui_id)
+    for gui_id, gui in pairs(guis) do
+        local gui_type = FrameworkGuiManager.known_gui_types[gui.type]
+        assert(gui_type)
+        if gui_type.callback then
+            if not gui_type.callback(gui) then
+                destroy_list[gui_id] = gui
+            end
         end
     end
 
     if table_size(destroy_list) == 0 then return end
 
-    for _, gui_id in pairs(destroy_list) do
+    for gui_id in pairs(destroy_list) do
         Framework.gui_manager:destroy_gui(gui_id)
     end
 end
@@ -192,10 +262,18 @@ local function register_events()
         end
     end
 
-    Event.on_nth_tick(GUI_UPDATE_TICK_INTERVAL, gui_update_tick)
+    Event.on_nth_tick(GUI_UPDATE_TICK_INTERVAL, FrameworkGuiManager.gui_update_tick)
 end
 
-Event.on_init(register_events)
-Event.on_load(register_events)
+local function on_load()
+    register_events()
+end
+
+local function on_init()
+    register_events()
+end
+
+Event.on_init(on_init)
+Event.on_load(on_load)
 
 return FrameworkGuiManager
