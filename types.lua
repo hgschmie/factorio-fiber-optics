@@ -7,11 +7,8 @@
 --- scripts/attached_entities
 ----------------------------------------------------------------------------------------------------
 
----@class AttachedEntity
+---@class fiber_optics.AttachedEntity
 ---@field entity LuaEntity
----@field name string?
----@field position MapPosition?
----@field orientation float?
 ---@field tags Tags?
 ---@field player_index integer
 ---@field tick integer
@@ -61,13 +58,13 @@
 ---@field dx integer?
 ---@field dy integer?
 ---@field pos MapPosition?
----@field ghost AttachedEntity?
----@field attached AttachedEntity?
+---@field ghost fiber_optics.AttachedEntity?
+---@field attached fiber_optics.AttachedEntity?
 
 ---@class OcCreateCfg
 ---@field main LuaEntity
 ---@field tags Tags?
 ---@field player_index integer
----@field ghosts AttachedEntity[]
----@field attached AttachedEntity[]
+---@field ghosts fiber_optics.AttachedEntity[]
+---@field attached fiber_optics.AttachedEntity[]
 ---@field flip_index integer

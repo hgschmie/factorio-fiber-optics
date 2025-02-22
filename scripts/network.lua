@@ -1,4 +1,3 @@
----@meta
 ------------------------------------------------------------------------
 -- Network related code
 ------------------------------------------------------------------------
@@ -152,11 +151,13 @@ end
 
 local debug_tick = -1
 function Network:tick()
-    local print_debug_info = debug_tick < 0 or debug_tick < game.tick
-    if print_debug_info then
-        debug_tick = game.tick + 3600 -- tick once a minute
-    end
+    local debug = Framework.settings:runtime_setting('debug_mode')
 
+    local print_debug_info = false
+    if debug_tick < game.tick then
+        debug_tick = game.tick + 3600 -- tick once a minute
+        print_debug_info = debug
+    end
 
     for surface_index, surface_networks in pairs(self:all_surface_networks()) do
         for network_id, fiber_network in pairs(surface_networks.networks) do

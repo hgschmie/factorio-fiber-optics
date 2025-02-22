@@ -1,4 +1,3 @@
----@meta
 --------------------------------------------------------------------------------
 -- Blueprint / copy&paste management
 --------------------------------------------------------------------------------
@@ -99,50 +98,53 @@ function Blueprint.prepare_blueprint(blueprint)
     return reorder_blueprint(blueprint, reorder_optical_connectors)
 end
 
----@param oc LuaEntity
----@param idx integer
----@param blueprint LuaItemStack
----@param context table<string, any>
-function Blueprint.oc_callback(oc, idx, blueprint, context)
+---@param entity LuaEntity
+---@return table<string, any>?
+function Blueprint.serializeOc(entity)
+    if not (entity or entity.valid) then return end
     -- for all OC entities, record the flip index. This is needed to "unflip" the entity
     -- when building to place the pins in the right places.
-    local oc_config = This.oc:entity(oc.unit_number)
-    if oc_config then
-        blueprint.set_blueprint_entity_tag(idx, 'flip_index', oc_config.flip_index)
-    end
+    local oc_config = This.oc:entity(entity.unit_number)
+    if not oc_config then return end
+
+    return {
+        [const.flip_index_tag] = oc_config.flip_index,
+    }
 end
 
 ---@param oc LuaEntity
 ---@param idx integer
 ---@param context table<string, any>
-function Blueprint.oc_map_callback(oc, idx, context)
+function Blueprint.registerIoPins(oc, idx, context)
     context.iopin_index = context.iopin_index or {}
-    local iopin_index = context.iopin_index
+    if not (oc and oc.valid) then return end
 
-    if not Is.Valid(oc) then return end
     local oc_config = This.oc:entity(oc.unit_number)
-    if oc_config and oc_config.iopin then
-        for idx, iopin_entity in pairs(oc_config.iopin) do
-            iopin_index[iopin_entity.unit_number] = idx
-        end
+    if not (oc_config and oc_config.iopin) then return end
+
+    for iopin_idx, iopin_entity in pairs(oc_config.iopin) do
+        context.iopin_index[iopin_entity.unit_number] = iopin_idx
     end
 end
 
----@param oc LuaEntity
----@param idx integer
----@param blueprint LuaItemStack
+---@param entity LuaEntity
 ---@param context table<string, any>
-function Blueprint.iopin_callback(oc, idx, blueprint, context)
+---@return table<string, any>?
+function Blueprint.serializeIoPins(entity, context)
+    if not (entity or entity.valid) then return end
+
     context.iopin_index = context.iopin_index or {}
-    local iopin_index = context.iopin_index
 
     -- for io pins, record their index which comes from the map that was built above
-    local iopin_idx = iopin_index[oc.unit_number]
-    if iopin_idx then
-        blueprint.set_blueprint_entity_tag(idx, 'iopin_index', iopin_idx)
-    else
-        Framework.logger:logf('Found an unknown IO Pin entity, ignoring: %d', oc.unit_number)
+    local iopin_idx = context.iopin_index[entity.unit_number]
+    if not iopin_idx then
+        Framework.logger:logf('Found an unknown IO Pin entity, ignoring: %d', entity.unit_number)
+        return
     end
+
+    return {
+        [const.iopin_index_tag] = iopin_idx,
+    }
 end
 
 -- #endregion

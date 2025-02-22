@@ -13,6 +13,8 @@ local PickerDolliesSupport = {}
 --------------------------------------------------------------------------------
 
 PickerDolliesSupport.runtime = function()
+    assert(script)
+
     local Event = require('stdlib.event.event')
     local Player = require('stdlib.event.player')
 

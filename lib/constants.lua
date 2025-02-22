@@ -23,6 +23,9 @@ Constants.name = 'optical-connector'
 Constants.root = '__fiber-optics__'
 Constants.gfx_location = Constants.root .. '/gfx/'
 
+Constants.flip_index_tag = 'flip_index'
+Constants.iopin_index_tag = 'iopin_index'
+
 --------------------------------------------------------------------------------
 -- Framework intializer
 --------------------------------------------------------------------------------

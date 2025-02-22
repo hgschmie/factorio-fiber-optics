@@ -1,4 +1,3 @@
----@meta
 ------------------------------------------------------------------------
 -- all the optical connector management code
 ------------------------------------------------------------------------
@@ -183,51 +182,44 @@ end
 
 ---@param oc_entity OpticalConnectorData
 local function setup_oc(oc_entity)
-    local pp_control = oc_entity.ref.power_pole.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
+    -- power switch
+    local pp_control = assert(oc_entity.ref.power_pole.get_or_create_control_behavior()) --[[@as LuaGenericOnOffControlBehavior ]]
     pp_control.connect_to_logistic_network = false
 
-    local sl1_control = oc_entity.ref.status_led_1.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
+    local sl1_control = assert(oc_entity.ref.status_led_1.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
     sl1_control.circuit_enable_disable = true
     sl1_control.use_colors = false
-    sl1_control.circuit_condition = {
-        comparator = '=',
-        first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', },
-        constant = 1,
-    } --[[@as CircuitCondition ]]
+    ---@diagnostic disable-next-line: missing-fields
+    sl1_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
 
-    local sl2_control = oc_entity.ref.status_led_2.get_or_create_control_behavior() --[[@as LuaLampControlBehavior]]
+    local sl2_control = assert(oc_entity.ref.status_led_2.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
     sl2_control.circuit_enable_disable = true
     sl1_control.use_colors = false
-    sl2_control.circuit_condition = {
-        comparator = '=',
-        first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', },
-        constant = 1,
-    } --[[@as CircuitCondition ]]
+    ---@diagnostic disable-next-line: missing-fields
+    sl2_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
 
-    local sc_control = oc_entity.ref.status_controller.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior?]]
-    assert(sc_control)
-
+    local sc_control = assert(oc_entity.ref.status_controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
+    if sc_control.sections_count < 1 then sc_control.add_section() end
     local sc_section = sc_control.sections[1]
-    set_slot_data(sc_section, 1, 0)
-    set_slot_data(sc_section, 2, 0)
+    sc_section.filters = {
+        { value = { type = 'virtual', name = 'signal-1', quality = 'normal' }, min = 0, },
+        { value = { type = 'virtual', name = 'signal-2', quality = 'normal' }, min = 0, },
+    }
 
-    local red_wire_connector = oc_entity.ref.status_controller.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-    local red_target_connector = oc_entity.ref.status_led_1.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-    red_wire_connector.connect_to(red_target_connector, false, defines.wire_origin.script)
-
-    local green_wire_connector = oc_entity.ref.status_controller.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-    local green_target_connector = oc_entity.ref.status_led_2.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-    green_wire_connector.connect_to(green_target_connector, false, defines.wire_origin.script)
+    local controller_connector = oc_entity.ref.status_controller.get_wire_connector(defines.wire_connector_id.circuit_red, true)
+    local led1_connector = oc_entity.ref.status_led_1.get_wire_connector(defines.wire_connector_id.circuit_red, true)
+    local led2_connector = oc_entity.ref.status_led_2.get_wire_connector(defines.wire_connector_id.circuit_red, true)
+    controller_connector.connect_to(led1_connector, false, defines.wire_origin.script)
+    controller_connector.connect_to(led2_connector, false, defines.wire_origin.script)
 end
 
---- Creates a new entity from the main entity, registers with the mod
---- and configures it.
+--- Creates a new entity from the main entity, registers with the mod and configures it.
 ---@param cfg OcCreateCfg
 ---@return OpticalConnectorData? oc_entity
 function Oc:create(cfg)
-    if not Is.Valid(cfg.main) then return nil end
+    if not (cfg.main and cfg.main.valid) then return nil end
 
-    local entity_id = cfg.main.unit_number --[[@as integer]]
+    local entity_id = assert(cfg.main.unit_number)
 
     assert(self:entity(entity_id) == nil, "[BUG] main entity '" .. entity_id .. "' has already an oc_entity assigned!")
 
@@ -247,7 +239,7 @@ function Oc:create(cfg)
     -- the build code has put an existing flip into the tags (either from a blueprint ghost
     -- entity or from the event if this is a direct build.
     -- this is an optional value; if no tag was found, it uses index 1 ("no flips")
-    local existing_flip_index = cfg.tags and cfg.tags.flip_index or 1
+    local existing_flip_index = cfg.tags and cfg.tags[const.flip_index_tag] or 1
 
     -- the image was corrected so that pin 1 was in the right location when it was created
     -- undo this here. The main entity now points in the correct direction without any flips
@@ -281,7 +273,7 @@ function Oc:create(cfg)
             entity = oc_entity,
             name = sub_entity.name,
             ghost = cfg.ghosts[sub_entity.name],
-            attached = cfg.attached [sub_entity.name],
+            attached = cfg.attached[sub_entity.name],
             dx = sub_entity.dx,
             dy = sub_entity.dy,
         }
@@ -328,25 +320,22 @@ end
 ---@param network_id integer
 function Oc:disconnect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
-    if network then
-        This.network:remove_endpoint(entity.main, network_id)
+    if not network then return true end
 
-        for idx = 1, const.oc_iopin_count, 1 do
-            local iopin = entity.iopin[idx]
-            local fiber_strand = network.connectors[idx]
+    This.network:remove_endpoint(entity.main, network_id)
 
-            if Is.Valid(iopin) and Is.Valid(fiber_strand) then
-                local red_connector = iopin.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-                local red_target = fiber_strand.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-                red_connector.disconnect_from(red_target, defines.wire_origin.script)
-                local green_connector = iopin.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-                local green_target = fiber_strand.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-                green_connector.disconnect_from(green_target, defines.wire_origin.script)
+    for idx = 1, const.oc_iopin_count, 1 do
+        local iopin = entity.iopin[idx]
+        local fiber_strand = network.connectors[idx]
+
+        if Is.Valid(iopin) and Is.Valid(fiber_strand) then
+            for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
+                local connector = iopin.get_wire_connector(circuit, true)
+                local target = fiber_strand.get_wire_connector(circuit, true)
+                connector.disconnect_from(target, defines.wire_origin.script)
             end
         end
     end
-
-    return true
 end
 
 ---@param entity OpticalConnectorData
@@ -354,28 +343,23 @@ end
 function Oc:connect_network(entity, network_id)
     local network = This.network:locate_network(entity.main, network_id)
 
-    if network then
-        This.network:add_endpoint(entity.main, network_id)
+    if not network then return true end
 
-        for idx = 1, const.oc_iopin_count, 1 do
-            local iopin = entity.iopin[idx]
-            local fiber_strand = network.connectors[idx]
+    This.network:add_endpoint(entity.main, network_id)
 
-            if Is.Valid(iopin) and Is.Valid(fiber_strand) then
-                local red_connector = iopin.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-                local red_target = fiber_strand.get_wire_connector(defines.wire_connector_id.circuit_red, true)
-                red_connector.connect_to(red_target, false, defines.wire_origin.script)
-                local green_connector = iopin.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-                local green_target = fiber_strand.get_wire_connector(defines.wire_connector_id.circuit_green, true)
-                green_connector.connect_to(green_target, false, defines.wire_origin.script)
+    for idx = 1, const.oc_iopin_count, 1 do
+        local iopin = entity.iopin[idx]
+        local fiber_strand = network.connectors[idx]
+
+        if Is.Valid(iopin) and Is.Valid(fiber_strand) then
+            for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
+                local connector = iopin.get_wire_connector(circuit, true)
+                local target = fiber_strand.get_wire_connector(circuit, true)
+                connector.connect_to(target, false, defines.wire_origin.script)
             end
         end
     end
-
-    return true
 end
-
-local connectors = { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper }
 
 ---@param power_pole LuaEntity
 ---@return table<integer, integer> network_map
@@ -384,7 +368,7 @@ local function get_connected_networks(power_pole)
     if not Is.Valid(power_pole) then return result end
 
     local idx = 1
-    for _, connector in pairs(connectors) do
+    for _, connector in pairs { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper } do
         local wire_connector = power_pole.get_wire_connector(connector, true)
         if wire_connector.network_id > 0 and not result[wire_connector.network_id] then
             result[wire_connector.network_id] = idx
@@ -396,8 +380,9 @@ local function get_connected_networks(power_pole)
 end
 
 ---@param entity OpticalConnectorData
-function Oc:update_entity_status(entity)
-    if not (entity and entity.main and Is.Valid(entity.main)) then return end
+---@param force boolean? If true, force disconnect and reconnect
+function Oc:update_entity_status(entity, force)
+    if not (entity and Is.Valid(entity.main)) then return end
 
     entity.status = entity.ref.power_entity.status or defines.entity_status.disabled
 
@@ -411,25 +396,35 @@ function Oc:update_entity_status(entity)
 
     -- disconnect missing networks
     for network_id in pairs(entity.connected_networks) do
-        changes = (not current_networks[network_id] and self:disconnect_network(entity, network_id)) or changes
+        if (not current_networks[network_id]) or force then
+            self:disconnect_network(entity, network_id)
+            changes = true
+        end
     end
 
     -- connect new networks
     for network_id, idx in pairs(current_networks) do
         signals[idx] = 1
         active_signals = active_signals + 1
-        changes = (not entity.connected_networks[network_id] and self:connect_network(entity, network_id)) or changes
+        if not entity.connected_networks[network_id] or force then
+            self:connect_network(entity, network_id)
+            changes = true
+        end
     end
 
     if changes then
-        local control = entity.ref.status_controller.get_or_create_control_behavior() --[[@as LuaConstantCombinatorControlBehavior ]]
-        assert(control)
-        local section = control.sections[1]
+        local sc_control = assert(entity.ref.status_controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
+        if sc_control.sections_count < 1 then sc_control.add_section() end
+        local sc_section = sc_control.sections[1]
+        
+        local filters = {}
 
         -- idx is the led to turn on/off, count is 0 for off or 1 for on
-        for idx, count in pairs(signals) do
-            set_slot_data(section, idx, count)
+        for idx, value in pairs(signals) do
+            filters[idx] = { value = { type = 'virtual', name = 'signal-' .. tostring(idx), quality = 'normal' }, min = value, }
         end
+
+        sc_section.filters = filters
 
         entity.connected_networks = current_networks
         entity.ref.power_entity.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
@@ -437,9 +432,10 @@ function Oc:update_entity_status(entity)
 end
 
 ---@param entity_id integer
+---@return boolean True if an entity was destroyed
 function Oc:destroy(entity_id)
     local oc_entity = self:entity(entity_id)
-    if not oc_entity then return end
+    if not oc_entity then return false end
 
     for id, sub_entity in pairs(oc_entity.entities) do
         self:setIOPin(id)
@@ -447,6 +443,7 @@ function Oc:destroy(entity_id)
     end
 
     self:setEntity(entity_id, nil)
+    return true
 end
 
 ------------------------------------------------------------------------
@@ -641,9 +638,10 @@ end
 -- Ticker
 ------------------------------------------------------------------------
 
-function Oc:tick()
+---@param force boolean? Force disconnect and reconnect of all OCs
+function Oc:tick(force)
     for idx, entity in pairs(self:entities()) do
-        self:update_entity_status(entity)
+        self:update_entity_status(entity, force)
 
         if Framework.settings:runtime_setting('debug_mode') then
             local power_entity = entity.ref.power_entity

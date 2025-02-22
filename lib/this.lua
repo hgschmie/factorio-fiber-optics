@@ -8,7 +8,7 @@
 ---@field oc ModOc
 ---@field network FiberNetworkManager
 ---@field blueprint FiberNetworkBlueprint
----@field attached_entities FiberNetworkAttachedEntities
+---@field attached_entities fiber_optics.AttachedEntitiesManager
 This = {
     other_mods = {
         PickerDollies = 'PickerDollies',
