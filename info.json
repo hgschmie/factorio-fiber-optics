@@ -8,9 +8,7 @@
   "homepage": "https://github.com/hgschmie/factorio-fiber-optics",
   "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.0.0",
-    "(?) PickerDollies",
-    "(?) even-pickier-dollies"
+    "base >= 2.0.36"
   ],
   "package": {
     "git_publish_branch": "main",

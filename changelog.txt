@@ -2,6 +2,7 @@
 Version: 1.2.1
 Date: ????
   Changes:
+    - Workaround for pre-2.0.36 network id can be 0 even if the network is active
 ---------------------------------------------------------------------------------------------------
 Version: 1.2.0
 Date: 2025-02-22

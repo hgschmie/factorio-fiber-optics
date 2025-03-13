@@ -370,7 +370,9 @@ local function get_connected_networks(power_pole)
     local idx = 1
     for _, connector in pairs { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper } do
         local wire_connector = power_pole.get_wire_connector(connector, true)
-        if wire_connector.network_id > 0 and not result[wire_connector.network_id] then
+        local connected = wire_connector.network_id > 0 or wire_connector.real_connection_count > 0 -- https://forums.factorio.com/viewtopic.php?t=127085
+
+        if connected and not result[wire_connector.network_id] then
             result[wire_connector.network_id] = idx
             idx = idx + 1
         end
