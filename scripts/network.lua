@@ -151,7 +151,7 @@ end
 
 local debug_tick = -1
 function Network:tick()
-    local debug = Framework.settings:runtime_setting('debug_mode')
+    local debug = Framework.settings:startup_setting('debug_mode')
 
     local print_debug_info = false
     if debug_tick < game.tick then

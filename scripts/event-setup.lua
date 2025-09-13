@@ -219,8 +219,8 @@ local function register_events()
 
     -- manage blueprinting and copy/paste
     Framework.blueprint:registerPreprocessor(This.blueprint.prepare_blueprint)
-    Framework.blueprint:registerCallback(const.optical_connector, This.blueprint.serializeOc, This.blueprint.registerIoPins)
-    Framework.blueprint:registerCallback(const.all_iopins, This.blueprint.serializeIoPins)
+    Framework.blueprint:registerCallbackForNames(const.optical_connector, This.blueprint.serializeOc, This.blueprint.registerIoPins)
+    Framework.blueprint:registerCallbackForNames(const.all_iopins, This.blueprint.serializeIoPins)
 
     -- manage tombstones for undo/redo and dead entities
     Framework.tombstone:registerCallback(const.optical_connector, {
