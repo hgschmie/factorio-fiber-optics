@@ -3,4 +3,5 @@
 ------------------------------------------------------------------------
 
 require('lib.init')
+
 Framework.post_data_updates_stage()
