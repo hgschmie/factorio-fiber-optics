@@ -1,13 +1,32 @@
 ------------------------------------------------------------------------
--- Prototype for the optical connector
+-- Main entity
 ------------------------------------------------------------------------
 
 local const = require('lib.constants')
 
-local oc_sprite = {}
-for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
+-- Item
 
-    ---@type data.Sprite
+local oc_icon = const:png('sprite/oc-sprite-128')
+
+---@type data.ItemPrototype
+local item = {
+    -- Prototype Base
+    type = 'item',
+    name = const.main_entity_name,
+    place_result = const.main_entity_name,
+
+    -- ItemPrototype
+    stack_size = 50,
+    icon = oc_icon,
+    icon_size = 128,
+    order = 'f[iber-optics]',
+    subgroup = 'circuit-network',
+}
+
+---@type data.Sprite[]
+local oc_sprite = {}
+
+for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
     oc_sprite[direction] = {
         filename = const:png('entity/oc-entity-shadow'),
         width = 128,
@@ -18,30 +37,12 @@ for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
     }
 end
 
-local oc_icon = const:png('sprite/oc-sprite-128')
-
--- The actual connector item
----@type data.ItemPrototype
-local item = {
-    -- Prototype Base
-    type = 'item',
-    name = const.optical_connector,
-    place_result = const.optical_connector,
-
-    -- ItemPrototype
-    stack_size = 50,
-    icon = oc_icon,
-    icon_size = 128,
-    order = 'f[iber-optics]',
-    subgroup = 'circuit-network',
-}
-
 -- represents the main entity of the connector
 ---@type data.SimpleEntityWithOwnerPrototype
 local entity = {
     -- PrototypeBase
     type = 'simple-entity-with-owner',
-    name = const.optical_connector,
+    name = const.main_entity_name,
 
     -- SimpleEntityWithOwnerPrototype
     render_layer = 'floor-mechanics',
@@ -63,8 +64,8 @@ local entity = {
         'placeable-neutral',
         'not-upgradable',
     },
-    minable = { mining_time = 1, result = const.optical_connector },
+    minable = { mining_time = 1, result = const.main_entity_name, },
     selection_priority = 20,
 }
 
-data:extend { entity, item }
+data:extend { item, entity }
