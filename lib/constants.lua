@@ -59,5 +59,7 @@ end
 --------------------------------------------------------------------------------
 
 Constants.main_entity_name = Constants:with_prefix('main')
+Constants.pin_entity_name = Constants:with_prefix('pin')
+Constants.pin_one_entity_name = Constants:with_prefix('pin-one')
 
 return Constants
