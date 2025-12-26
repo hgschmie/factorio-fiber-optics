@@ -11,4 +11,5 @@ data:extend {
     },
 }
 
+---@diagnostic disable-next-line: undefined-field
 Framework.post_settings_stage()
