@@ -5,4 +5,12 @@
 
 ---@class fo.Storage
 ---@field fo fo.FiberOptics[]
----@field count integer
+---@field fo_count integer
+---@field iopins integer[]
+---@field iopin_count integer
+
+---@class fo.FiberOptics
+---@field main LuaEntity
+---@field iopin LuaEntity[]
+---@field direction defines.direction
+---@field flipped boolean

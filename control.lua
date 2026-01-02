@@ -35,6 +35,7 @@ local function on_entity_created(event)
     This.fo:create {
         main = entity,
         tags = tags,
+        flipped = false,
     }
 end
 
@@ -63,7 +64,7 @@ end
 local function on_player_rotated_entity(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
-    game.print(("Direction: %d, Mirror : %s"):format(entity.direction, entity.mirroring))
+    This.fo:rotate(entity.unit_number)
 end
 
 ---@param event EventData.on_player_flipped_entity
@@ -74,11 +75,22 @@ local function on_player_flipped_entity(event)
 end
 
 --------------------------------------------------------------------------------
+-- Selected Entity changed (for IO Pin labels)
+--------------------------------------------------------------------------------
+
+---@param event EventData.on_selected_entity_changed
+local function on_selected_entity_changed(event)
+    local player = Player.get(event.player_index)
+
+    This.pin:displayCaption(player.selected, event.player_index)
+end
+
+--------------------------------------------------------------------------------
 -- Configuration changes (startup)
 --------------------------------------------------------------------------------
 
 local function on_configuration_changed()
-    This.fo:init()
+    This:init()
 
     for _, force in pairs(game.forces) do
         if force.recipes[const.main_entity_name] and force.technologies[const.main_entity_name] then
@@ -106,6 +118,8 @@ local function register_events()
     -- manage ghost building (robot building)
     Framework.ghost_manager:registerForName(const.main_entity_name) -- TODO , This.attached_entities.ghostRefresh)
 
+    -- selection change (pin label hovers)
+    Event.register(defines.events.on_selected_entity_changed, on_selected_entity_changed)
 
     -- Configuration changes (startup)
     Event.on_configuration_changed(on_configuration_changed)
@@ -121,7 +135,7 @@ end
 --------------------------------------------------------------------------------
 
 local function on_init()
-    This.fo:init()
+    This:init()
 
     register_events()
 end
