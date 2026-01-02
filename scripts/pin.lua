@@ -3,10 +3,9 @@
 ------------------------------------------------------------------------
 assert(script)
 
-local Position = require('stdlib.area.position')
-local Direction = require('stdlib.area.direction')
 -- load extended math lib
 local math = require('stdlib.utils.math')
+local table = require('stdlib.utils.table')
 
 local const = require('lib.constants')
 
@@ -59,6 +58,7 @@ end
 ---@class fo.PinCreateParams
 ---@field main LuaEntity
 ---@field idx integer
+---@field reverse boolean
 
 ---@param cfg fo.PinCreateParams
 function Pins:create(cfg)
@@ -71,7 +71,7 @@ function Pins:create(cfg)
         main = cfg.main,
         direction = cfg.main.direction,
         idx = cfg.idx,
-        flipped = false,
+        reverse = cfg.reverse,
     }
 
     local pin_entity = cfg.main.surface.create_entity {
@@ -99,7 +99,7 @@ end
 ---@class fo.PinPositionParams
 ---@field main LuaEntity
 ---@field direction defines.direction
----@field flipped boolean
+---@field reverse boolean
 ---@field idx integer
 
 ---@param cfg fo.PinPositionParams
@@ -108,13 +108,54 @@ function Pins:position(cfg)
     -- for each rotation, the count for pins needs to start four pins further down (1, 5, 9, 13)
     -- each direction is actually just four more (north, east, south west), so this can just
     -- be added up
-    local idx = math.one_mod((cfg.idx + cfg.direction), self.MAX_PIN_COUNT)
+    local idx = (cfg.reverse and (self.MAX_PIN_COUNT + 2 - cfg.idx) or cfg.idx)
+    idx = math.one_mod(idx + cfg.direction, self.MAX_PIN_COUNT)
 
     local pin_position = PIN_POSITIONS[idx]
     return {
         x = cfg.main.position.x + pin_position.x,
         y = cfg.main.position.y + pin_position.y,
     }
+end
+
+local MSG_WIRES_TOO_LONG = const:with_prefix('messages.wires_too_long')
+
+local IGNORED_FOR_MOVE = table.array_to_dictionary({
+    -- const.pin_entity_name,
+    -- const.pin_one_entity_name,
+}, true)
+
+---@param iopin LuaEntity
+---@param dst_pos MapPosition
+---@param player LuaPlayer
+---@return MapPosition? new_pos New iopin position or nil if it can not be moved.
+function Pins:check_move(iopin, dst_pos, player)
+    local src_pos = iopin.position
+
+    if not iopin.teleport(dst_pos) then return nil end
+
+    for _, wire_connection in pairs(iopin.get_wire_connectors(true)) do
+        for _, target_connection in pairs(wire_connection.connections) do
+            if not (IGNORED_FOR_MOVE[wire_connection.owner.name] and IGNORED_FOR_MOVE[target_connection.target.owner.name]) then
+                local allowed = wire_connection.can_wire_reach(target_connection.target)
+
+                if not allowed then
+                    player.create_local_flying_text {
+                        position = iopin.position,
+                        text = { MSG_WIRES_TOO_LONG },
+                    }
+
+                    -- move back
+                    iopin.teleport(src_pos)
+                    return nil
+                end
+            end
+        end
+    end
+
+    -- move back
+    iopin.teleport(src_pos)
+    return dst_pos
 end
 
 local IOPIN_CAPTION = const:with_prefix('messages.iopin_caption')
@@ -125,7 +166,6 @@ local IOPIN_COLOR = {
     { 0.5, 1,   0.5 }, -- green
     { 1,   1,   0.5 }, -- red and green
 }
-
 
 ---@param entity LuaEntity?
 ---@param player_index integer

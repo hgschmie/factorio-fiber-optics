@@ -35,7 +35,8 @@ local function on_entity_created(event)
     This.fo:create {
         main = entity,
         tags = tags,
-        flipped = false,
+        h_flipped = false,
+        v_flipped = false,
     }
 end
 
@@ -64,14 +65,20 @@ end
 local function on_player_rotated_entity(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
-    This.fo:rotate(entity.unit_number)
+
+    local player = Player.get(event.player_index)
+
+    This.fo:rotate(entity.unit_number, event.previous_direction, player)
 end
 
 ---@param event EventData.on_player_flipped_entity
 local function on_player_flipped_entity(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
-    game.print(("Direction: %d, Mirror : %s"):format(entity.direction, entity.mirroring))
+
+    local player = Player.get(event.player_index)
+
+    This.fo:flip(entity.unit_number, event.horizontal, player)
 end
 
 --------------------------------------------------------------------------------

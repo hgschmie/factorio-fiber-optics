@@ -13,4 +13,6 @@
 ---@field main LuaEntity
 ---@field iopin LuaEntity[]
 ---@field direction defines.direction
----@field flipped boolean
+---@field reverse boolean
+---@field h_flipped boolean
+---@field v_flipped boolean

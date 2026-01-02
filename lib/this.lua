@@ -3,9 +3,13 @@
 ----------------------------------------------------------------------------------------------------
 
 ---@class fo.Mod
+---@field other_mods table<string, string>
 ---@field fo fo.Fo
 ---@field pin fo.Pin
 This = {
+    other_mods = {
+        ['even-pickier-dollies'] = 'epd',
+    },
 }
 
 if script then
