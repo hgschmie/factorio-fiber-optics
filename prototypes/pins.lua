@@ -74,7 +74,7 @@ local pin_entity = {
     collision_mask = collision_mask_util.new_mask(),
     selection_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     flags = {
-        'not-rotatable',
+        -- do not add 'not-rotatable', otherwise blueprints no longer rotate
         'placeable-neutral',
         'placeable-off-grid',
         'player-creation',

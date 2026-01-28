@@ -6,6 +6,7 @@
 ---@field other_mods table<string, string>
 ---@field fo fo.Fo
 ---@field pin fo.Pin
+---@field other fo.Other
 This = {
     other_mods = {
         ['even-pickier-dollies'] = 'epd',
@@ -15,6 +16,7 @@ This = {
 if script then
     This.fo = require('scripts.fo')
     This.pin = require('scripts.pin')
+    This.other = require('scripts.other')
 end
 
 --- Setup the global optical connector data structure.
@@ -27,6 +29,7 @@ function This:init()
         fo_count = 0,
         iopins = {},
         iopin_count = 0,
+        attached_entities = {},
     }
 end
 

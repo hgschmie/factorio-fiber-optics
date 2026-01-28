@@ -3,6 +3,7 @@
 ------------------------------------------------------------------------
 assert(script)
 
+local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 
 ------------------------------------------------------------------------
@@ -45,18 +46,31 @@ end
 
 
 local V_FLIP_DIRECTION = {
-    [defines.direction.north] = defines.direction.west,
-    [defines.direction.east] = defines.direction.south,
-    [defines.direction.south] = defines.direction.east,
-    [defines.direction.west] = defines.direction.north,
+    [defines.direction.north] = defines.direction.west, -- -4
+    [defines.direction.east] = defines.direction.south, -- +4
+    [defines.direction.south] = defines.direction.east, -- -4
+    [defines.direction.west] = defines.direction.north, -- +4
 }
 
 local H_FLIP_DIRECTION = {
-    [defines.direction.north] = defines.direction.east,
-    [defines.direction.east] = defines.direction.north,
-    [defines.direction.south] = defines.direction.west,
-    [defines.direction.west] = defines.direction.south,
+    [defines.direction.north] = defines.direction.east, -- +4
+    [defines.direction.east] = defines.direction.north, -- -4
+    [defines.direction.south] = defines.direction.west, -- +4
+    [defines.direction.west] = defines.direction.south, -- -4
 }
+
+---@param direction defines.direction
+---@return boolean
+local function is_vertical(direction)
+    return direction == defines.direction.north or direction == defines.direction.south
+end
+
+---@param direction defines.direction
+---@return boolean
+local function is_horizontal(direction)
+    return direction == defines.direction.west or direction == defines.direction.east
+end
+
 
 ---@param direction defines.direction
 ---@param h_flipped boolean
@@ -64,21 +78,33 @@ local H_FLIP_DIRECTION = {
 ---@return defines.direction direction
 ---@return boolean reverse
 local function compute_flip(direction, h_flipped, v_flipped)
-    local reverse = false
+    local reverse = h_flipped ~= v_flipped
+
     if h_flipped then
-        direction = H_FLIP_DIRECTION[direction]
-        reverse = true
+        direction = is_horizontal(direction) and Direction.previous(direction) or Direction.next(direction)
     end
     if v_flipped then
-        direction = V_FLIP_DIRECTION[direction]
-        reverse = not reverse
+        direction = is_vertical(direction) and Direction.previous(direction) or Direction.next(direction)
     end
 
     return direction, reverse
 end
 
+---@param direction defines.direction
+---@param h_flipped boolean
+---@param v_flipped boolean
+---@return defines.direction direction
+---@return boolean reverse
+local function compute_rflip(direction, h_flipped, v_flipped)
+    if h_flipped == v_flipped then return direction, false end
+
+    return Direction.next(direction), true
+end
+
 ---@class fo.FoCreateParams
 ---@field main LuaEntity
+---@field attached_entities fo.AttachedEntity[]?
+---@field attached_ghosts table<any, framework.ghost_manager.AttachedEntity>
 ---@field tags Tags?
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
@@ -89,23 +115,61 @@ end
 function FiberOptics:create(cfg)
     if not (cfg.main and cfg.main.valid) then return nil end
 
-    local direction, reverse = compute_flip(cfg.main.direction, cfg.h_flipped, cfg.v_flipped)
+
+    local direction, reverse = compute_rflip(cfg.main.direction, cfg.h_flipped, cfg.v_flipped)
     ---@type fo.FiberOptics
     local fo_entity = {
         main = cfg.main,
-        direction = direction,
+        direction = cfg.main.direction,
         reverse = reverse,
         h_flipped = cfg.h_flipped or false,
         v_flipped = cfg.v_flipped or false,
         iopin = {},
     }
 
+    cfg.main.direction = direction
+
     for i = 1, This.pin.MAX_PIN_COUNT do
-        local pin_entity = This.pin:create {
-            main = cfg.main,
-            idx = i,
-            reverse = reverse,
-        }
+        local pin_entity
+        if cfg.attached_entities and cfg.attached_entities[i] and cfg.attached_entities[i].entity and cfg.attached_entities[i].entity.valid then
+            pin_entity = cfg.attached_entities[i].entity
+            local dst_pos = This.pin:position {
+                main = fo_entity.main,
+                idx = i,
+                reverse = fo_entity.reverse,
+                direction = fo_entity.main.direction
+            }
+            assert(pin_entity.teleport(dst_pos))
+
+            This.pin:adopt(pin_entity, i)
+            cfg.attached_entities[i] = nil
+
+        elseif cfg.attached_ghosts and cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
+            -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
+            local res, entity = cfg.attached_ghosts[i].entity.silent_revive()
+            if res then
+                pin_entity = assert(entity)
+                local dst_pos = This.pin:position {
+                    main = fo_entity.main,
+                    idx = i,
+                    reverse = fo_entity.reverse,
+                    direction = fo_entity.main.direction
+                }
+                assert(pin_entity.teleport(dst_pos))
+
+                This.pin:adopt(pin_entity, i)
+                cfg.attached_ghosts[i] = nil
+            end
+        end
+
+        if not pin_entity then
+            pin_entity = This.pin:create {
+                main = cfg.main,
+                idx = i,
+                reverse = reverse,
+            }
+        end
+
         fo_entity.iopin[i] = pin_entity
     end
 
@@ -273,6 +337,18 @@ function FiberOptics:repositionPins(fo_entity)
             assert(fo_entity.iopin[i].teleport(pos))
         end
     end
+end
+
+---@param entity_id integer
+---@return table<string, any>?
+function FiberOptics:serialize(entity_id)
+    local fo_entity = self:getEntity(entity_id)
+    if not fo_entity then return end
+
+    return {
+        h_flipped = fo_entity.h_flipped,
+        v_flipped = fo_entity.v_flipped,
+    }
 end
 
 return FiberOptics

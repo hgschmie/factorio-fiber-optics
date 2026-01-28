@@ -87,13 +87,21 @@ function Pins:create(cfg)
 
     assert(pin_entity, ("Could not create entity for '%s'"):format(name))
 
+    self:adopt(pin_entity, cfg.idx)
+
+    return pin_entity
+end
+
+---@param pin_entity LuaEntity
+---@param idx integer
+function Pins:adopt(pin_entity, idx)
+
     pin_entity.minable = false
     pin_entity.destructible = false
     pin_entity.operable = false
 
-    self:addPin(pin_entity.unit_number, cfg.idx)
+    self:addPin(pin_entity.unit_number, idx)
 
-    return pin_entity
 end
 
 ---@class fo.PinPositionParams
@@ -156,6 +164,17 @@ function Pins:check_move(iopin, dst_pos, player)
     -- move back
     iopin.teleport(src_pos)
     return dst_pos
+end
+
+---@param entity_id integer
+---@return table<string, any>?
+function Pins:serialize(entity_id)
+    local iopin_idx = self:findPin(entity_id)
+    if not iopin_idx then return end
+
+    return {
+        iopin_index = iopin_idx,
+    }
 end
 
 local IOPIN_CAPTION = const:with_prefix('messages.iopin_caption')

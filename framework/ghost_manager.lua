@@ -63,6 +63,11 @@ end
 ---@param unit_number integer
 function FrameworkGhostManager:deleteGhost(unit_number)
     local state = self:state()
+    local ghost_entity = state.ghost_entities[unit_number]
+    if ghost_entity and ghost_entity.entity and ghost_entity.entity.valid then
+        ghost_entity.entity.destroy()
+    end
+
     state.ghost_entities[unit_number] = nil
 end
 
