@@ -99,6 +99,7 @@ local function on_entity_deleted(event)
     if not (entity and entity.valid) then return end
 
     This.fo:destroy(entity.unit_number)
+    This.pin:deletePin(entity.unit_number)
     This.other:deleteEntity(entity.unit_number)
 end
 
@@ -177,6 +178,14 @@ local function serialize_pin(entity)
     return This.pin:serialize(entity.unit_number)
 end
 
+---@param main_entity LuaEntity
+---@param idx integer
+---@param context table<string, any>
+local function register_iopin(main_entity, idx, context)
+    if not (main_entity and main_entity.valid) then return end
+    return This.fo:register_blueprint_context(main_entity.unit_number, context)
+end
+
 ---@param attached_entity framework.ghost_manager.AttachedEntity
 ---@param all_entities framework.ghost_manager.AttachedEntity[]
 ---@return table<integer, framework.ghost_manager.AttachedEntity>
@@ -224,7 +233,7 @@ local function register_events()
     Event.on_configuration_changed(on_configuration_changed)
 
     -- manage blueprinting and copy/paste
-    Framework.blueprint:registerCallbackForNames(const.main_entity_name, serialize_fo, ghost_refresh)
+    Framework.blueprint:registerCallbackForNames(const.main_entity_name, serialize_fo, register_iopin)
     Framework.blueprint:registerCallbackForNames({ const.pin_one_entity_name, const.pin_entity_name }, serialize_pin)
 
     -- rotation and flipping

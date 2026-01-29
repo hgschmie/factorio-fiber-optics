@@ -35,15 +35,28 @@ local Pins = {
 -- attribute getters/setters
 ------------------------------------------------------------------------
 
+---@param entity_id integer
+---@param idx integer
 function Pins:addPin(entity_id, idx)
+    assert(idx)
     local fo_storage = This.storage()
 
     if (entity_id and fo_storage.iopins[entity_id]) then
         Framework.logger:logf('[BUG] Overwriting existing iopin %d', entity_id)
+    else
+        fo_storage.iopin_count = fo_storage.iopin_count + 1
     end
 
     fo_storage.iopins[entity_id] = idx
-    fo_storage.iopin_count = fo_storage.iopin_count + (idx and 1 or -1)
+end
+
+---@param entity_id integer
+function Pins:deletePin(entity_id)
+    local fo_storage = This.storage()
+    if (entity_id and fo_storage.iopins[entity_id]) then
+        fo_storage.iopins[entity_id] = nil
+        fo_storage.iopin_count = fo_storage.iopin_count - 1
+    end
 
     if fo_storage.iopin_count < 0 then
         fo_storage.iopin_count = table_size(fo_storage.iopins)

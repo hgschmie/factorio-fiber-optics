@@ -72,12 +72,14 @@ function Other:findEntitiesInArea(area)
                 local iopin_index = entity.tags and entity.tags['iopin_index']
 
                 if iopin_index then
-                    entities[iopin_index] = entity
-                else
+                    if not entities[iopin_index] then
+                        entities[iopin_index] = entity
+                        state.attached_entities[idx] = nil
+                    end
+                elseif not entities[entity.entity.name] then
                     entities[entity.entity.name] = entity
+                    state.attached_entities[idx] = nil
                 end
-
-                state.attached_entities[idx] = nil
             end
         end
     end
@@ -94,7 +96,7 @@ function Other:tick()
 
     -- deal with placed entities. that is simple because
     -- the tick time is already set and if no actual fo is
-    -- constructed (e.g. because it collided with water while the IO pin did not),
+    -- constructed (e.g. because it collided with water while the entity did not),
     -- it can simply be removed.
     for id, attached_entity in pairs(state.attached_entities) do
         if not (attached_entity.entity and attached_entity.entity.valid) then
@@ -124,7 +126,7 @@ function Other:ghostRefresh(attached_entity, all_entities)
 
     -- find all placed FO ghosts or attached entities which may be lingering because e.g.
     -- material shortage
-    -- all fo ghosts, attached entities (and the fo itself) are refreshed so that they do 
+    -- all fo ghosts, attached entities (and the fo itself) are refreshed so that they do
     -- not disappear if no robot is around.
     local area = Area.new(attached_entity.entity.selection_box)
     local found_entities = attached_entity.entity.surface.find_entities(area)
@@ -135,7 +137,7 @@ function Other:ghostRefresh(attached_entity, all_entities)
             -- refresh actual entities
             if state.attached_entities[id] then
                 state.attached_entities[id].tick = game.tick + LINGER_TIME
-            -- refresh ghosts
+                -- refresh ghosts
             elseif all_entities[id] then
                 entities[id] = all_entities[id]
             end

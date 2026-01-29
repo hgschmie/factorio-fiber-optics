@@ -114,7 +114,8 @@ end
 ---@return fo.FiberOptics? fo_entity
 function FiberOptics:create(cfg)
     if not (cfg.main and cfg.main.valid) then return nil end
-
+    assert(cfg.attached_entities)
+    assert(cfg.attached_ghosts)
 
     local direction, reverse = compute_rflip(cfg.main.direction, cfg.h_flipped, cfg.v_flipped)
     ---@type fo.FiberOptics
@@ -131,7 +132,7 @@ function FiberOptics:create(cfg)
 
     for i = 1, This.pin.MAX_PIN_COUNT do
         local pin_entity
-        if cfg.attached_entities and cfg.attached_entities[i] and cfg.attached_entities[i].entity and cfg.attached_entities[i].entity.valid then
+        if cfg.attached_entities[i] and cfg.attached_entities[i].entity and cfg.attached_entities[i].entity.valid then
             pin_entity = cfg.attached_entities[i].entity
             local dst_pos = This.pin:position {
                 main = fo_entity.main,
@@ -143,8 +144,11 @@ function FiberOptics:create(cfg)
 
             This.pin:adopt(pin_entity, i)
             cfg.attached_entities[i] = nil
+            if cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
+                cfg.attached_ghosts[i].entity.destroy()
+            end
 
-        elseif cfg.attached_ghosts and cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
+        elseif cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
             -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
             local res, entity = cfg.attached_ghosts[i].entity.silent_revive()
             if res then
@@ -188,6 +192,7 @@ function FiberOptics:destroy(entity_id)
 
     for _, pin in pairs(fo_entity.iopin) do
         if (pin and pin.valid) then
+            This.pin:deletePin(pin.unit_number)
             pin.destroy()
         end
     end
@@ -349,6 +354,19 @@ function FiberOptics:serialize(entity_id)
         h_flipped = fo_entity.h_flipped,
         v_flipped = fo_entity.v_flipped,
     }
+end
+
+---@param entity_id integer
+---@param context table<string, any>
+function FiberOptics:register_blueprint_context(entity_id, context)
+    context.iopin_index = context.iopin_index or {}
+
+    local fo_entity = self:getEntity(entity_id)
+    if not fo_entity then return end
+
+    for iopin_idx, iopin_entity in pairs(fo_entity.iopin) do
+        context.iopin_index[iopin_entity.unit_number] = iopin_idx
+    end
 end
 
 return FiberOptics
