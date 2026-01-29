@@ -63,8 +63,11 @@ end
 ---@param unit_number integer
 function FrameworkGhostManager:deleteGhost(unit_number)
     local state = self:state()
+
     local ghost_entity = state.ghost_entities[unit_number]
-    if ghost_entity and ghost_entity.entity and ghost_entity.entity.valid then
+    if not ghost_entity then return end
+
+    if ghost_entity.entity and ghost_entity.entity.valid then
         ghost_entity.entity.destroy()
     end
 
@@ -117,7 +120,7 @@ function FrameworkGhostManager:findGhostsInArea(area, callback)
             local pos = Position.new(ghost.entity.position)
             if pos:inside(area) then
                 local key = callback(ghost)
-                if key then
+                if key and not ghosts[key] then
                     ghosts[key] = ghost
                     state.ghost_entities[idx] = nil
                 end
