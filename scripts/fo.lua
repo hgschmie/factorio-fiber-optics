@@ -6,6 +6,8 @@ assert(script)
 local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 
+local const = require('lib.constants')
+
 ------------------------------------------------------------------------
 
 ---@class fo.Fo
@@ -44,20 +46,60 @@ end
 -- create/destroy
 ------------------------------------------------------------------------
 
+---@class fo.FoInternalEntityCfg
+---@field id string
+---@field name string
+---@field x integer
+---@field y integer
 
-local V_FLIP_DIRECTION = {
-    [defines.direction.north] = defines.direction.west, -- -4
-    [defines.direction.east] = defines.direction.south, -- +4
-    [defines.direction.south] = defines.direction.east, -- -4
-    [defines.direction.west] = defines.direction.north, -- +4
+---@type fo.FoInternalEntityCfg[]
+local INTERNAL_CFG = {
+    {
+        id = 'powerpole',
+        name = const.powerpole_name,
+        x = 0,
+        y = 16,
+    }
 }
 
-local H_FLIP_DIRECTION = {
-    [defines.direction.north] = defines.direction.east, -- +4
-    [defines.direction.east] = defines.direction.north, -- -4
-    [defines.direction.south] = defines.direction.west, -- +4
-    [defines.direction.west] = defines.direction.south, -- -4
-}
+
+---@class fo.FoCreateInternalEntityParams
+---@field entity fo.AttachedEntity?
+---@field ghost framework.ghost_manager.AttachedEntity?
+---@field main LuaEntity
+---@field pos MapPosition
+
+---@param cfg fo.FoCreateInternalEntityParams
+---@return LuaEntity?
+local function create_internal(cfg)
+    local internal_entity
+
+    if cfg.entity then
+        internal_entity = cfg.entity.entity
+        if internal_entity and internal_entity.valid then
+            assert(internal_entity.teleport(cfg.pos))
+        end
+
+        if cfg.ghost then
+            local ghost_entity = cfg.ghost.entity
+            if ghost_entity and ghost_entity.valid then
+                ghost_entity.destroy()
+            end
+        end
+    elseif cfg.ghost then
+        local ghost_entity = cfg.ghost.entity
+        if ghost_entity and ghost_entity.valid then
+            -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
+            local res, entity = ghost_entity.silent_revive()
+            if res then
+                internal_entity = assert(entity)
+                assert(internal_entity.teleport(cfg.pos))
+            end
+        end
+    end
+
+    return internal_entity
+end
 
 ---@param direction defines.direction
 ---@return boolean
@@ -70,7 +112,6 @@ end
 local function is_horizontal(direction)
     return direction == defines.direction.west or direction == defines.direction.east
 end
-
 
 ---@param direction defines.direction
 ---@param h_flipped boolean
@@ -126,55 +167,70 @@ function FiberOptics:create(cfg)
         h_flipped = cfg.h_flipped or false,
         v_flipped = cfg.v_flipped or false,
         iopin = {},
+        internal = {},
     }
 
     cfg.main.direction = direction
 
+    -- add io pins
     for i = 1, This.pin.MAX_PIN_COUNT do
-        local pin_entity
-        if cfg.attached_entities[i] and cfg.attached_entities[i].entity and cfg.attached_entities[i].entity.valid then
-            pin_entity = cfg.attached_entities[i].entity
-            local dst_pos = This.pin:position {
+        local pos = This.pin:position {
+            main = fo_entity.main,
+            idx = i,
+            reverse = fo_entity.reverse,
+            direction = fo_entity.main.direction
+        }
+
+        local entity = create_internal {
+            main = fo_entity.main,
+            index = i,
+            entity = cfg.attached_entities[i],
+            ghost = cfg.attached_ghosts[i],
+            pos = pos,
+        }
+
+        if entity then
+            This.pin:adopt(entity, i)
+        else
+            entity = This.pin:create {
                 main = fo_entity.main,
                 idx = i,
-                reverse = fo_entity.reverse,
-                direction = fo_entity.main.direction
-            }
-            assert(pin_entity.teleport(dst_pos))
-
-            This.pin:adopt(pin_entity, i)
-            cfg.attached_entities[i] = nil
-            if cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
-                cfg.attached_ghosts[i].entity.destroy()
-            end
-
-        elseif cfg.attached_ghosts[i] and cfg.attached_ghosts[i].entity and cfg.attached_ghosts[i].entity.valid then
-            -- adopt any ghost, revive it and position it (flipping may move the pins around a bit)
-            local res, entity = cfg.attached_ghosts[i].entity.silent_revive()
-            if res then
-                pin_entity = assert(entity)
-                local dst_pos = This.pin:position {
-                    main = fo_entity.main,
-                    idx = i,
-                    reverse = fo_entity.reverse,
-                    direction = fo_entity.main.direction
-                }
-                assert(pin_entity.teleport(dst_pos))
-
-                This.pin:adopt(pin_entity, i)
-                cfg.attached_ghosts[i] = nil
-            end
-        end
-
-        if not pin_entity then
-            pin_entity = This.pin:create {
-                main = cfg.main,
-                idx = i,
-                reverse = reverse,
+                pos = pos,
             }
         end
 
-        fo_entity.iopin[i] = pin_entity
+        fo_entity.iopin[i] = entity
+    end
+
+    -- add remaining innards
+    for _, internal_cfg in pairs(INTERNAL_CFG) do
+        local pos = {
+            x = fo_entity.main.position.x + internal_cfg.x / 64,
+            y = fo_entity.main.position.y + internal_cfg.y / 64,
+        }
+
+        local entity = create_internal {
+            main = fo_entity.main,
+            entity = cfg.attached_entities[internal_cfg.name],
+            ghost = cfg.attached_ghosts[internal_cfg.name],
+            name = internal_cfg.name,
+            pos = pos,
+        }
+
+        if not entity then
+            entity = fo_entity.main.surface.create_entity {
+                name = internal_cfg.name,
+                position = pos,
+                direction = fo_entity.main.direction,
+                force = fo_entity.main.force,
+
+                create_build_effect_smoke = false,
+                spawn_decorations = false,
+                move_stuck_players = true,
+            }
+        end
+
+        fo_entity.internal[internal_cfg.id] = entity
     end
 
     self:setEntity(cfg.main.unit_number, fo_entity)
@@ -190,11 +246,17 @@ function FiberOptics:destroy(entity_id)
     local fo_entity = self:getEntity(entity_id)
     if not fo_entity then return false end
 
+    -- delete iopins
     for _, pin in pairs(fo_entity.iopin) do
         if (pin and pin.valid) then
             This.pin:deletePin(pin.unit_number)
             pin.destroy()
         end
+    end
+
+    -- delete internal entities
+    for _, internal_entity in pairs(fo_entity.internal) do
+        if internal_entity and internal_entity.valid then internal_entity.destroy() end
     end
 
     self:setEntity(entity_id, nil)
@@ -242,10 +304,10 @@ function FiberOptics:rotate(entity_id, previous_direction, player)
 end
 
 ---@param entity_id integer
----@param is_horizontal boolean
+---@param mode boolean True is horizontal, false is vertical
 ---@param player LuaPlayer
 ---@return boolean True if an entity was flipped
-function FiberOptics:flip(entity_id, is_horizontal, player)
+function FiberOptics:flip(entity_id, mode, player)
     if not entity_id then return false end
 
     local fo_entity = self:getEntity(entity_id)
@@ -254,7 +316,7 @@ function FiberOptics:flip(entity_id, is_horizontal, player)
     local h_flipped = fo_entity.h_flipped
     local v_flipped = fo_entity.v_flipped
 
-    if is_horizontal then
+    if mode then
         h_flipped = not h_flipped
     else
         v_flipped = not v_flipped
@@ -320,8 +382,24 @@ function FiberOptics:move(entity_id, start_pos, player)
         end
     end
 
+    -- check power pole
+    local powerpole = fo_entity.internal.powerpole
+    local dst_pos = Position(powerpole.position):add(diff)
+    local pp_pos = This.pin:check_move(powerpole, dst_pos, player)
+    if not pp_pos then
+        fo_entity.main.teleport(start_pos)
+        return false
+    end
+
+    -- now move sub-entities
+
     for _, io_pin in pairs(fo_entity.iopin) do
         io_pin.teleport(assert(move_list[io_pin.unit_number]))
+    end
+
+    -- move internal entities
+    for _, internal_entity in pairs(fo_entity.internal) do
+        internal_entity.teleport(Position(internal_entity.position):add(diff))
     end
 
     return true

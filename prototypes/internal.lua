@@ -1,0 +1,92 @@
+------------------------------------------------------------------------
+-- Internal entities (power connector, LEDs)
+------------------------------------------------------------------------
+
+-- for default_circuit_wire_max_distance
+require 'circuit-connector-sprites'
+
+local collision_mask_util = require('collision-mask-util')
+local util = require('util')
+
+local sprites = require('stdlib.data.modules.sprites')
+
+local const = require('lib.constants')
+
+local fo_powerpole_icon = const:png('sprite/oc-power-unit-128')
+
+---@type data.ItemPrototype
+local powerpole_item = {
+    -- Prototype Base
+    type = 'item',
+    name = const.powerpole_name,
+    order = 'f[iber-optics]',
+    subgroup = 'circuit-network',
+    hidden = true,
+    hidden_in_factoriopedia = true,
+
+    -- ItemPrototype
+    stack_size = 50,
+    icon = fo_powerpole_icon,
+    icon_size = 128,
+
+    place_result = const.powerpole_name,
+    flags = {
+        'hide-from-bonus-gui',
+        'only-in-cursor',
+    },
+    weight = 0,
+}
+
+--- @type data.PowerSwitchPrototype
+local powerpole_entity = {
+    -- PrototypeBase
+    type = 'power-switch',
+    name = const.powerpole_name,
+    hidden = true,
+    hidden_in_factoriopedia = true,
+
+    -- PowerSwitchPrototype
+    led_on = util.empty_sprite(),
+    led_off = util.empty_sprite(),
+    overlay_start_delay = 0,
+
+    circuit_wire_connection_point = sprites.empty_connection_points()[1],
+
+    ---@type data.WireConnectionPoint
+    left_wire_connection_point = {
+        wire = { copper = util.by_pixel_hr(-14, 4) },
+        shadow = { copper = util.by_pixel_hr(-14, 4) },
+    },
+
+    ---@type data.WireConnectionPoint
+    right_wire_connection_point = {
+        wire = { copper = util.by_pixel_hr(16, 4) },
+        shadow = { copper = util.by_pixel_hr(16, 4) },
+    },
+
+    wire_max_distance = default_circuit_wire_max_distance + 1,
+    draw_copper_wires = true,
+    draw_circuit_wires = false,
+
+    -- EntityWithHealthPrototype
+    max_health = 1,
+
+    -- EntityPrototype
+    icon = fo_powerpole_icon,
+    icon_size = 128,
+
+    collision_box = { util.by_pixel_hr(-22, -8), util.by_pixel_hr(24, 8) },
+    collision_mask = collision_mask_util.new_mask(),
+    selection_box = { util.by_pixel_hr(-22, -8), util.by_pixel_hr(24, 8) },
+    flags = {
+        'placeable-neutral',
+        'placeable-off-grid',
+        'player-creation',
+        'not-upgradable',
+    },
+    minable = nil,
+    selection_priority = 99,
+    allow_copy_paste = false,
+}
+
+data:extend { powerpole_item, powerpole_entity, }

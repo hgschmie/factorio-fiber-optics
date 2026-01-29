@@ -71,7 +71,7 @@ end
 ---@class fo.PinCreateParams
 ---@field main LuaEntity
 ---@field idx integer
----@field reverse boolean
+---@field pos MapPosition
 
 ---@param cfg fo.PinCreateParams
 function Pins:create(cfg)
@@ -80,16 +80,9 @@ function Pins:create(cfg)
 
     local name = (cfg.idx == 1) and const.pin_one_entity_name or const.pin_entity_name
 
-    local pos = self:position {
-        main = cfg.main,
-        direction = cfg.main.direction,
-        idx = cfg.idx,
-        reverse = cfg.reverse,
-    }
-
     local pin_entity = cfg.main.surface.create_entity {
         name = name,
-        position = pos,
+        position = cfg.pos,
         direction = cfg.main.direction,
         force = cfg.main.force,
 

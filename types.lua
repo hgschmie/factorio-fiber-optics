@@ -13,6 +13,7 @@
 ---@class fo.FiberOptics
 ---@field main LuaEntity
 ---@field iopin LuaEntity[]
+---@field internal table<string, LuaEntity>
 ---@field direction defines.direction
 ---@field reverse boolean
 ---@field h_flipped boolean

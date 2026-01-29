@@ -61,10 +61,12 @@ end
 Constants.main_entity_name = Constants:with_prefix('main')
 Constants.pin_entity_name = Constants:with_prefix('pin')
 Constants.pin_one_entity_name = Constants:with_prefix('pin-one')
+Constants.powerpole_name = Constants:with_prefix('power-pole')
 
 Constants.attached_entity_names = {
     Constants.pin_entity_name,
     Constants.pin_one_entity_name,
+    Constants.powerpole_name,
 }
 
 return Constants

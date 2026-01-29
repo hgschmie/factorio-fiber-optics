@@ -2,16 +2,17 @@
 -- IO Pins
 ------------------------------------------------------------------------
 
+-- for default_circuit_wire_max_distance
 require 'circuit-connector-sprites'
 
-local util = require('util')
-local meld = require('meld')
 local collision_mask_util = require('collision-mask-util')
+local meld = require('meld')
+local util = require('util')
 
 local const = require('lib.constants')
 
 local circle_sprite = const:png('sprite/circle')
-local oc_pin_icon = const:png('sprite/oc-iopin-128')
+local fo_pin_icon = const:png('sprite/oc-iopin-128')
 
 ---@type data.Sprite
 local pin_sprite_orange = {
@@ -40,7 +41,7 @@ local pin_item = {
 
     -- ItemPrototype
     stack_size = 50,
-    icon = oc_pin_icon,
+    icon = fo_pin_icon,
     icon_size = 128,
 
     place_result = const.pin_entity_name,
@@ -51,6 +52,7 @@ local pin_item = {
     weight = 0,
 }
 
+---@type data.ContainerPrototype
 local pin_entity = {
     -- PrototypeBase
     type = 'container',
@@ -68,7 +70,7 @@ local pin_entity = {
     max_health = 1,
 
     -- EntityPrototype
-    icon = oc_pin_icon,
+    icon = fo_pin_icon,
     icon_size = 128,
     collision_box = { { -0.1, -0.1 }, { 0.1, 0.1 } },
     collision_mask = collision_mask_util.new_mask(),
@@ -86,11 +88,13 @@ local pin_entity = {
 }
 
 -- IO Pin 1 is special
+---@type data.ItemPrototype
 local pin_one_item = meld(util.copy(pin_item), {
     name = const.pin_one_entity_name,
     place_result = const.pin_one_entity_name,
 })
 
+---@type data.ContainerPrototype
 local pin_one_entity = meld(util.copy(pin_entity), {
     name = const.pin_one_entity_name,
     picture = meld.overwrite(pin_sprite_green),
