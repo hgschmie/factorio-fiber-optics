@@ -78,15 +78,122 @@ local powerpole_entity = {
     collision_box = { util.by_pixel_hr(-22, -8), util.by_pixel_hr(24, 8) },
     collision_mask = collision_mask_util.new_mask(),
     selection_box = { util.by_pixel_hr(-22, -8), util.by_pixel_hr(24, 8) },
-    flags = {
-        'placeable-neutral',
-        'placeable-off-grid',
-        'player-creation',
-        'not-upgradable',
-    },
+    flags = const.prototype_internal_entity_flags,
     minable = nil,
     selection_priority = 99,
     allow_copy_paste = false,
 }
 
-data:extend { powerpole_item, powerpole_entity, }
+-- represents the power consumption
+
+--- @type data.ElectricEnergyInterfacePrototype
+local power_entity = {
+    -- PrototypeBase
+    type = 'electric-energy-interface',
+    name = const.power_interface_name,
+    hidden = true,
+    hidden_in_factoriopedia = true,
+
+    -- ElectricEnergyInterfacePrototype
+    ---@type data.ElectricEnergySource
+    energy_source = {
+        type = 'electric',
+        buffer_capacity = '66kJ',
+        usage_priority = 'secondary-input',
+        input_flow_limit = '66kW',
+        output_flow_limit = '66kW',
+    },
+
+    energy_usage = '2kW',
+    gui_mode = 'none',
+    picture = util.empty_sprite(),
+
+    -- EntityWithHealthPrototype
+    max_health = 1,
+
+    -- EntityPrototype
+    collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    collision_mask = collision_mask_util.new_mask(),
+    selection_box = { { -1, -1 }, { 1, 1 } },
+    flags = const.prototype_hidden_entity_flags,
+    minable = nil,
+    allow_copy_paste = false,
+    selectable_in_game = false,
+    selection_priority = 1,
+}
+
+local led_entity = {
+    -- PrototypeBase
+    type = 'lamp',
+    name = const.led_name,
+    hidden = true,
+    hidden_in_factoriopedia = true,
+
+    -- LampPrototype
+    picture_on = {
+        filename = '__base__/graphics/entity/wall/wall-diode-green.png',
+        priority = 'extra-high',
+        width = 72,
+        height = 44,
+        scale = 0.5,
+    },
+    picture_off = {
+        filename = '__base__/graphics/entity/wall/wall-diode-red.png',
+        priority = 'extra-high',
+        width = 72,
+        height = 44,
+        scale = 0.5,
+    },
+    energy_usage_per_tick = '1J',
+    energy_source = { type = 'void' },
+    circuit_wire_max_distance = default_circuit_wire_max_distance,
+    draw_copper_wires = false,
+    draw_circuit_wires = false,
+    always_on = false,
+
+    -- EntityWithHealthPrototype
+    max_health = 1,
+
+    -- EntityPrototype
+    collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    collision_mask = collision_mask_util.new_mask(),
+    selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    flags = const.prototype_hidden_entity_flags,
+    minable = nil,
+    allow_copy_paste = false,
+    selectable_in_game = false,
+    selection_priority = 1,
+}
+
+-- constant combinator to turn led lamps on and off
+--- @type data.ConstantCombinatorPrototype
+local controller_entity = {
+    -- PrototypeBase
+    type = 'constant-combinator',
+    name = const.controller_name,
+    hidden = true,
+    hidden_in_factoriopedia = true,
+
+    -- ConstantCombinatorPrototype
+    sprites = util.empty_sprite(),
+    activity_led_light_offsets = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
+    circuit_wire_connection_points = sprites.empty_connection_points(4),
+    circuit_wire_max_distance = default_circuit_wire_max_distance,
+    draw_copper_wires = false,
+    draw_circuit_wires = false,
+
+    -- EntityWithHealthPrototype
+    max_health = 1,
+
+    -- EntityPrototype
+    collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    collision_mask = collision_mask_util.new_mask(),
+    selection_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    flags = const.prototype_hidden_entity_flags,
+    minable = nil,
+    allow_copy_paste = false,
+    selectable_in_game = false,
+    selection_priority = 1,
+}
+
+data:extend { powerpole_item, powerpole_entity, power_entity, led_entity, controller_entity }

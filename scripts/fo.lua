@@ -54,24 +54,22 @@ end
 
 ---@type fo.FoInternalEntityCfg[]
 local INTERNAL_CFG = {
-    {
-        id = 'powerpole',
-        name = const.powerpole_name,
-        x = 0,
-        y = 16,
-    }
+    { id = 'powerpole',  name = const.powerpole_name,       x = 0,   y = 16, },
+    { id = 'power',      name = const.power_interface_name, x = 0,   y = 0, },
+    { id = 'led_1',      name = const.led_name,             x = -13, y = -1, },
+    { id = 'led_2',      name = const.led_name,             x = 13,  y = -1, },
+    { id = 'controller', name = const.controller_name,      x = 0,   y = 0, },
 }
 
-
----@class fo.FoCreateInternalEntityParams
+---@class fo.FoAdoptParams
 ---@field entity fo.AttachedEntity?
 ---@field ghost framework.ghost_manager.AttachedEntity?
 ---@field main LuaEntity
 ---@field pos MapPosition
 
----@param cfg fo.FoCreateInternalEntityParams
+---@param cfg fo.FoAdoptParams
 ---@return LuaEntity?
-local function create_internal(cfg)
+local function adopt(cfg)
     local internal_entity
 
     if cfg.entity then
@@ -181,7 +179,7 @@ function FiberOptics:create(cfg)
             direction = fo_entity.main.direction
         }
 
-        local entity = create_internal {
+        local entity = adopt {
             main = fo_entity.main,
             index = i,
             entity = cfg.attached_entities[i],
@@ -209,7 +207,7 @@ function FiberOptics:create(cfg)
             y = fo_entity.main.position.y + internal_cfg.y / 64,
         }
 
-        local entity = create_internal {
+        local entity = adopt {
             main = fo_entity.main,
             entity = cfg.attached_entities[internal_cfg.name],
             ghost = cfg.attached_ghosts[internal_cfg.name],

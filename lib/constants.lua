@@ -62,11 +62,51 @@ Constants.main_entity_name = Constants:with_prefix('main')
 Constants.pin_entity_name = Constants:with_prefix('pin')
 Constants.pin_one_entity_name = Constants:with_prefix('pin-one')
 Constants.powerpole_name = Constants:with_prefix('power-pole')
+Constants.power_interface_name = Constants:with_prefix('power-interface')
+Constants.led_name = Constants:with_prefix('led')
+Constants.controller_name = Constants:with_prefix('controller')
 
+---@type string[]
 Constants.attached_entity_names = {
     Constants.pin_entity_name,
     Constants.pin_one_entity_name,
     Constants.powerpole_name,
+    Constants.power_interface_name,
+    Constants.led_name,
+    Constants.controller_name,
 }
+
+---@type data.EntityPrototypeFlags
+local base_entity_flags = {
+    'not-rotatable',
+    'placeable-off-grid',
+    'not-on-map',
+    'not-deconstructable',
+    'hide-alt-info',
+    'not-selectable-in-game',
+    'not-upgradable',
+    'no-automated-item-removal',
+    'no-automated-item-insertion',
+    'not-in-kill-statistics',
+}
+
+-- flags for the visible entities (io pins, power connector)
+
+---@type data.EntityPrototypeFlags
+Constants.prototype_internal_entity_flags = {
+    'placeable-neutral',
+    'player-creation',
+}
+
+---@type data.EntityPrototypeFlags
+Constants.prototype_hidden_entity_flags = {
+    'no-copy-paste',
+}
+
+-- flags for the invisible entities
+for _, flag in pairs(base_entity_flags) do
+    table.insert(Constants.prototype_internal_entity_flags, flag)
+    table.insert(Constants.prototype_hidden_entity_flags, flag)
+end
 
 return Constants
