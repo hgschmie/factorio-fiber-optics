@@ -118,6 +118,18 @@ function Network:destroyFiberNetwork(entity, network_id)
 end
 
 ------------------------------------------------------------------------
+-- entity connect / disconnect
+------------------------------------------------------------------------
+
+---@param network_id integer
+---@param fo_entity fo.FiberOptics
+function Network:connectEntity(network_id, fo_entity)
+end
+
+function Network:disconnectEntity(network_id, fo_entity)
+end
+
+------------------------------------------------------------------------
 -- ticker
 ------------------------------------------------------------------------
 
@@ -125,7 +137,7 @@ function Network:tick()
     local ticker = helpers:getTicker('network')
 
     --- interval per network refresh
-    local interval = Framework.settings:runtime_setting(const.network_refresh) or 60
+    local interval = Framework.settings:startup_setting(const.settings_names.network_refresh) or 60
 
     local network_count = count_networks()
     if network_count == 0 then return end
@@ -133,7 +145,7 @@ function Network:tick()
     -- interval = 30, 10 networks -> run every three ticks
     -- interval = 20, 40 networks -> run every tick
     -- interval = 10, 100 networks -> run every tick
-    local ticks_per_network = math.floor(1 + (interval / network_count)) -- at least 1
+    local ticks_per_network = math.max(1, math.floor(interval / network_count)) -- at least one
 
     if ticker.last_tick + ticks_per_network > game.tick then return end
     -- interval = 60, 5 networks -> 1 network per process (every 12 ticks)
@@ -152,12 +164,14 @@ function Network:tick()
         repeat
             local surface_network
             index.surface_index, surface_network = next(surface_networks, index.surface_index)
-            if index.surface_index then
+            if not index.surface_index then index.surface_index, surface_network = next(surface_networks, index.surface_index) end
+            if surface_network then
                 repeat
                     local fiber_network
                     index.network_index, fiber_network = next(surface_network, index.network_index)
+                    if not index.network_index then index.network_index, fiber_network = next(surface_network, index.network_index) end
 
-                    if index.network_index then
+                    if fiber_network then
                         for _, fiber_strand in pairs(fiber_network) do
                             -- validate all endpoints on this fiber strand
                             for id, endpoint in pairs(fiber_strand.endpoints) do

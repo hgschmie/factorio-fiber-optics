@@ -33,8 +33,10 @@
 
 ---@class fo.FiberOptics
 ---@field main LuaEntity
+---@field status defines.entity_status?
 ---@field iopin LuaEntity[]
 ---@field internal table<string, LuaEntity>
+---@field networks table<integer, integer>
 ---@field direction defines.direction
 ---@field reverse boolean
 ---@field h_flipped boolean

@@ -85,6 +85,7 @@ Constants.attached_entity_names = {
 
 Constants.settings_keys = {
     'network_refresh',
+    'fo_refresh',
 }
 
 Constants.settings_names = {}

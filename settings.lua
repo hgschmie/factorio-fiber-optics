@@ -3,10 +3,19 @@ require('lib.init')
 local const = require('lib.constants')
 
 data:extend {
-        {
+    {
+        type = 'int-setting',
+        name = const.settings.fo_refresh,
+        order = 'aa',
+        setting_type = 'startup',
+        default_value = 300,
+        minimum_value = 30,
+        maximum_value = 600, -- 5 seconds
+    },
+    {
         type = 'int-setting',
         name = const.settings.network_refresh,
-        order = 'aa',
+        order = 'ab',
         setting_type = 'startup',
         default_value = 60,
         minimum_value = 5,

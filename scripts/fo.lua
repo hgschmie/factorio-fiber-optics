@@ -6,7 +6,10 @@ assert(script)
 local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 
+local tools = require('framework.tools')
+
 local const = require('lib.constants')
+local helpers = require('scripts.helpers')
 
 ------------------------------------------------------------------------
 
@@ -166,6 +169,7 @@ function FiberOptics:create(cfg)
         v_flipped = cfg.v_flipped or false,
         iopin = {},
         internal = {},
+        networks = {},
         state = {
             connected_strands = {},
         },
@@ -233,6 +237,40 @@ function FiberOptics:create(cfg)
 
         fo_entity.internal[internal_cfg.id] = entity
     end
+
+    -- configure entities
+
+    -- power switch
+    local pp_control = assert(fo_entity.internal.powerpole.get_or_create_control_behavior()) --[[@as LuaGenericOnOffControlBehavior ]]
+    pp_control.connect_to_logistic_network = false
+
+    local sl1_control = assert(fo_entity.internal.led_1.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
+    sl1_control.circuit_enable_disable = true
+    sl1_control.use_colors = false
+    ---@diagnostic disable-next-line: missing-fields
+    sl1_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
+
+    local sl2_control = assert(fo_entity.internal.led_2.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
+    sl2_control.circuit_enable_disable = true
+    sl1_control.use_colors = false
+    ---@diagnostic disable-next-line: missing-fields
+    sl2_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
+
+    local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
+    if sc_control.sections_count < 1 then sc_control.add_section() end
+    local sc_section = sc_control.sections[1]
+    sc_section.filters = {
+        { value = { type = 'virtual', name = 'signal-1', quality = 'normal' }, min = 0, },
+        { value = { type = 'virtual', name = 'signal-2', quality = 'normal' }, min = 0, },
+    }
+
+    -- wire up controller and LEDs
+
+    local controller_connector = assert(fo_entity.internal.controller.get_wire_connector(defines.wire_connector_id.circuit_red, true))
+    local led1_connector = assert(fo_entity.internal.led_1.get_wire_connector(defines.wire_connector_id.circuit_red, true))
+    local led2_connector = assert(fo_entity.internal.led_2.get_wire_connector(defines.wire_connector_id.circuit_red, true))
+    controller_connector.connect_to(led1_connector, false, defines.wire_origin.script)
+    controller_connector.connect_to(led2_connector, false, defines.wire_origin.script)
 
     self:setEntity(cfg.main.unit_number, fo_entity)
 
@@ -446,6 +484,124 @@ function FiberOptics:register_blueprint_context(entity_id, context)
     for iopin_idx, iopin_entity in pairs(fo_entity.iopin) do
         context.iopin_index[iopin_entity.unit_number] = iopin_idx
     end
+end
+
+---@param power_pole LuaEntity
+---@return table<integer, integer> network_map
+local function get_connected_networks(power_pole)
+    local result = {}
+    if not (power_pole and power_pole.valid) then return result end
+
+    local idx = 1
+    for _, connector in pairs { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper } do
+        local wire_connector = assert(power_pole.get_wire_connector(connector, true))
+        local connected = wire_connector.network_id > 0 or wire_connector.real_connection_count > 0 -- https://forums.factorio.com/viewtopic.php?t=127085
+
+        if connected and not result[wire_connector.network_id] then
+            result[wire_connector.network_id] = idx
+            idx = idx + 1
+        end
+    end
+
+    return result
+end
+
+---@param fo_entity fo.FiberOptics
+function FiberOptics:updateEntityStatus(fo_entity)
+    assert(fo_entity)
+    if not (fo_entity.main and fo_entity.main.valid) then return end
+
+    fo_entity.status = fo_entity.internal.power.status or defines.entity_status.disabled
+
+    -- check connected networks
+    local changes = false
+    local signals = { 0, 0 }
+    local active_signals = 0
+
+    -- if the unit is in red status, disconnect all networks
+    local current_networks = ((tools.STATUS_NAMES[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
+
+    -- disconnect missing networks
+    for network_id in pairs(fo_entity.networks) do
+        if (not current_networks[network_id]) then
+            This.network:disconnectEntity(network_id, fo_entity)
+            changes = true
+        end
+    end
+
+    -- connect new networks
+    for network_id, idx in pairs(current_networks) do
+        signals[idx] = 1
+        active_signals = active_signals + 1
+        if not fo_entity.networks[network_id] then
+            This.network:connectEntity(network_id, fo_entity)
+            changes = true
+        end
+    end
+
+    if changes then
+        local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
+        if sc_control.sections_count < 1 then sc_control.add_section() end
+        local sc_section = sc_control.sections[1]
+
+        local filters = {}
+
+        -- idx is the led to turn on/off, count is 0 for off or 1 for on
+        for idx, value in pairs(signals) do
+            filters[idx] = {
+                value = {
+                    type = 'virtual',
+                    name = 'signal-' .. tostring(idx),
+                    quality = 'normal'
+                },
+                min = value,
+            }
+        end
+
+        sc_section.filters = filters
+
+        fo_entity.networks = current_networks
+        fo_entity.internal.power.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
+    end
+end
+
+------------------------------------------------------------------------
+-- Ticker
+------------------------------------------------------------------------
+
+function FiberOptics:tick()
+    local ticker = helpers:getTicker('fiber_optics')
+    local interval = Framework.settings:startup_setting(const.settings_names.fo_refresh) or 300
+
+    local fo_entities = This.storage().fo
+    local count = table_size(fo_entities)
+    if count == 0 then return end
+
+    local ticks_per_entity = math.max(1, math.floor(interval / count)) -- at least one
+
+    if ticker.last_tick + ticks_per_entity > game.tick then return end
+
+    local process_count = math.ceil(count / interval)
+    local index = ticker.last_tick_index
+
+    if not fo_entities[index] then index = nil end
+
+    if process_count > 0 then
+        repeat
+            local fo_entity
+            index, fo_entity = next(fo_entities, index)
+            if not index then index, fo_entity = next(fo_entities, index) end -- wraparound
+            if fo_entity then
+                self:updateEntityStatus(fo_entity)
+                process_count = process_count - 1
+            end
+        until process_count == 0 or not index
+    else
+        index = nil
+    end
+
+    ticker.last_tick_index = index
+    ticker.last_tick = game.tick
 end
 
 return FiberOptics

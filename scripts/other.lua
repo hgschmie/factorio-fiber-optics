@@ -136,17 +136,17 @@ end
 function Other:tick()
     local ticker = helpers:getTicker('attached_entities')
 
-    local state = This.storage()
     local interval = 60
 
+    local state = This.storage()
     local entity_count = table_size(state.attached_entities)
     if entity_count == 0 then return end
-    local ticks_per_entity = math.floor(1 + (interval / entity_count)) -- at least 1
+    local ticks_per_entity = math.max(1, math.floor(interval / entity_count)) -- at least one
 
     if ticker.last_tick + ticks_per_entity > game.tick then return end
 
     local process_count = math.ceil(entity_count / interval)
-    local index = ticker.last_tick_index or {}
+    local index = ticker.last_tick_index
 
     if not state.attached_entities[index] then index = nil end
 
@@ -158,6 +158,8 @@ function Other:tick()
             -- it can simply be removed.
             local attached_entity
             index, attached_entity = next(state.attached_entities, index)
+            if not index then index, attached_entity = next(state.attached_entities, index) end
+
             if attached_entity then
                 if not (attached_entity.entity and attached_entity.entity.valid) then
                     self:deleteEntity(index)
