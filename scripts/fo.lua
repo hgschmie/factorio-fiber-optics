@@ -166,6 +166,9 @@ function FiberOptics:create(cfg)
         v_flipped = cfg.v_flipped or false,
         iopin = {},
         internal = {},
+        state = {
+            connected_strands = {},
+        },
     }
 
     cfg.main.direction = direction

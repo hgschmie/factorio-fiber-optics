@@ -58,6 +58,8 @@ end
 -- Constants
 --------------------------------------------------------------------------------
 
+Constants.max_hub_count = 16
+
 Constants.main_entity_name = Constants:with_prefix('main')
 Constants.pin_entity_name = Constants:with_prefix('pin')
 Constants.pin_one_entity_name = Constants:with_prefix('pin-one')
@@ -65,6 +67,7 @@ Constants.powerpole_name = Constants:with_prefix('power-pole')
 Constants.power_interface_name = Constants:with_prefix('power-interface')
 Constants.led_name = Constants:with_prefix('led')
 Constants.controller_name = Constants:with_prefix('controller')
+Constants.fiber_hub_name = Constants:with_prefix('fiber-hub')
 
 ---@type string[]
 Constants.attached_entity_names = {
@@ -75,6 +78,26 @@ Constants.attached_entity_names = {
     Constants.led_name,
     Constants.controller_name,
 }
+
+--------------------------------------------------------------------------------
+-- settings
+--------------------------------------------------------------------------------
+
+Constants.settings_keys = {
+    'network_refresh',
+}
+
+Constants.settings_names = {}
+Constants.settings = {}
+
+for _, key in pairs(Constants.settings_keys) do
+    Constants.settings_names[key] = key
+    Constants.settings[key] = Constants:with_prefix(key)
+end
+
+--------------------------------------------------------------------------------
+-- entity flags
+--------------------------------------------------------------------------------
 
 ---@type data.EntityPrototypeFlags
 local base_entity_flags = {

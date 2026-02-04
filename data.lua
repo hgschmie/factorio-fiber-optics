@@ -8,6 +8,7 @@ local const = require('lib.constants')
 require('prototypes.main')
 require('prototypes.pins')
 require('prototypes.internal')
+require('prototypes.network')
 require('prototypes.technology')
 
 ---@diagnostic disable-next-line: undefined-field

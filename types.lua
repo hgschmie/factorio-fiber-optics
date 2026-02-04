@@ -3,12 +3,33 @@
 --- class definitions
 ----------------------------------------------------------------------------------------------------
 
+-- A surface network contains a number of fiber networks. Each fiber network is carried by a power network
+---@alias fo.SurfaceNetwork fo.FiberNetwork[]
+
+-- A fiber network contains a number of fiber strands. A single fiber connector can be connected to a single strand. There is a limited number
+-- of fiber strands in a network
+---@alias fo.FiberNetwork table<string, fo.FiberStrand>
+
+-- A fiber strand contains a number of hubs. Each hub is connected to a single pin on a fiber connector
+-- and carries a red and a green signal
+
+---@class fo.FiberStrand
+---@field endpoint_count integer
+---@field endpoints LuaEntity[]
+---@field hubs fo.FiberHub[]
+
+---@class fo.FiberHub
+---@field hub LuaEntity
+---@field title string?
+---@field description string?
+
 ---@class fo.Storage
 ---@field fo fo.FiberOptics[]
 ---@field fo_count integer
+---@field attached_entities fo.AttachedEntity[]
 ---@field iopins integer[]
 ---@field iopin_count integer
----@field attached_entities fo.AttachedEntity[]
+---@field surface_networks fo.SurfaceNetwork[]
 
 ---@class fo.FiberOptics
 ---@field main LuaEntity
@@ -18,8 +39,14 @@
 ---@field reverse boolean
 ---@field h_flipped boolean
 ---@field v_flipped boolean
+---@field state fo.FiberOpticsState
+
+---@class fo.FiberOpticsState
+---@field connected_strands table<integer, string>
 
 ---@class fo.AttachedEntity
 ---@field entity LuaEntity
 ---@field tags Tags?
 ---@field tick integer
+
+---@alias fo.Ticker table<string, any>

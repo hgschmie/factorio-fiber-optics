@@ -7,6 +7,7 @@
 ---@field fo fo.Fo
 ---@field pin fo.Pin
 ---@field other fo.Other
+---@field network fo.Network
 This = {
     other_mods = {
         ['even-pickier-dollies'] = 'epd',
@@ -17,6 +18,7 @@ if script then
     This.fo = require('scripts.fo')
     This.pin = require('scripts.pin')
     This.other = require('scripts.other')
+    This.network = require('scripts.fiber-network')
 end
 
 --- Setup the global optical connector data structure.
@@ -25,12 +27,19 @@ function This:init()
 
     ---@type fo.Storage
     storage.fo_data = {
+        -- connector entities
         fo = {},
         fo_count = 0,
+        attached_entities = {},
+        -- iopins and iopin mappings
         iopins = {},
         iopin_count = 0,
-        attached_entities = {},
+        -- network configuration
+        surface_networks = {},
     }
+
+    ---@type table<string, fo.Ticker>
+    storage.ticker = {}
 end
 
 ---@return fo.Storage

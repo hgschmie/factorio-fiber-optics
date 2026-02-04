@@ -1,6 +1,17 @@
 require('lib.init')
 
+local const = require('lib.constants')
+
 data:extend {
+        {
+        type = 'int-setting',
+        name = const.settings.network_refresh,
+        order = 'aa',
+        setting_type = 'startup',
+        default_value = 60,
+        minimum_value = 5,
+        maximum_value = 300, -- 5 seconds
+    },
     {
         -- Debug mode (framework dependency)
         type = 'bool-setting',

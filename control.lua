@@ -199,6 +199,7 @@ end
 
 local function on_tick()
     This.other:tick()
+    This.network:tick()
 end
 
 --------------------------------------------------------------------------------
@@ -241,7 +242,7 @@ local function register_events()
     Event.register(defines.events.on_player_flipped_entity, on_player_flipped_entity, main_entity_matcher)
 
     -- ticker code
-    Event.on_nth_tick(299, on_tick)
+    Event.register(defines.events.on_tick, on_tick)
 end
 
 --------------------------------------------------------------------------------
