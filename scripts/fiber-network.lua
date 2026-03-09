@@ -124,9 +124,65 @@ end
 ---@param network_id integer
 ---@param fo_entity fo.FiberOptics
 function Network:connectEntity(network_id, fo_entity)
+    local main = fo_entity.main
+    if not (main and main.valid) then return end
+
+    local fiber_strand = self:locateFiberStrand(main, network_id, 'default')
+
+    -- register as endpoint
+    fiber_strand.endpoint_count = fiber_strand.endpoint_count + 1
+    fiber_strand.endpoints[main.unit_number] = main
+
+    -- wire each IO pin to its corresponding hub
+    for idx = 1, const.max_hub_count do
+        local iopin = fo_entity.iopin[idx]
+        local hub = fiber_strand.hubs[idx] and fiber_strand.hubs[idx].hub
+
+        if iopin and iopin.valid and hub and hub.valid then
+            for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
+                local pin_connector = assert(iopin.get_wire_connector(circuit, true))
+                local hub_connector = assert(hub.get_wire_connector(circuit, true))
+                pin_connector.connect_to(hub_connector, false, defines.wire_origin.script)
+            end
+        end
+    end
 end
 
+---@param network_id integer
+---@param fo_entity fo.FiberOptics
 function Network:disconnectEntity(network_id, fo_entity)
+    local main = fo_entity.main
+    if not (main and main.valid) then return end
+
+    local surface_network = self:locateSurfaceNetwork(main.surface_index)
+    local fiber_network = surface_network[network_id]
+    if not fiber_network then return end
+
+    local fiber_strand = fiber_network['default']
+    if not fiber_strand then return end
+
+    -- disconnect each IO pin from its hub
+    for idx = 1, const.max_hub_count do
+        local iopin = fo_entity.iopin[idx]
+        local hub = fiber_strand.hubs[idx] and fiber_strand.hubs[idx].hub
+
+        if iopin and iopin.valid and hub and hub.valid then
+            for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
+                local pin_connector = assert(iopin.get_wire_connector(circuit, true))
+                local hub_connector = assert(hub.get_wire_connector(circuit, true))
+                pin_connector.disconnect_from(hub_connector, defines.wire_origin.script)
+            end
+        end
+    end
+
+    -- remove endpoint
+    fiber_strand.endpoints[main.unit_number] = nil
+    fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+
+    -- destroy network if no endpoints remain
+    if fiber_strand.endpoint_count <= 0 then
+        self:destroyFiberNetwork(main, network_id)
+    end
 end
 
 ------------------------------------------------------------------------

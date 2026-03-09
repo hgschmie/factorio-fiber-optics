@@ -519,7 +519,7 @@ function FiberOptics:updateEntityStatus(fo_entity)
     local active_signals = 0
 
     -- if the unit is in red status, disconnect all networks
-    local current_networks = ((tools.STATUS_NAMES[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
+    local current_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
 
     -- disconnect missing networks
     for network_id in pairs(fo_entity.networks) do
