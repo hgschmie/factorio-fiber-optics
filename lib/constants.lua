@@ -104,7 +104,6 @@ end
 
 ---@type data.EntityPrototypeFlags
 local base_entity_flags = {
-    'not-rotatable',
     'placeable-off-grid',
     'not-on-map',
     'not-deconstructable',
@@ -126,6 +125,7 @@ Constants.prototype_internal_entity_flags = {
 
 ---@type data.EntityPrototypeFlags
 Constants.prototype_hidden_entity_flags = {
+    'not-rotatable',
     'no-copy-paste',
 }
 

@@ -158,15 +158,18 @@ function FiberOptics:create(cfg)
     if not (cfg.main and cfg.main.valid) then return nil end
     assert(cfg.attached_entities)
     assert(cfg.attached_ghosts)
+    local h_flipped = cfg.h_flipped or false
+    local v_flipped = cfg.v_flipped or false
 
-    local direction, reverse = compute_rflip(cfg.main.direction, cfg.h_flipped, cfg.v_flipped)
+    local direction, reverse = compute_rflip(cfg.main.direction, h_flipped, v_flipped)
+
     ---@type fo.FiberOptics
     local fo_entity = {
         main = cfg.main,
         direction = cfg.main.direction,
         reverse = reverse,
-        h_flipped = cfg.h_flipped or false,
-        v_flipped = cfg.v_flipped or false,
+        h_flipped = h_flipped,
+        v_flipped = v_flipped,
         iopin = {},
         internal = {},
         networks = {},

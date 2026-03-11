@@ -9,6 +9,7 @@ require('lib.init')
 local Event = require('stdlib.event.event')
 local Player = require('stdlib.event.player')
 local Area = require('stdlib.area.area')
+local Direction = require('stdlib.area.direction')
 
 local Matchers = require('framework.matchers')
 
@@ -44,13 +45,25 @@ local function on_entity_created(event)
         player_index = player_index or entity_ghost.player_index
     end
 
-    local h_flipped = false
-    local v_flipped = false
+    local h_flipped = (tags and tags.h_flipped) or false
+    local v_flipped = (tags and tags.v_flipped) or false
+
+    local tag_reverse = h_flipped ~= v_flipped
+    local player_reverse = false
 
     if player_index then
         local _, player_data = Player.get(player_index)
-        h_flipped = player_data.h_flipped or false
-        v_flipped = player_data.v_flipped or false
+        local player_h_flipped = player_data.h_flipped or false
+        local player_v_flipped = player_data.v_flipped or false
+
+        -- if the blueprint was flipped, revert the flip bits
+        h_flipped = player_h_flipped ~= h_flipped
+        v_flipped = player_v_flipped ~= v_flipped
+        player_reverse = player_h_flipped ~= player_v_flipped
+    end
+
+    if tag_reverse then
+        entity.direction = player_reverse and Direction.next(entity.direction) or Direction.previous(entity.direction)
     end
 
     local area = Area.new(entity.selection_box)
