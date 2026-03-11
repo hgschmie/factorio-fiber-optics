@@ -247,13 +247,11 @@ function FiberOptics:create(cfg)
     local sl1_control = assert(fo_entity.internal.led_1.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
     sl1_control.circuit_enable_disable = true
     sl1_control.use_colors = false
-    ---@diagnostic disable-next-line: missing-fields
     sl1_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
 
     local sl2_control = assert(fo_entity.internal.led_2.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
     sl2_control.circuit_enable_disable = true
     sl1_control.use_colors = false
-    ---@diagnostic disable-next-line: missing-fields
     sl2_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
 
     local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]

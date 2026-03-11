@@ -24,8 +24,6 @@ local item = {
         {
             icon = oc_icon,
             icon_size = 128,
-            -- DEBUG
-        tint = { 0.7, 0.3, 0.2 },
         },
     },
 
@@ -43,8 +41,6 @@ for idx, direction in pairs { 'north', 'east', 'south', 'west' } do
         scale = 0.5,
         x = (idx - 1) * 128,
         shift = util.by_pixel(4, 4),
-        -- DEBUG
-        tint = { 0.7, 0.3, 0.2 },
     }
 end
 

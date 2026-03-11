@@ -5,9 +5,9 @@
 ------------------------------------------------------------------------
 
 local Constants = {
-    prefix = 'hps__fo2-',
+    prefix = 'hps__fo-',
     name = 'optical-connector',
-    root = '__fiber-optics-2__',
+    root = '__fiber-optics__',
 }
 
 --------------------------------------------------------------------------------
@@ -60,10 +60,12 @@ end
 
 Constants.max_hub_count = 16
 
-Constants.main_entity_name = Constants:with_prefix('main')
-Constants.pin_entity_name = Constants:with_prefix('pin')
-Constants.pin_one_entity_name = Constants:with_prefix('pin-one')
-Constants.powerpole_name = Constants:with_prefix('power-pole')
+-- These names *MUST* match the 1.x.x code. DO NOT CHANGE!
+Constants.main_entity_name = Constants:with_prefix('optical-connector')
+Constants.pin_entity_name = Constants:with_prefix('oc-io_pin')
+Constants.pin_one_entity_name = Constants:with_prefix('oc-io_pin_one')
+Constants.powerpole_name = Constants:with_prefix('oc-power-pole')
+
 Constants.power_interface_name = Constants:with_prefix('power-interface')
 Constants.led_name = Constants:with_prefix('led')
 Constants.controller_name = Constants:with_prefix('controller')
