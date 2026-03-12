@@ -48,6 +48,12 @@ local function on_entity_created(event)
     local h_flipped = (tags and tags.h_flipped) or false
     local v_flipped = (tags and tags.v_flipped) or false
 
+    -- legacy (1.x) blueprints
+    if tags and tags.flip_index then
+        h_flipped = bit32.band(tags.flip_index - 1, 1) == 1
+        v_flipped = bit32.band(tags.flip_index - 1, 2) == 2
+    end
+
     local tag_reverse = h_flipped ~= v_flipped
     local player_reverse = false
 
