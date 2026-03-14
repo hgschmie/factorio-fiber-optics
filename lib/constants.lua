@@ -51,7 +51,7 @@ end
 ---@param id string
 ---@return string result
 function Constants:locale(id)
-    return Constants:with_prefix('locale.') .. id
+    return Constants:with_prefix('messages.') .. id
 end
 
 --------------------------------------------------------------------------------

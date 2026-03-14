@@ -42,9 +42,13 @@
 ---@field h_flipped boolean
 ---@field v_flipped boolean
 ---@field state fo.FiberOpticsState
+---@field config fo.FiberOpticsConfig
 
 ---@class fo.FiberOpticsState
 ---@field connected_strands table<integer, string>
+
+---@class fo.FiberOpticsConfig
+---@field enabled boolean
 
 ---@class fo.AttachedEntity
 ---@field entity LuaEntity

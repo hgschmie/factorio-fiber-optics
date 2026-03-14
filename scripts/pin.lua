@@ -104,7 +104,7 @@ function Pins:adopt(pin_entity, idx)
 
     pin_entity.minable = false
     pin_entity.destructible = false
-    pin_entity.operable = false
+    pin_entity.operable = true
 
     self:addPin(pin_entity.unit_number, idx)
 
@@ -132,7 +132,7 @@ function Pins:position(cfg)
     }
 end
 
-local MSG_WIRES_TOO_LONG = const:with_prefix('messages.wires_too_long')
+local MSG_WIRES_TOO_LONG = const:locale('wires_too_long')
 
 local IGNORED_FOR_MOVE = table.array_to_dictionary({
     -- const.pin_entity_name,
@@ -183,7 +183,7 @@ function Pins:serialize(entity_id)
     }
 end
 
-local IOPIN_CAPTION = const:with_prefix('messages.iopin_caption')
+local IOPIN_CAPTION = const:locale('iopin_caption')
 
 local IOPIN_COLOR = {
     { 1,   1,   1, },  -- none

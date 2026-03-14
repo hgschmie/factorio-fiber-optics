@@ -11,7 +11,7 @@ This:init()
 -- migrate 1.x entities
 if storage.oc_data then
     for _, oc_entity in pairs(storage.oc_data.oc) do
-        oc_entity.ref.power_pole.operable = false
+        oc_entity.ref.power_pole.operable = true
 
         local attached_entities = {
             [const.powerpole_name] = { entity = oc_entity.ref.power_pole },
@@ -22,7 +22,7 @@ if storage.oc_data then
 
         for idx, entity in pairs(oc_entity.iopin) do
             assert(entity.type == 'container', 'This is an extremely old save. Migrate it to Factorio 2.0 first by using the latest fiber-optics 1.x release.')
-            entity.operable = false
+            entity.operable = true
             attached_entities[idx] = { entity = entity }
 
             oc_entity.entities[entity.unit_number] = nil

@@ -176,8 +176,10 @@ function Network:disconnectEntity(network_id, fo_entity)
     end
 
     -- remove endpoint
-    fiber_strand.endpoints[main.unit_number] = nil
-    fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+    if fiber_strand.endpoints[main.unit_number] then
+        fiber_strand.endpoints[main.unit_number] = nil
+        fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+    end
 
     -- destroy network if no endpoints remain
     if fiber_strand.endpoint_count <= 0 then

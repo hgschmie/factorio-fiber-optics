@@ -14,7 +14,13 @@ local helpers = require('scripts.helpers')
 ------------------------------------------------------------------------
 
 ---@class fo.Fo
-local FiberOptics = {}
+---@field DEFAULT_CONFIG fo.FiberOpticsConfig
+local FiberOptics = {
+    -- constant is visible for migrations
+    DEFAULT_CONFIG = {
+        enabled = true,
+    }
+}
 
 ------------------------------------------------------------------------
 -- attribute getters/setters
@@ -176,6 +182,7 @@ function FiberOptics:create(cfg)
         state = {
             connected_strands = {},
         },
+        config = FiberOptics.DEFAULT_CONFIG,
     }
 
     cfg.main.direction = direction
@@ -242,6 +249,8 @@ function FiberOptics:create(cfg)
     end
 
     -- configure entities
+
+    fo_entity.internal.powerpole.operable = true
 
     -- power switch
     local pp_control = assert(fo_entity.internal.powerpole.get_or_create_control_behavior()) --[[@as LuaGenericOnOffControlBehavior ]]
@@ -508,7 +517,8 @@ local function get_connected_networks(power_pole)
 end
 
 ---@param fo_entity fo.FiberOptics
-function FiberOptics:updateEntityStatus(fo_entity)
+---@param force_reconnect boolean
+function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     assert(fo_entity)
     if not (fo_entity.main and fo_entity.main.valid) then return end
 
@@ -524,7 +534,7 @@ function FiberOptics:updateEntityStatus(fo_entity)
 
     -- disconnect missing networks
     for network_id in pairs(fo_entity.networks) do
-        if (not current_networks[network_id]) then
+        if (not (fo_entity.config.enabled and current_networks[network_id])) then
             This.network:disconnectEntity(network_id, fo_entity)
             changes = true
         end
@@ -534,7 +544,7 @@ function FiberOptics:updateEntityStatus(fo_entity)
     for network_id, idx in pairs(current_networks) do
         signals[idx] = 1
         active_signals = active_signals + 1
-        if not fo_entity.networks[network_id] then
+        if fo_entity.config.enabled and ((not fo_entity.networks[network_id]) or force_reconnect) then
             This.network:connectEntity(network_id, fo_entity)
             changes = true
         end

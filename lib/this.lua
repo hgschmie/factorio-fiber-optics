@@ -8,6 +8,7 @@
 ---@field pin fo.Pin
 ---@field other fo.Other
 ---@field network fo.Network
+---@field gui fo.Gui
 This = {
     other_mods = {
         ['even-pickier-dollies'] = 'epd',
@@ -19,6 +20,7 @@ if script then
     This.pin = require('scripts.pin')
     This.other = require('scripts.other')
     This.network = require('scripts.fiber-network')
+    This.gui = require('scripts.gui')
 end
 
 --- Setup the global optical connector data structure.
