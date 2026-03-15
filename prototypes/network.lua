@@ -7,6 +7,7 @@ require 'circuit-connector-sprites'
 
 local collision_mask_util = require('collision-mask-util')
 local util = require('util')
+local meld = require('meld')
 
 local const = require('lib.constants')
 
@@ -39,4 +40,11 @@ local fiber_hub_entity = {
     selection_priority = 1,
 }
 
-data:extend { fiber_hub_entity }
+local fiber_hub_debug_entity = meld(util.copy(fiber_hub_entity), {
+    name               = const.debug_name(fiber_hub_entity.name),
+    hidden             = false,
+    draw_circuit_wires = true,
+    picture            = meld.overwrite(data.raw['container']['wooden-chest'].picture),
+})
+
+data:extend { fiber_hub_entity, fiber_hub_debug_entity }

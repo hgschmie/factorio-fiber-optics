@@ -13,13 +13,15 @@ local helpers = require('scripts.helpers')
 
 ------------------------------------------------------------------------
 
+local DEFAULT_CONFIG = {
+        enabled = true,
+        strand_name = 'default',
+    }
+
+
 ---@class fo.Fo
 ---@field DEFAULT_CONFIG fo.FiberOpticsConfig
 local FiberOptics = {
-    -- constant is visible for migrations
-    DEFAULT_CONFIG = {
-        enabled = true,
-    }
 }
 
 ------------------------------------------------------------------------
@@ -182,7 +184,7 @@ function FiberOptics:create(cfg)
         state = {
             connected_strands = {},
         },
-        config = FiberOptics.DEFAULT_CONFIG,
+        config = self:getDefaultConfig(),
     }
 
     cfg.main.direction = direction
@@ -285,6 +287,10 @@ function FiberOptics:create(cfg)
     self:setEntity(cfg.main.unit_number, fo_entity)
 
     return fo_entity
+end
+
+function FiberOptics:getDefaultConfig()
+    return util.copy(DEFAULT_CONFIG)
 end
 
 ---@param entity_id integer
@@ -517,7 +523,7 @@ local function get_connected_networks(power_pole)
 end
 
 ---@param fo_entity fo.FiberOptics
----@param force_reconnect boolean
+---@param force_reconnect boolean?
 function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     assert(fo_entity)
     if not (fo_entity.main and fo_entity.main.valid) then return end
@@ -532,15 +538,19 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     -- if the unit is in red status, disconnect all networks
     local current_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
 
-    -- disconnect missing networks
+    -- disconnect networks if entity is not enabled, a network is missing from the set of current networks
+    -- or if the current strand name does not match the configured strand name.
     for network_id in pairs(fo_entity.networks) do
-        if (not (fo_entity.config.enabled and current_networks[network_id])) then
+        if (not (fo_entity.config.enabled
+                and current_networks[network_id]
+                and fo_entity.state.strand_name == fo_entity.config.strand_name)) then
             This.network:disconnectEntity(network_id, fo_entity)
             changes = true
         end
     end
 
-    -- connect new networks
+    -- connect new networks if the entity is enabled and the network is not already connected
+    -- or if reconnection is forced.
     for network_id, idx in pairs(current_networks) do
         signals[idx] = 1
         active_signals = active_signals + 1

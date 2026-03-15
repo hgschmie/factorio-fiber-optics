@@ -54,6 +54,12 @@ function Constants:locale(id)
     return Constants:with_prefix('messages.') .. id
 end
 
+---@param name string
+---@return string
+function Constants.debug_name(name)
+    return name .. '-debug'
+end
+
 --------------------------------------------------------------------------------
 -- Constants
 --------------------------------------------------------------------------------

@@ -7,6 +7,9 @@ local const = require('lib.constants')
 
 local helpers = require('scripts.helpers')
 
+
+local debug_mode = Framework.settings:startup_setting('debug_mode')
+
 ---@class fo.Network
 local Network = {}
 
@@ -42,22 +45,27 @@ end
 
 ---@param surface_index integer
 ---@param force_id integer
+---@param strand_index integer
 ---@return fo.FiberStrand fiber_strand
-local function create_fiber_strand(surface_index, force_id)
+local function create_fiber_strand(surface_index, force_id, strand_index)
     ---@type fo.FiberHub[]
     local hubs = {}
 
     local surface = assert(game.surfaces[surface_index])
     local force = assert(game.forces[force_id])
 
+    local hub_entity_name = debug_mode and const.debug_name(const.fiber_hub_name) or const.fiber_hub_name
+
     for idx = 1, const.max_hub_count, 1 do
         hubs[idx] = {
             hub = surface.create_entity {
-                name = const.fiber_hub_name,
-                position = { x = 0, y = 0 },
+                name = hub_entity_name,
+                -- spread out for debugging visibility
+                position = { x = idx * 4, y = strand_index * 4 },
                 force = force,
             }
         }
+        hubs[idx].hub.operable = false
     end
 
     return {
@@ -67,6 +75,7 @@ local function create_fiber_strand(surface_index, force_id)
     }
 end
 
+-- Retrieves an existing or creates a new fiber network. A fiber network always has a default strand and may have more strands.
 ---@param surface_index integer
 ---@param force_id integer
 ---@param network_id integer
@@ -75,14 +84,13 @@ function Network:getOrCreateFiberNetwork(surface_index, force_id, network_id)
     local surface_network = self:locateSurfaceNetwork(surface_index)
 
     surface_network[network_id] = surface_network[network_id] or {
-        default = create_fiber_strand(surface_index, force_id)
+        default = create_fiber_strand(surface_index, force_id, 0) -- default is always strand index 0
     }
 
     return surface_network[network_id]
 end
 
---- returns a specific fiber network for a given entity to connect to.
----
+--- returns a specific fiber strand for a given entity to connect to. If the strand does not exist, it will be created.
 ---@param entity LuaEntity
 ---@param network_id integer
 ---@param strand_name string
@@ -91,30 +99,32 @@ function Network:locateFiberStrand(entity, network_id, strand_name)
     local surface_index = entity.surface_index
 
     local fiber_network = self:getOrCreateFiberNetwork(surface_index, entity.force_index, network_id)
-    fiber_network[strand_name] = fiber_network[strand_name] or create_fiber_strand(surface_index, entity.force_index)
+    fiber_network[strand_name] = fiber_network[strand_name] or create_fiber_strand(surface_index, entity.force_index, table_size(fiber_network))
 
     return fiber_network[strand_name]
 end
 
----@param entity LuaEntity
+---@param surface_index integer
 ---@param network_id integer
-function Network:destroyFiberNetwork(entity, network_id)
-    local surface_index = entity.surface_index
-    local surface_network = self:locateSurfaceNetwork(surface_index)
+---@param strand_name string
+function Network:destroyFiberStrand(surface_index, network_id, strand_name)
+    if strand_name == 'default' then return end -- default network is never deleted
 
+    local surface_network = self:locateSurfaceNetwork(surface_index)
     if not surface_network[network_id] then return end
 
-    for strand_name, strand in pairs(surface_network[network_id]) do
-        if strand.endpoint_count > 0 then
-            Framework.logger:logf("Shutting down fiber strand '%d/%s' with %d remaining endpoints!", network_id, strand_name, strand.endpoint_count)
-        end
+    local fiber_strand = surface_network[network_id][strand_name]
+    if not fiber_strand then return end
 
-        for _, hub in pairs(strand.hubs) do
-            if (hub.hub and hub.hub.valid) then hub.hub.destroy() end
-        end
+    if fiber_strand.endpoint_count > 0 then
+        Framework.logger:logf("Shutting down fiber strand '%d/%s' with %d remaining endpoints!", network_id, strand_name, fiber_strand.endpoint_count)
     end
 
-    surface_network[network_id] = nil
+    for _, hub in pairs(fiber_strand.hubs) do
+        if (hub.hub and hub.hub.valid) then hub.hub.destroy() end
+    end
+
+    surface_network[network_id][strand_name] = nil
 end
 
 ------------------------------------------------------------------------
@@ -127,7 +137,9 @@ function Network:connectEntity(network_id, fo_entity)
     local main = fo_entity.main
     if not (main and main.valid) then return end
 
-    local fiber_strand = self:locateFiberStrand(main, network_id, 'default')
+    assert(not fo_entity.state.strand_name)
+
+    local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.config.strand_name)
 
     -- register as endpoint
     fiber_strand.endpoint_count = fiber_strand.endpoint_count + 1
@@ -142,10 +154,12 @@ function Network:connectEntity(network_id, fo_entity)
             for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
                 local pin_connector = assert(iopin.get_wire_connector(circuit, true))
                 local hub_connector = assert(hub.get_wire_connector(circuit, true))
-                pin_connector.connect_to(hub_connector, false, defines.wire_origin.script)
+                pin_connector.connect_to(hub_connector, false, debug_mode and defines.wire_origin.player or defines.wire_origin.script)
             end
         end
     end
+
+    fo_entity.state.strand_name = fo_entity.config.strand_name
 end
 
 ---@param network_id integer
@@ -154,12 +168,9 @@ function Network:disconnectEntity(network_id, fo_entity)
     local main = fo_entity.main
     if not (main and main.valid) then return end
 
-    local surface_network = self:locateSurfaceNetwork(main.surface_index)
-    local fiber_network = surface_network[network_id]
-    if not fiber_network then return end
+    if not fo_entity.state.strand_name then return end
 
-    local fiber_strand = fiber_network['default']
-    if not fiber_strand then return end
+    local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.config.strand_name)
 
     -- disconnect each IO pin from its hub
     for idx = 1, const.max_hub_count do
@@ -170,7 +181,7 @@ function Network:disconnectEntity(network_id, fo_entity)
             for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
                 local pin_connector = assert(iopin.get_wire_connector(circuit, true))
                 local hub_connector = assert(hub.get_wire_connector(circuit, true))
-                pin_connector.disconnect_from(hub_connector, defines.wire_origin.script)
+                pin_connector.disconnect_from(hub_connector)
             end
         end
     end
@@ -183,8 +194,10 @@ function Network:disconnectEntity(network_id, fo_entity)
 
     -- destroy network if no endpoints remain
     if fiber_strand.endpoint_count <= 0 then
-        self:destroyFiberNetwork(main, network_id)
+        self:destroyFiberStrand(main.surface_index, network_id, fo_entity.config.strand_name)
     end
+
+    fo_entity.state.strand_name = nil
 end
 
 ------------------------------------------------------------------------
@@ -217,6 +230,7 @@ function Network:tick()
 
     if not (index.surface_index and surface_networks[index.surface_index]) then index = {} end
     if not (index.network_index and surface_networks[index.surface_index][index.network_index]) then index = {} end
+    if not (index.strand_name and surface_networks[index.surface_index][index.network_index][index.strand_name]) then index = {} end
 
     if process_count > 0 then
         repeat
@@ -230,25 +244,30 @@ function Network:tick()
                     if not index.network_index then index.network_index, fiber_network = next(surface_network, index.network_index) end
 
                     if fiber_network then
-                        for _, fiber_strand in pairs(fiber_network) do
-                            -- validate all endpoints on this fiber strand
-                            for id, endpoint in pairs(fiber_strand.endpoints) do
-                                if not (endpoint and endpoint.valid) then
-                                    fiber_strand.endpoints[id] = nil
-                                    fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+                        repeat
+                            local fiber_strand
+                            index.strand_name, fiber_strand = next(fiber_network, index.strand_name)
+                            if not index.strand_name then index.strand_name, fiber_strand = next(fiber_network, index.strand_name) end
+                            if fiber_strand then
+                                -- validate all endpoints on this fiber strand
+                                for id, endpoint in pairs(fiber_strand.endpoints) do
+                                    if not (endpoint and endpoint.valid) then
+                                        fiber_strand.endpoints[id] = nil
+                                        fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+                                    end
                                 end
-                            end
 
-                            if fiber_strand.endpoint_count < 0 then
-                                fiber_strand.endpoint_count = 0
-                            end
+                                if fiber_strand.endpoint_count <= 0 then
+                                    This.network:destroyFiberStrand(index.surface_index, index.network_index, index.strand_name)
+                                end
 
-                            process_count = process_count - 1
-                        end
+                                process_count = process_count - 1
+                            end
+                        until process_count <= 0 or not index.strand_name
                     end
-                until process_count == 0 or not index.network_index
+                until process_count <= 0 or not index.network_index
             end
-        until process_count == 0 or not index.surface_index
+        until process_count <= 0 or not index.surface_index
     else
         index = nil
     end

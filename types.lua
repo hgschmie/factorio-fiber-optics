@@ -46,9 +46,11 @@
 
 ---@class fo.FiberOpticsState
 ---@field connected_strands table<integer, string>
+---@field strand_name string?
 
 ---@class fo.FiberOpticsConfig
 ---@field enabled boolean
+---@field strand_name string
 
 ---@class fo.AttachedEntity
 ---@field entity LuaEntity
