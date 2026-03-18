@@ -14,19 +14,22 @@ local helpers = require('scripts.helpers')
 ------------------------------------------------------------------------
 
 local DEFAULT_CONFIG = {
-        enabled = true,
-        strand_name = 'default',
-    }
+    enabled = true,
+    strand_name = 'default',
+}
 
 
 ---@class fo.Fo
----@field DEFAULT_CONFIG fo.FiberOpticsConfig
-local FiberOptics = {
-}
+local FiberOptics = {}
 
 ------------------------------------------------------------------------
 -- attribute getters/setters
 ------------------------------------------------------------------------
+
+---@return fo.FiberOptics[] fo_entities
+function FiberOptics:getAllEntities()
+    return This.storage().fo
+end
 
 ---@param entity_id integer main unit number (== entity id)
 ---@return fo.FiberOptics? fo_entity
@@ -155,7 +158,7 @@ end
 ---@field main LuaEntity
 ---@field attached_entities fo.AttachedEntity[]?
 ---@field attached_ghosts table<any, framework.ghost_manager.AttachedEntity>
----@field tags Tags?
+---@field config fo.FiberOpticsConfig?
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
 
@@ -182,9 +185,9 @@ function FiberOptics:create(cfg)
         internal = {},
         networks = {},
         state = {
-            connected_strands = {},
+            strand_names = {},
         },
-        config = self:getDefaultConfig(),
+        config = cfg.config or self:getDefaultConfig(),
     }
 
     cfg.main.direction = direction
@@ -486,6 +489,7 @@ function FiberOptics:serialize(entity_id)
     return {
         h_flipped = fo_entity.h_flipped,
         v_flipped = fo_entity.v_flipped,
+        config = fo_entity.config,
     }
 end
 
@@ -531,21 +535,23 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     fo_entity.status = fo_entity.internal.power.status or defines.entity_status.disabled
 
     -- check connected networks
-    local changes = false
+    local connection_change = true
     local signals = { 0, 0 }
     local active_signals = 0
 
     -- if the unit is in red status, disconnect all networks
     local current_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
 
-    -- disconnect networks if entity is not enabled, a network is missing from the set of current networks
-    -- or if the current strand name does not match the configured strand name.
+    -- disconnect networks if reconnect is forced, the entity is not enabled,
+    -- a network is missing from the set of current network or if the current strand name does not match the configured strand name.
     for network_id in pairs(fo_entity.networks) do
-        if (not (fo_entity.config.enabled
+        if (force_reconnect or not (fo_entity.config.enabled
                 and current_networks[network_id]
-                and fo_entity.state.strand_name == fo_entity.config.strand_name)) then
+                and fo_entity.state.strand_names[network_id]
+                and fo_entity.state.strand_names[network_id] == fo_entity.config.strand_name)) then
             This.network:disconnectEntity(network_id, fo_entity)
-            changes = true
+            fo_entity.networks[network_id] = nil
+            connection_change = true
         end
     end
 
@@ -554,13 +560,13 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     for network_id, idx in pairs(current_networks) do
         signals[idx] = 1
         active_signals = active_signals + 1
-        if fo_entity.config.enabled and ((not fo_entity.networks[network_id]) or force_reconnect) then
+        if fo_entity.config.enabled and (not fo_entity.networks[network_id]) then
             This.network:connectEntity(network_id, fo_entity)
-            changes = true
+            connection_change = true
         end
     end
 
-    if changes then
+    if connection_change then
         local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
         if sc_control.sections_count < 1 then sc_control.add_section() end
         local sc_section = sc_control.sections[1]
@@ -590,11 +596,17 @@ end
 -- Ticker
 ------------------------------------------------------------------------
 
+---@param values helper.TickerContext
+local function ticker_unit_of_work(_, values)
+    local fo_entity = values.index
+    This.fo:updateEntityStatus(fo_entity)
+end
+
 function FiberOptics:tick()
     local ticker = helpers:getTicker('fiber_optics')
     local interval = Framework.settings:startup_setting(const.settings_names.fo_refresh) or 300
 
-    local fo_entities = This.storage().fo
+    local fo_entities = self:getAllEntities()
     local count = table_size(fo_entities)
     if count == 0 then return end
 
@@ -603,25 +615,20 @@ function FiberOptics:tick()
     if ticker.last_tick + ticks_per_entity > game.tick then return end
 
     local process_count = math.ceil(count / interval)
-    local index = ticker.last_tick_index
+    local context = { index = ticker.last_tick_index }
 
-    if not fo_entities[index] then index = nil end
+    local iterator = helpers.createWorkIterator {
+        context = context,
+        field_name = 'index',
+        iterable = fo_entities,
+    }
 
-    if process_count > 0 then
-        repeat
-            local fo_entity
-            index, fo_entity = next(fo_entities, index)
-            if not index then index, fo_entity = next(fo_entities, index) end -- wraparound
-            if fo_entity then
-                self:updateEntityStatus(fo_entity)
-                process_count = process_count - 1
-            end
-        until process_count == 0 or not index
-    else
-        index = nil
+    while process_count > 0 do
+        iterator.process(ticker_unit_of_work)
+        process_count = process_count - 1
     end
 
-    ticker.last_tick_index = index
+    ticker.last_tick_index = context.index
     ticker.last_tick = game.tick
 end
 

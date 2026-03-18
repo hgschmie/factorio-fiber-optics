@@ -47,6 +47,7 @@ local function on_entity_created(event)
 
     local h_flipped = (tags and tags.h_flipped) or false
     local v_flipped = (tags and tags.v_flipped) or false
+    local config = (tags and tags.config)
 
     -- legacy (1.x) blueprints
     if tags and tags.flip_index then
@@ -93,7 +94,7 @@ local function on_entity_created(event)
 
     This.fo:create {
         main = entity,
-        tags = tags,
+        config = config,
         h_flipped = h_flipped,
         v_flipped = v_flipped,
         attached_entities = attached_entities,
@@ -117,7 +118,10 @@ local function on_entity_deleted(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
 
-    This.fo:destroy(entity.unit_number)
+    if This.fo:destroy(entity.unit_number) then
+        Framework.gui_manager:destroy_gui_by_entity_id(entity.unit_number)
+    end
+
     This.pin:deletePin(entity.unit_number)
     This.other:deleteEntity(entity.unit_number)
 end
@@ -128,7 +132,9 @@ end
 
 ---@param event EventData.on_object_destroyed
 local function on_object_destroyed(event)
-    This.fo:destroy(event.useful_id)
+    if This.fo:destroy(event.useful_id) then
+        Framework.gui_manager:destroy_gui_by_entity_id(event.useful_id)
+    end
 end
 
 --------------------------------------------------------------------------------

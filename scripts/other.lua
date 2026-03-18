@@ -133,6 +133,22 @@ end
 -- ticker
 --------------------------------------------------------------------------------
 
+---@param keys helper.TickerContext
+---@param values helper.TickerContext
+---@return any
+local function ticker_unit_of_work(keys, values)
+    -- deal with placed entities. that is simple because
+    -- the tick time is already set and if no actual fo is
+    -- constructed (e.g. because it collided with water while the entity did not),
+    -- it can simply be removed.
+    local attached_entity = values.index
+    if not (attached_entity.entity and attached_entity.entity.valid) then
+        This.other:deleteEntity(keys.index)
+    elseif attached_entity.tick < game.tick then
+        This.other:deleteEntity(keys.index)
+    end
+end
+
 function Other:tick()
     local ticker = helpers:getTicker('attached_entities')
 
@@ -147,33 +163,20 @@ function Other:tick()
 
     local process_count = math.ceil(entity_count / interval)
     local index = ticker.last_tick_index
+    local context = { index = ticker.last_tick_index }
 
-    if not state.attached_entities[index] then index = nil end
+    local iterator = helpers.createWorkIterator {
+        context = context,
+        field_name = 'index',
+        iterable = state.attached_entities,
+    }
 
-    if process_count > 0 then
-        repeat
-            -- deal with placed entities. that is simple because
-            -- the tick time is already set and if no actual fo is
-            -- constructed (e.g. because it collided with water while the entity did not),
-            -- it can simply be removed.
-            local attached_entity
-            index, attached_entity = next(state.attached_entities, index)
-            if not index then index, attached_entity = next(state.attached_entities, index) end
-
-            if attached_entity then
-                if not (attached_entity.entity and attached_entity.entity.valid) then
-                    self:deleteEntity(index)
-                elseif attached_entity.tick < game.tick then
-                    self:deleteEntity(index)
-                end
-                process_count = process_count - 1
-            end
-        until process_count == 0 or not index
-    else
-        index = nil
+    while process_count > 0 do
+        iterator.process(ticker_unit_of_work)
+        process_count = process_count - 1
     end
 
-    ticker.last_tick_index = index
+    ticker.last_tick_index = context.index
     ticker.last_tick = game.tick
 end
 

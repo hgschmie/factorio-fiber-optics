@@ -9,6 +9,7 @@
 ---@field other fo.Other
 ---@field network fo.Network
 ---@field gui fo.Gui
+---@field console fo.Console
 This = {
     other_mods = {
         ['even-pickier-dollies'] = 'epd',
@@ -21,6 +22,7 @@ if script then
     This.other = require('scripts.other')
     This.network = require('scripts.fiber-network')
     This.gui = require('scripts.gui')
+    This.console = require('scripts.console')
 end
 
 --- Setup the global optical connector data structure.
@@ -40,7 +42,7 @@ function This:init()
         surface_networks = {},
     }
 
-    ---@type table<string, fo.Ticker>
+    ---@type table<string, helper.TickerContext>
     storage.ticker = {}
 end
 

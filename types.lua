@@ -45,8 +45,7 @@
 ---@field config fo.FiberOpticsConfig
 
 ---@class fo.FiberOpticsState
----@field connected_strands table<integer, string>
----@field strand_name string?
+---@field strand_names table<integer, string>
 
 ---@class fo.FiberOpticsConfig
 ---@field enabled boolean
@@ -56,5 +55,3 @@
 ---@field entity LuaEntity
 ---@field tags Tags?
 ---@field tick integer
-
----@alias fo.Ticker table<string, any>
