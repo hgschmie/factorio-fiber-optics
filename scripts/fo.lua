@@ -603,7 +603,9 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
         sc_section.filters = filters
 
         fo_entity.networks = current_networks
-        fo_entity.internal.power.power_usage = (1000/60) * (2 + active_signals * 8)
+        -- fo_entity.internal.power.power_usage = (1000/60) * (2 + active_signals * 8)
+
+        fo_entity.internal.power.always_on = fo_entity.config.enabled and (active_signals > 0)
     end
 end
 

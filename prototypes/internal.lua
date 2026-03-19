@@ -86,24 +86,23 @@ local powerpole_entity = {
 
 -- represents the power consumption
 
---- @type data.ElectricEnergyInterfacePrototype
+--- @type data.LampPrototype
 local power_entity = {
     -- PrototypeBase
-    type = 'electric-energy-interface',
+    type = 'lamp',
     name = const.power_interface_name,
     hidden = true,
     hidden_in_factoriopedia = true,
 
-    -- ElectricEnergyInterfacePrototype
+    -- LampPrototype
+    picture_on = util.empty_sprite(),
+    energy_usage_per_tick = '10kW',
+
     ---@type data.ElectricEnergySource
     energy_source = {
         type = 'electric',
         usage_priority = 'secondary-input',
     },
-
-    energy_usage = '2kW',
-    gui_mode = 'none',
-    picture = util.empty_sprite(),
 
     -- EntityWithHealthPrototype
     max_health = 1,
