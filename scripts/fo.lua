@@ -20,6 +20,7 @@ local DEFAULT_CONFIG = {
 
 
 ---@class fo.Fo
+---@field INTERNAL_CFG fo.FoInternalEntityCfg[]
 local FiberOptics = {}
 
 ------------------------------------------------------------------------
@@ -67,7 +68,7 @@ end
 ---@field y integer
 
 ---@type fo.FoInternalEntityCfg[]
-local INTERNAL_CFG = {
+FiberOptics.INTERNAL_CFG = {
     { id = 'powerpole',  name = const.powerpole_name,       x = 0,   y = 16, },
     { id = 'power',      name = const.power_interface_name, x = 0,   y = 0, },
     { id = 'led_1',      name = const.led_name,             x = -13, y = -1, },
@@ -111,6 +112,26 @@ local function adopt(cfg)
     end
 
     return internal_entity
+end
+
+---@class fo.FoCreateInternalParams
+---@field main LuaEntity
+---@field name string
+---@field pos MapPosition
+
+---@param cfg fo.FoCreateInternalParams
+---@return LuaEntity?
+function FiberOptics:createInternal(cfg)
+    return cfg.main.surface.create_entity {
+        name = cfg.name,
+        position = cfg.pos,
+        direction = cfg.main.direction,
+        force = cfg.main.force,
+
+        create_build_effect_smoke = false,
+        spawn_decorations = false,
+        move_stuck_players = true,
+    }
 end
 
 ---@param direction defines.direction
@@ -223,7 +244,7 @@ function FiberOptics:create(cfg)
     end
 
     -- add remaining innards
-    for _, internal_cfg in pairs(INTERNAL_CFG) do
+    for _, internal_cfg in pairs(self.INTERNAL_CFG) do
         local pos = {
             x = fo_entity.main.position.x + internal_cfg.x / 64,
             y = fo_entity.main.position.y + internal_cfg.y / 64,
@@ -233,20 +254,14 @@ function FiberOptics:create(cfg)
             main = fo_entity.main,
             entity = cfg.attached_entities[internal_cfg.name],
             ghost = cfg.attached_ghosts[internal_cfg.name],
-            name = internal_cfg.name,
             pos = pos,
         }
 
         if not entity then
-            entity = fo_entity.main.surface.create_entity {
+            entity = self:createInternal {
+                main = fo_entity.main,
                 name = internal_cfg.name,
-                position = pos,
-                direction = fo_entity.main.direction,
-                force = fo_entity.main.force,
-
-                create_build_effect_smoke = false,
-                spawn_decorations = false,
-                move_stuck_players = true,
+                pos = pos,
             }
         end
 
@@ -588,7 +603,7 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
         sc_section.filters = filters
 
         fo_entity.networks = current_networks
-        fo_entity.internal.power.power_usage = (1000 * (1 + active_signals * 8)) / 60.0
+        fo_entity.internal.power.power_usage = (1000/60) * (2 + active_signals * 8)
     end
 end
 

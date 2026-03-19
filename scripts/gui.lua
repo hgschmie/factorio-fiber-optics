@@ -16,6 +16,8 @@ local signal_converter = require('framework.signal_converter')
 
 local const = require('lib.constants')
 
+local SIGNAL_COLUMN_COUNT = 8
+
 ---@class fo.Gui
 ---@field NAME string
 local Gui = {
@@ -25,6 +27,52 @@ local Gui = {
 ----------------------------------------------------------------------------------------------------
 -- UI definition
 ----------------------------------------------------------------------------------------------------
+
+---@return framework.gui.element_definitions[]
+local function create_signal_fields()
+    local result = {}
+    for i = 1, This.pin.MAX_PIN_COUNT do
+        local idx = bit32.band(i - 1, 1) * 8 + bit32.rshift(i - 1, 1) + 1
+        result[i] = {
+            type = 'flow',
+            direction = 'vertical',
+            children = {
+                {
+                    type = 'label',
+                    style = 'semibold_label',
+                    style_mods = {
+                        top_padding = 8, -- pad a bit to create visual space
+                    },
+                    caption = { const:locale('iopin_caption'), idx },
+                },
+                {
+                    type = 'scroll-pane',
+                    style = 'deep_slots_scroll_pane',
+                    direction = 'vertical',
+                    vertical_scroll_policy = 'auto-and-reserve-space',
+                    horizontal_scroll_policy = 'never',
+                    style_mods = {
+                        width = 40 * SIGNAL_COLUMN_COUNT,
+                    },
+                    children = {
+                        {
+                            type = 'table',
+                            style = 'filter_slot_table',
+                            name = ('signal-view-%d'):format(idx),
+                            column_count = SIGNAL_COLUMN_COUNT,
+                            style_mods = {
+                                vertical_spacing = 4,
+                            },
+                        },
+                    },
+                },
+            },
+        }
+    end
+
+    return result
+end
+
 
 --- Provides all the events used by the GUI and their mappings to functions. This must be outside the
 --- GUI definition as it can not be serialized into storage.
@@ -89,7 +137,7 @@ function Gui.getUi(gui)
             {  -- Body
                 type = 'frame',
                 style = 'entity_frame',
-                style_mods = { width = 424, }, -- fix width of the window to match the signal bottom
+                -- style_mods = { width = 424, }, -- fix width of the window to match the signal bottom
                 children = {
                     {
                         type = 'flow',
@@ -149,7 +197,7 @@ function Gui.getUi(gui)
                             {
                                 type = 'label',
                                 style = 'semibold_label',
-                                caption = { 'factoriopedia.connections' },
+                                caption = { const:locale('transceiver') },
                             },
                             {
                                 type = 'switch',
@@ -206,6 +254,37 @@ function Gui.getUi(gui)
                                         },
                                     },
                                 },
+                            },
+                            {
+                                type = 'flow',
+                                direction = 'vertical',
+                                children = {
+                                    {
+                                        type = 'scroll-pane',
+                                        direction = 'vertical',
+                                        visible = true,
+                                        vertical_scroll_policy = 'auto',
+                                        horizontal_scroll_policy = 'never',
+                                        style_mods = {
+                                            horizontally_stretchable = true,
+                                            horizontally_squashable = true,
+                                            vertically_stretchable = false,
+                                        },
+                                        children = {
+                                            {
+                                                type = 'table',
+                                                style = 'table',
+                                                name = 'signals',
+                                                column_count = 2,
+                                                style_mods = {
+                                                    margin = 4,
+                                                    cell_padding = 2,
+                                                },
+                                                children = create_signal_fields(),
+                                            },
+                                        }, -- children
+                                    },     -- scroll-pane
+                                },         -- children
                             },
                         },
                     },
@@ -334,6 +413,47 @@ local function create_strand_items(fo_entity)
     return strand_items, strand_index or 0
 end
 
+local color_map = {
+    [defines.wire_connector_id.circuit_red] = 'red',
+    [defines.wire_connector_id.circuit_green] = 'green',
+}
+
+---@param gui framework.gui
+---@param fo_entity fo.FiberOptics
+---@param idx integer
+local function add_signals(gui, fo_entity, idx)
+    local gui_element = assert(gui:find_element(('signal-view-%d'):format(idx)))
+    gui_element.clear()
+
+    local signal_count = 0
+    for _, connector_id in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
+        local signals = fo_entity.iopin[idx].get_signals(connector_id)
+        if signals then
+            for _, signal in ipairs(signals) do
+                gui_element.add {
+                    type = 'sprite-button',
+                    sprite = signal_converter:signal_to_sprite_name(signal),
+                    number = signal.count,
+                    quality = signal.signal.quality,
+                    style = color_map[connector_id] .. '_circuit_network_content_slot',
+                    tooltip = signal_converter:signal_to_prototype(signal).localised_name,
+                    elem_tooltip = signal_converter:signal_to_elem_id(signal),
+                    enabled = true,
+                }
+                signal_count = signal_count + 1
+            end
+        end
+    end
+
+    while (signal_count % SIGNAL_COLUMN_COUNT) > 0 do
+        gui_element.add {
+            type = 'sprite',
+            enabled = true,
+            }
+        signal_count = signal_count + 1
+    end
+end
+
 ----------------------------------------------------------------------------------------------------
 -- GUI state updater
 ----------------------------------------------------------------------------------------------------
@@ -378,7 +498,7 @@ local function refresh_gui(gui, fo_entity)
     -- status LED
     if fo_config.enabled then
         if fo_entity.internal.power.status ~= defines.entity_status.working then
-            entity_status = fo_entity.main.status or defines.entity_status.broken
+            entity_status = fo_entity.internal.power.status or defines.entity_status.broken
         elseif table_size(fo_entity.networks) > 0 then
             entity_status = defines.entity_status.working
         else
@@ -412,6 +532,11 @@ local function refresh_gui(gui, fo_entity)
         connections.caption = { 'gui-control-behavior.not-connected' }
         connection_wire.visible = false
         connection_wire.caption = nil
+    end
+
+    -- Signal display
+    for idx = 1, This.pin.MAX_PIN_COUNT do
+        add_signals(gui, fo_entity, idx)
     end
 
     return util.copy(fo_entity.networks)

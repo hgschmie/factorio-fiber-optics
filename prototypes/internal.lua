@@ -98,10 +98,7 @@ local power_entity = {
     ---@type data.ElectricEnergySource
     energy_source = {
         type = 'electric',
-        buffer_capacity = '66kJ',
         usage_priority = 'secondary-input',
-        input_flow_limit = '66kW',
-        output_flow_limit = '66kW',
     },
 
     energy_usage = '2kW',
@@ -112,6 +109,8 @@ local power_entity = {
     max_health = 1,
 
     -- EntityPrototype
+    icon = const:png('sprite/oc-power-unit-128'),
+    icon_size = 128,
     collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
     collision_mask = collision_mask_util.new_mask(),
     selection_box = { { -1, -1 }, { 1, 1 } },
