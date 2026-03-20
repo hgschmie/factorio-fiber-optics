@@ -97,6 +97,7 @@ local power_entity = {
     -- LampPrototype
     picture_on = util.empty_sprite(),
     energy_usage_per_tick = '10kW',
+    always_on = true,
 
     ---@type data.ElectricEnergySource
     energy_source = {
@@ -110,7 +111,7 @@ local power_entity = {
     -- EntityPrototype
     icon = const:png('sprite/oc-power-unit-128'),
     icon_size = 128,
-    collision_box = { { -0.01, -0.01 }, { 0.01, 0.01 } },
+    collision_box = { { -0.95, -0.95 }, { 0.95, 0.95 } },
     collision_mask = collision_mask_util.new_mask(),
     selection_box = { { -1, -1 }, { 1, 1 } },
     flags = const.prototype_hidden_entity_flags,
@@ -129,19 +130,26 @@ local led_entity = {
 
     -- LampPrototype
     picture_on = {
-        filename = '__base__/graphics/entity/wall/wall-diode-green.png',
+        filename = const:png('entity/oc-entity-led-light'),
         priority = 'extra-high',
-        width = 72,
-        height = 44,
+        width = 32,
+        height = 21,
         scale = 0.5,
     },
     picture_off = {
-        filename = '__base__/graphics/entity/wall/wall-diode-red.png',
+        filename = const:png('entity/oc-entity-led-white'),
         priority = 'extra-high',
-        width = 72,
-        height = 44,
+        width = 32,
+        height = 21,
         scale = 0.5,
     },
+
+    light = { intensity = 0.9, size = 40, color = { 1, 1, 0.75 } },
+    light_when_colored = { intensity = 0, size = 6, color = { 1, 1, 0.75 } },
+    glow_size = 0.5,
+    glow_color_intensity = 1,
+    glow_render_mode = 'multiplicative',
+
     energy_usage_per_tick = '1J',
     energy_source = { type = 'void' },
     circuit_wire_max_distance = default_circuit_wire_max_distance,

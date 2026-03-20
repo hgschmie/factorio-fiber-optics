@@ -135,8 +135,7 @@ end
 local MSG_WIRES_TOO_LONG = const:locale('wires_too_long')
 
 local IGNORED_FOR_MOVE = table.array_to_dictionary({
-    -- const.pin_entity_name,
-    -- const.pin_one_entity_name,
+    const.fiber_hub_name
 }, true)
 
 ---@param iopin LuaEntity
@@ -150,7 +149,7 @@ function Pins:check_move(iopin, dst_pos, player)
 
     for _, wire_connection in pairs(iopin.get_wire_connectors(true)) do
         for _, target_connection in pairs(wire_connection.connections) do
-            if not (IGNORED_FOR_MOVE[wire_connection.owner.name] and IGNORED_FOR_MOVE[target_connection.target.owner.name]) then
+            if not (IGNORED_FOR_MOVE[wire_connection.owner.name] or IGNORED_FOR_MOVE[target_connection.target.owner.name]) then
                 local allowed = wire_connection.can_wire_reach(target_connection.target)
 
                 if not allowed then

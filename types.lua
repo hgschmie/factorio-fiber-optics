@@ -50,6 +50,7 @@
 ---@class fo.FiberOpticsConfig
 ---@field enabled boolean
 ---@field strand_name string
+---@field connected_pins table<defines.wire_connector_id, boolean[]>
 
 ---@class fo.AttachedEntity
 ---@field entity LuaEntity

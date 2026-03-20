@@ -229,6 +229,7 @@ function Gui.getUi(gui)
                                     },
                                     {
                                         type = 'sprite-button',
+                                        name = 'strand_delete',
                                         style = 'tool_button_red',
                                         sprite = 'utility/trash',
                                         mouse_button_filter = { 'left' },
@@ -355,6 +356,10 @@ function Gui.onStrandDeleted(event, gui)
     local strand_name = strand_select.items[strand_select.selected_index]
     if strand_name == 'default' then return end
 
+    ---@type fo.GuiContext
+    local context = gui.context
+    context.new_strand_name = ''
+
     This.network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
 end
 
@@ -475,6 +480,9 @@ local function update_gui(gui, fo_entity)
     strand_select.items = strand_items
     strand_select.selected_index = assert(strand_index)
 
+    local strand_delete = gui:find_element('strand_delete')
+    strand_delete.enabled = strand_items[strand_index] ~= 'default'
+
     ---@type fo.GuiContext
     local context = gui.context
 
@@ -497,8 +505,8 @@ local function refresh_gui(gui, fo_entity)
 
     -- status LED
     if fo_config.enabled then
-        if fo_entity.internal.power.status ~= defines.entity_status.working then
-            entity_status = fo_entity.internal.power.status or defines.entity_status.broken
+        if fo_entity.status ~= defines.entity_status.working then
+            entity_status = fo_entity.status or defines.entity_status.broken
         elseif table_size(fo_entity.networks) > 0 then
             entity_status = defines.entity_status.working
         else

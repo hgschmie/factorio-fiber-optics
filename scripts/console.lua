@@ -15,7 +15,7 @@ local Console = {}
 
 
 ---@param data CustomCommandData
-local function resync(data)
+local function resync_networks(data)
     local strand_count = 0
     local entity_count = 0
 
@@ -61,7 +61,7 @@ local function prune_networks(data)
 end
 
 function Console:register_commands()
-    commands.add_command('fiber-optics-resync', { const:locale('command_fo_resync') }, resync)
+    commands.add_command('fiber-optics-resync-networks', { const:locale('command_fo_resync') }, resync_networks)
     commands.add_command('fiber-optics-prune-networks', { const:locale('command_fo_prune_networks') }, prune_networks)
 end
 

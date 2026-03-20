@@ -3,16 +3,29 @@
 ------------------------------------------------------------------------
 assert(script)
 
+local string = require('stdlib.utils.string')
+
 local const = require('lib.constants')
 
 local helpers = require('scripts.helpers')
 
 
-local debug_mode = Framework.settings:startup_setting('debug_mode')
-local wire_type = debug_mode and defines.wire_origin.player or defines.wire_origin.script
+local DEBUG_MODE = Framework.settings:startup_setting('debug_mode')
+local WIRE_TYPE = DEBUG_MODE and defines.wire_origin.player or defines.wire_origin.script
+local HUB_ENTITY_NAME = DEBUG_MODE and const.debug_name(const.fiber_hub_name) or const.fiber_hub_name
 
 ---@class fo.Network
 local Network = {}
+
+---@param prefix string
+---@param format_func fun(...: any?):string
+local function debug_print(prefix, format_func)
+    if not DEBUG_MODE then return end
+
+    prefix = assert(prefix):ljust(18, ' ')
+    game.print(('[font=debug-mono][fiber-optics][%s][%s][/font] %s'):format(const.formatTime(game.tick), prefix, format_func()),
+        { sound = defines.print_sound.never, skip = defines.print_skip.never })
+end
 
 ------------------------------------------------------------------------
 -- getters
@@ -57,12 +70,10 @@ local function create_fiber_strand(surface_index, force_id, strand_index)
     local surface = assert(game.surfaces[surface_index])
     local force = assert(game.forces[force_id])
 
-    local hub_entity_name = debug_mode and const.debug_name(const.fiber_hub_name) or const.fiber_hub_name
-
     for idx = 1, const.max_hub_count, 1 do
         hubs[idx] = {
             hub = surface.create_entity {
-                name = hub_entity_name,
+                name = HUB_ENTITY_NAME,
                 -- spread out for debugging visibility
                 position = { x = idx * 4, y = strand_index * 4 },
                 force = force,
@@ -87,7 +98,9 @@ function Network:getOrCreateFiberNetwork(surface_index, force_id, network_id)
     local surface_network = self:locateSurfaceNetwork(surface_index)
 
     if not surface_network[network_id] then
-        game.print(('Creating surface network %d on surface %d'):format(network_id, surface_index))
+        debug_print('Create Network', function()
+            return ('Creating surface network %d on surface %d'):format(network_id, surface_index)
+        end)
     end
 
     surface_network[network_id] = surface_network[network_id] or {
@@ -102,14 +115,18 @@ end
 ---@param entity LuaEntity
 ---@param network_id integer
 ---@param strand_name string
----@return fo.FiberNetwork fiber_network
+---@return fo.FiberNetwork? fiber_network
 function Network:locateFiberStrand(entity, network_id, strand_name)
+    if not strand_name then return nil end
+
     local surface_index = entity.surface_index
 
     local fiber_network = self:getOrCreateFiberNetwork(surface_index, entity.force_index, network_id)
 
     if not fiber_network[strand_name] then
-        game.print(('Creating Fiber Strand %s for network %d on surface %d'):format(strand_name, network_id, surface_index))
+        debug_print('Create Fiber Strand', function()
+            return ('Creating Fiber Strand %s for network %d on surface %d'):format(strand_name, network_id, surface_index)
+        end)
     end
 
     fiber_network[strand_name] = fiber_network[strand_name] or create_fiber_strand(surface_index, entity.force_index, table_size(fiber_network))
@@ -147,7 +164,9 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
 
             surface_network[network_id][strand_name] = nil
 
-            game.print(('Removed Fiber Strand %s from network %d on surface %d'):format(strand_name, network_id, main.surface_index))
+            debug_print('Remove Fiber Strand', function()
+                return ('Removed Fiber Strand %s from network %d on surface %d'):format(strand_name, network_id, main.surface_index)
+            end)
         end
     end
 
@@ -174,68 +193,100 @@ end
 
 ---@param network_id integer
 ---@param fo_entity fo.FiberOptics
+---@return boolean connection_changed True if entity connected to the network.
 function Network:connectEntity(network_id, fo_entity)
     local main = fo_entity.main
-    if not (main and main.valid) then return end
+    if not (main and main.valid) then return false end
 
     local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.config.strand_name)
+    if not fiber_strand then return false end
 
     -- register as endpoint
+    if fiber_strand.endpoints[main.unit_number] then return false end
+
     fiber_strand.endpoint_count = fiber_strand.endpoint_count + 1
     fiber_strand.endpoints[main.unit_number] = main
 
-    -- wire each IO pin to its corresponding hub
-    for idx = 1, const.max_hub_count do
-        local iopin = fo_entity.iopin[idx]
-        local hub = fiber_strand.hubs[idx] and fiber_strand.hubs[idx].hub
-
-        if iopin and iopin.valid and hub and hub.valid then
-            for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
-                local pin_connector = assert(iopin.get_wire_connector(circuit, true))
-                local hub_connector = assert(hub.get_wire_connector(circuit, true))
-                pin_connector.connect_to(hub_connector, false, wire_type)
-            end
-        end
-    end
-
     fo_entity.state.strand_names[network_id] = fo_entity.config.strand_name
 
-    game.print(('Connected Entity %d to network %d/%s'):format(main.unit_number, network_id, fo_entity.config.strand_name))
+    debug_print('Connect Entity', function()
+        return ('Connected Entity %d to network %d/%s'):format(main.unit_number, network_id, fo_entity.config.strand_name)
+    end)
+
+    return true
 end
 
 ---@param network_id integer
 ---@param fo_entity fo.FiberOptics
+---@return boolean disconnected True if the entity disconnected
 function Network:disconnectEntity(network_id, fo_entity)
     local main = fo_entity.main
-    if not (main and main.valid) then return end
+    if not (main and main.valid) then return false end
 
-    if not fo_entity.state.strand_names[network_id] then return end
+    local strand_name = fo_entity.state.strand_names[network_id]
 
-    local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.state.strand_names[network_id])
+    local fiber_strand = self:locateFiberStrand(main, network_id, strand_name)
+    if not fiber_strand then return false end
 
-    -- disconnect each IO pin from its hub
+    if not fiber_strand.endpoints[main.unit_number] then return false end
+
+    fiber_strand.endpoints[main.unit_number] = nil
+    fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
+    fo_entity.state.strand_names[network_id] = nil
+
+    self:updateFiberStrandConnections(network_id, fo_entity, fiber_strand)
+
+    debug_print('Disconnect Entity', function()
+        return ('Disconnected Entity %d from network %d/%s'):format(main.unit_number, network_id, strand_name)
+    end)
+
+    return true
+end
+
+---@param network_id integer
+---@param fo_entity fo.FiberOptics
+---@param fiber_strand fo.FiberStrand?
+---@return boolean changed True if any connection changed
+function Network:updateFiberStrandConnections(network_id, fo_entity, fiber_strand)
+    local main = fo_entity.main
+    if not (main and main.valid) then return false end
+
+    -- can be nil (if called from disconnectEntity and a fiber_strand was passed in)
+    local strand_name = fo_entity.state.strand_names[network_id]
+
+    fiber_strand = assert(fiber_strand or self:locateFiberStrand(main, network_id, strand_name))
+
+    local result = false
+    -- wire each IO pin to its corresponding hub
     for idx = 1, const.max_hub_count do
         local iopin = fo_entity.iopin[idx]
-        local hub = fiber_strand.hubs[idx] and fiber_strand.hubs[idx].hub
+        local hub = fiber_strand.hubs[idx].hub
 
         if iopin and iopin.valid and hub and hub.valid then
             for _, circuit in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
                 local pin_connector = assert(iopin.get_wire_connector(circuit, true))
                 local hub_connector = assert(hub.get_wire_connector(circuit, true))
-                pin_connector.disconnect_from(hub_connector, wire_type)
+
+                local is_connected = pin_connector.is_connected_to(hub_connector, defines.wire_origin.player) or pin_connector.is_connected_to(hub_connector, defines.wire_origin.script)
+
+                -- only connect if the connector is enabled, a strand name is present and a connection was requested
+                if fo_entity.config.enabled and strand_name and fo_entity.config.connected_pins[circuit][idx] then
+                    if not is_connected then
+                        result = true
+                        pin_connector.connect_to(hub_connector, false, WIRE_TYPE)
+                    end
+                else
+                    if is_connected then
+                        result = true
+                        pin_connector.disconnect_from(hub_connector, defines.wire_origin.player)
+                        pin_connector.disconnect_from(hub_connector, defines.wire_origin.script)
+                    end
+                end
             end
         end
     end
 
-    -- remove endpoint
-    if fiber_strand.endpoints[main.unit_number] then
-        fiber_strand.endpoints[main.unit_number] = nil
-        fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
-    end
-
-    game.print(('Disconnected Entity %d from network %d/%s'):format(main.unit_number, network_id, fo_entity.state.strand_names[network_id]))
-
-    fo_entity.state.strand_names[network_id] = nil
+    return result
 end
 
 ---@param fiber_strand fo.FiberStrand

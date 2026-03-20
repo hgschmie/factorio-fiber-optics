@@ -13,15 +13,26 @@ local helpers = require('scripts.helpers')
 
 ------------------------------------------------------------------------
 
+---@type fo.FiberOpticsConfig
 local DEFAULT_CONFIG = {
     enabled = true,
     strand_name = 'default',
+    connected_pins = {
+        [defines.wire_connector_id.circuit_red] = {},
+        [defines.wire_connector_id.circuit_green] = {},
+    }
 }
 
+local RED_RGB = 0xff0000
+local GREEN_RGB = 0xff00
+local DARK_RGB = 0
 
 ---@class fo.Fo
 ---@field INTERNAL_CFG fo.FoInternalEntityCfg[]
-local FiberOptics = {}
+---@field DEFAULT_CONFIG fo.FiberOpticsConfig
+local FiberOptics = {
+    DEFAULT_CONFIG = DEFAULT_CONFIG,
+}
 
 ------------------------------------------------------------------------
 -- attribute getters/setters
@@ -71,8 +82,8 @@ end
 FiberOptics.INTERNAL_CFG = {
     { id = 'powerpole',  name = const.powerpole_name,       x = 0,   y = 16, },
     { id = 'power',      name = const.power_interface_name, x = 0,   y = 0, },
-    { id = 'led_1',      name = const.led_name,             x = -13, y = -1, },
-    { id = 'led_2',      name = const.led_name,             x = 13,  y = -1, },
+    { id = 'led_1',      name = const.led_name,             x = -15, y = -15, },
+    { id = 'led_2',      name = const.led_name,             x = 15,  y = -15, },
     { id = 'controller', name = const.controller_name,      x = 0,   y = 0, },
 }
 
@@ -132,6 +143,19 @@ function FiberOptics:createInternal(cfg)
         spawn_decorations = false,
         move_stuck_players = true,
     }
+end
+
+---@param fo_entity fo.FiberOptics
+---@param index integer
+function FiberOptics:configureLed(fo_entity, index)
+    local idx = tostring(index)
+    local sl_signal = { type = 'virtual', name = 'signal-' .. idx, quality = 'normal', }
+    local sl_control = assert(fo_entity.internal['led_' .. idx].get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
+    sl_control.circuit_enable_disable = true
+    sl_control.use_colors = true
+    sl_control.color_mode = defines.control_behavior.lamp.color_mode.packed_rgb
+    sl_control.rgb_signal = sl_signal
+    sl_control.circuit_condition = { comparator = '>', first_signal = sl_signal, constant = 0, } --[[@as CircuitConditionDefinition ]]
 end
 
 ---@param direction defines.direction
@@ -276,15 +300,8 @@ function FiberOptics:create(cfg)
     local pp_control = assert(fo_entity.internal.powerpole.get_or_create_control_behavior()) --[[@as LuaGenericOnOffControlBehavior ]]
     pp_control.connect_to_logistic_network = false
 
-    local sl1_control = assert(fo_entity.internal.led_1.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
-    sl1_control.circuit_enable_disable = true
-    sl1_control.use_colors = false
-    sl1_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-1', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
-
-    local sl2_control = assert(fo_entity.internal.led_2.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
-    sl2_control.circuit_enable_disable = true
-    sl1_control.use_colors = false
-    sl2_control.circuit_condition = { comparator = '=', first_signal = { type = 'virtual', name = 'signal-2', quality = 'normal', }, constant = 1, } --[[@as CircuitConditionDefinition ]]
+    self:configureLed(fo_entity, 1)
+    self:configureLed(fo_entity, 2)
 
     local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
     if sc_control.sections_count < 1 then sc_control.add_section() end
@@ -299,8 +316,15 @@ function FiberOptics:create(cfg)
     local controller_connector = assert(fo_entity.internal.controller.get_wire_connector(defines.wire_connector_id.circuit_red, true))
     local led1_connector = assert(fo_entity.internal.led_1.get_wire_connector(defines.wire_connector_id.circuit_red, true))
     local led2_connector = assert(fo_entity.internal.led_2.get_wire_connector(defines.wire_connector_id.circuit_red, true))
+    local power_connector = assert(fo_entity.internal.power.get_wire_connector(defines.wire_connector_id.circuit_red, true))
     controller_connector.connect_to(led1_connector, false, defines.wire_origin.script)
     controller_connector.connect_to(led2_connector, false, defines.wire_origin.script)
+    controller_connector.connect_to(power_connector, false, defines.wire_origin.script)
+
+    local power_signal = { type = 'virtual', name = 'signal-E', quality = 'normal', }
+    local power_control = assert(fo_entity.internal.power.get_or_create_control_behavior()) --[[@as LuaLampControlBehavior]]
+    power_control.circuit_enable_disable = true
+    power_control.circuit_condition = { comparator = '>', first_signal = power_signal, constant = 0, } --[[@as CircuitConditionDefinition ]]
 
     self:setEntity(cfg.main.unit_number, fo_entity)
 
@@ -308,7 +332,13 @@ function FiberOptics:create(cfg)
 end
 
 function FiberOptics:getDefaultConfig()
-    return util.copy(DEFAULT_CONFIG)
+    local config = util.copy(DEFAULT_CONFIG)
+    for idx = 1, This.pin.MAX_PIN_COUNT do
+        config.connected_pins[defines.wire_connector_id.circuit_red][idx] = true
+        config.connected_pins[defines.wire_connector_id.circuit_green][idx] = true
+    end
+
+    return config
 end
 
 ---@param entity_id integer
@@ -548,16 +578,18 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     if not (fo_entity.main and fo_entity.main.valid) then return end
 
     fo_entity.status = fo_entity.internal.power.status or defines.entity_status.disabled
+    -- replace "disabled by control behavior" with "working"
+    fo_entity.status = fo_entity.status == defines.entity_status.disabled_by_control_behavior and defines.entity_status.working or fo_entity.status
 
     -- check connected networks
     local connection_change = true
-    local signals = { 0, 0 }
+    local signals = { DARK_RGB, DARK_RGB }
     local active_signals = 0
 
     -- if the unit is in red status, disconnect all networks
     local current_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
 
-    -- disconnect networks if reconnect is forced, the entity is not enabled,
+    -- disconnect networks if reconnect is forced or the entity is not enabled or
     -- a network is missing from the set of current network or if the current strand name does not match the configured strand name.
     for network_id in pairs(fo_entity.networks) do
         if (force_reconnect or not (fo_entity.config.enabled
@@ -573,21 +605,22 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     -- connect new networks if the entity is enabled and the network is not already connected
     -- or if reconnection is forced.
     for network_id, idx in pairs(current_networks) do
-        signals[idx] = 1
+        signals[idx] = fo_entity.config.enabled and GREEN_RGB or RED_RGB
         active_signals = active_signals + 1
-        if fo_entity.config.enabled and (not fo_entity.networks[network_id]) then
-            This.network:connectEntity(network_id, fo_entity)
-            connection_change = true
+        connection_change = This.network:connectEntity(network_id, fo_entity) or connection_change -- do not flip around, otherwise connectEntity is not called
+
+        if fo_entity.state.strand_names[network_id] then
+            This.network:updateFiberStrandConnections(network_id, fo_entity)
         end
     end
 
+    local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
+    if sc_control.sections_count < 1 then sc_control.add_section() end
+    local sc_section = sc_control.sections[1]
+
+    local filters = {}
+
     if connection_change then
-        local sc_control = assert(fo_entity.internal.controller.get_or_create_control_behavior()) --[[@as LuaConstantCombinatorControlBehavior]]
-        if sc_control.sections_count < 1 then sc_control.add_section() end
-        local sc_section = sc_control.sections[1]
-
-        local filters = {}
-
         -- idx is the led to turn on/off, count is 0 for off or 1 for on
         for idx, value in pairs(signals) do
             filters[idx] = {
@@ -599,14 +632,20 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
                 min = value,
             }
         end
-
-        sc_section.filters = filters
-
-        fo_entity.networks = current_networks
-        -- fo_entity.internal.power.power_usage = (1000/60) * (2 + active_signals * 8)
-
-        fo_entity.internal.power.always_on = fo_entity.config.enabled and (active_signals > 0)
     end
+
+    filters[3] = {
+        value = {
+            type = 'virtual',
+            name = 'signal-E',
+            quality = 'normal',
+        },
+        min = fo_entity.config.enabled and (active_signals > 0) and 1 or 0,
+    }
+
+    sc_section.filters = filters
+
+    fo_entity.networks = current_networks
 end
 
 ------------------------------------------------------------------------
