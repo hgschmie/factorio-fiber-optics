@@ -21,7 +21,8 @@ local const = require('lib.constants')
 
 ---@param event EventData.on_pre_build
 local function on_pre_build(event)
-    local _, player_data = Player.get(event.player_index)
+    ---@type fo.PlayerData
+    local player_data = Player.pdata(event.player_index)
 
     -- register the per-player flip state
     player_data.h_flipped = event.flip_horizontal
@@ -59,7 +60,8 @@ local function on_entity_created(event)
     local player_reverse = false
 
     if player_index then
-        local _, player_data = Player.get(player_index)
+        ---@type fo.PlayerData
+        local player_data = Player.pdata(player_index)
         local player_h_flipped = player_data.h_flipped or false
         local player_v_flipped = player_data.v_flipped or false
 

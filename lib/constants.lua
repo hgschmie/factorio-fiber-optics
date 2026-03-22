@@ -78,6 +78,23 @@ end
 -- Constants
 --------------------------------------------------------------------------------
 
+-- IO Pin sprite positions relative to the main entity
+-- see sprite_positions.txt
+-- X offset is along orientation of the main entity
+-- Y offset is "previous direction" of the main entity (e.g. for "North", this is "West")
+Constants.pin_positions = {
+    { -42, -41 }, { -22, -29 }, { 3, -50 }, { 25, -29 },
+    { 48,  -41 }, { 35, -14 }, { 55, 3 }, { 35, 21 },
+    { 48,  47 }, { 25, 31 }, { 3, 53 }, { -22, 31 },
+    { -42, 47 }, { -30, 21 }, { -50, 3 }, { -30, -14 },
+}
+
+for _, pos in pairs(Constants.pin_positions) do
+    pos.x = pos[1] / 64
+    pos.y = pos[2] / 64
+end
+
+Constants.max_pin_count = #Constants.pin_positions
 Constants.max_hub_count = 16
 
 -- These names *MUST* match the 1.x.x code. DO NOT CHANGE!

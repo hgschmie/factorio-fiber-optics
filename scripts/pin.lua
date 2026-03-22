@@ -9,27 +9,10 @@ local table = require('stdlib.utils.table')
 
 local const = require('lib.constants')
 
--- IO Pin sprite positions relative to the main entity
--- see sprite_positions.txt
--- X offset is along orientation of the main entity
--- Y offset is "previous direction" of the main entity (e.g. for "North", this is "West")
-local PIN_POSITIONS = {
-    { -42, -41 }, { -22, -29 }, { 3, -50 }, { 25, -29 },
-    { 48,  -41 }, { 35, -14 }, { 55, 3 }, { 35, 21 },
-    { 48,  47 }, { 25, 31 }, { 3, 53 }, { -22, 31 },
-    { -42, 47 }, { -30, 21 }, { -50, 3 }, { -30, -14 },
-}
 
-for _, pos in pairs(PIN_POSITIONS) do
-    pos.x = pos[1] / 64
-    pos.y = pos[2] / 64
-end
 
 ---@class fo.Pin
----@field MAX_PIN_COUNT integer
-local Pins = {
-    MAX_PIN_COUNT = #PIN_POSITIONS,
-}
+local Pins = {}
 
 ------------------------------------------------------------------------
 -- attribute getters/setters
@@ -76,7 +59,7 @@ end
 ---@param cfg fo.PinCreateParams
 function Pins:create(cfg)
     assert(cfg.main and cfg.main.valid)
-    assert(cfg.idx > 0 and cfg.idx <= self.MAX_PIN_COUNT)
+    assert(cfg.idx > 0 and cfg.idx <= const.max_pin_count)
 
     local name = (cfg.idx == 1) and const.pin_one_entity_name or const.pin_entity_name
 
@@ -122,10 +105,10 @@ function Pins:position(cfg)
     -- for each rotation, the count for pins needs to start four pins further down (1, 5, 9, 13)
     -- each direction is actually just four more (north, east, south west), so this can just
     -- be added up
-    local idx = (cfg.reverse and (self.MAX_PIN_COUNT + 2 - cfg.idx) or cfg.idx)
-    idx = math.one_mod(idx + cfg.direction, self.MAX_PIN_COUNT)
+    local idx = (cfg.reverse and (const.max_pin_count + 2 - cfg.idx) or cfg.idx)
+    idx = math.one_mod(idx + cfg.direction, const.max_pin_count)
 
-    local pin_position = PIN_POSITIONS[idx]
+    local pin_position = const.pin_positions[idx]
     return {
         x = cfg.main.position.x + pin_position.x,
         y = cfg.main.position.y + pin_position.y,

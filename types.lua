@@ -56,3 +56,8 @@
 ---@field entity LuaEntity
 ---@field tags Tags?
 ---@field tick integer
+
+---@class fo.PlayerData
+---@field h_flipped boolean?
+---@field v_flipped boolean?
+---@field gui_tab fo.GuiTabType?

@@ -28,49 +28,116 @@ local Gui = {
 -- UI definition
 ----------------------------------------------------------------------------------------------------
 
----@return framework.gui.element_definitions[]
-local function create_signal_fields()
+---@alias fo.GuiTabType ('iopin'|'strand')
+
+---@param tab_type fo.GuiTabType
+---@param per_field fun(index: integer): framework.gui.element_definition?
+---@return framework.gui.element_definition
+local function create_gui_fields(tab_type, per_field)
     local result = {}
-    for i = 1, This.pin.MAX_PIN_COUNT do
+
+    for i = 1, const.max_pin_count do
         local idx = bit32.band(i - 1, 1) * 8 + bit32.rshift(i - 1, 1) + 1
-        result[i] = {
-            type = 'flow',
-            direction = 'vertical',
-            children = {
-                {
-                    type = 'label',
-                    style = 'semibold_label',
-                    style_mods = {
-                        top_padding = 8, -- pad a bit to create visual space
-                    },
-                    caption = { const:locale('iopin_caption'), idx },
+
+        local flow_children = {
+            {
+                type = 'label',
+                style = 'semibold_label',
+                caption = { const:locale(tab_type .. '_caption'), idx },
+            },
+            {
+                type = 'scroll-pane',
+                style = 'deep_slots_scroll_pane',
+                direction = 'vertical',
+                vertical_scroll_policy = 'auto-and-reserve-space',
+                horizontal_scroll_policy = 'never',
+                style_mods = {
+                    width = 40 * SIGNAL_COLUMN_COUNT,
                 },
-                {
-                    type = 'scroll-pane',
-                    style = 'deep_slots_scroll_pane',
-                    direction = 'vertical',
-                    vertical_scroll_policy = 'auto-and-reserve-space',
-                    horizontal_scroll_policy = 'never',
-                    style_mods = {
-                        width = 40 * SIGNAL_COLUMN_COUNT,
-                    },
-                    children = {
-                        {
-                            type = 'table',
-                            style = 'filter_slot_table',
-                            name = ('signal-view-%d'):format(idx),
-                            column_count = SIGNAL_COLUMN_COUNT,
-                            style_mods = {
-                                vertical_spacing = 4,
-                            },
+                children = {
+                    {
+                        type = 'table',
+                        style = 'filter_slot_table',
+                        name = (tab_type .. '-view-%d'):format(idx),
+                        column_count = SIGNAL_COLUMN_COUNT,
+                        style_mods = {
+                            vertical_spacing = 4,
                         },
                     },
                 },
-            },
+            }
+        }
+
+        if per_field then table.insert(flow_children, 2, per_field(idx)) end
+
+        result[i] = {
+            type = 'flow',
+            direction = 'vertical',
+            children = flow_children,
         }
     end
 
     return result
+end
+
+---@class fo.GuiCreateTagArgs
+---@field tab_type fo.GuiTabType
+---@field gui_events framework.gui_events
+---@field header framework.gui.element_definition?
+---@field per_field (fun(idx: integer): framework.gui.element_definition)?
+
+---@param args fo.GuiCreateTagArgs
+---@return framework.gui.element_definitions
+local function create_tab(args)
+    local tab_children = {
+        {
+            type = 'table',
+            style = 'table',
+            name = args.tab_type,
+            column_count = 2,
+            style_mods = {
+                margin = 4,
+                cell_padding = 2,
+            },
+            children = create_gui_fields(args.tab_type, args.per_field),
+        },
+    }
+
+    if args.header then
+        table.insert(tab_children, 1, args.header)
+    end
+
+    return {
+        tab = {
+            type = 'tab',
+            style = 'tab',
+            caption = { const:locale(args.tab_type .. '_tab_caption') },
+            handler = { [defines.events.on_gui_selected_tab_changed] = args.gui_events.onTabChanged },
+            elem_tags = {
+                type = args.tab_type,
+            }
+        },
+        content = {
+            type = 'frame',
+            style = 'entity_frame',
+            direction = 'vertical',
+            children = {
+                {
+                    type = 'scroll-pane',
+                    direction = 'vertical',
+                    visible = true,
+                    vertical_scroll_policy = 'auto',
+                    horizontal_scroll_policy = 'never',
+                    style_mods = {
+                        horizontally_stretchable = true,
+                        horizontally_squashable = true,
+                        vertically_stretchable = false,
+                    },
+                    children = tab_children, -- children
+                },                           -- scroll-pane
+            }
+        },
+    }
 end
 
 
@@ -86,6 +153,8 @@ local function get_gui_event_definition()
             onStrandDeleted = Gui.onStrandDeleted,
             onNewStrandChanged = Gui.onNewStrandChanged,
             onNewStrandConfirmed = Gui.onNewStrandConfirmed,
+            onTabChanged = Gui.onTabChanged,
+            onNetworkChanged = Gui.onNetworkChanged,
         },
         callback = Gui.guiUpdater,
     }
@@ -95,9 +164,12 @@ end
 ---@param gui framework.gui
 ---@return framework.gui.element_definition ui
 function Gui.getUi(gui)
+    local player = assert(Player.get(gui.player_index))
+    local fo_entity = assert(This.fo:getEntity(gui.entity_id))
+
+    local max_height = ((player.display_resolution.height / player.display_scale) - 80) * .8 -- not more than ~ 80% of the screen
     local gui_events = gui.gui_events
 
-    local fo_entity = assert(This.fo:getEntity(gui.entity_id))
 
     return {
         type = 'frame',
@@ -137,7 +209,11 @@ function Gui.getUi(gui)
             {  -- Body
                 type = 'frame',
                 style = 'entity_frame',
-                -- style_mods = { width = 424, }, -- fix width of the window to match the signal bottom
+                style_mods = {
+                    natural_width = 650,
+                    maximal_height = max_height,
+                },
+
                 children = {
                     {
                         type = 'flow',
@@ -257,37 +333,57 @@ function Gui.getUi(gui)
                                 },
                             },
                             {
-                                type = 'flow',
-                                direction = 'vertical',
+                                type = 'frame',
+                                style = 'tab_deep_frame_in_entity_frame',
                                 children = {
                                     {
-                                        type = 'scroll-pane',
-                                        direction = 'vertical',
-                                        visible = true,
-                                        vertical_scroll_policy = 'auto',
-                                        horizontal_scroll_policy = 'never',
-                                        style_mods = {
-                                            horizontally_stretchable = true,
-                                            horizontally_squashable = true,
-                                            vertically_stretchable = false,
-                                        },
+                                        type = 'tabbed-pane',
+                                        style = 'tabbed_pane_with_extra_padding',
+                                        name = 'main_tab',
+                                        handler = { [defines.events.on_gui_selected_tab_changed] = gui_events.onTabChanged },
                                         children = {
-                                            {
-                                                type = 'table',
-                                                style = 'table',
-                                                name = 'signals',
-                                                column_count = 2,
-                                                style_mods = {
-                                                    margin = 4,
-                                                    cell_padding = 2,
-                                                },
-                                                children = create_signal_fields(),
+                                            create_tab {
+                                                tab_type = 'iopin',
+                                                gui_events = gui_events,
+                                                per_field = function(idx)
+                                                    return {
+                                                        type = 'label',
+                                                        caption = 'xxx -> ' .. tostring(idx),
+                                                    }
+                                                end,
                                             },
-                                        }, -- children
-                                    },     -- scroll-pane
-                                },         -- children
-                            },
-                        },
+                                            create_tab {
+                                                tab_type = 'strand',
+                                                gui_events = gui_events,
+                                                header = {
+                                                    type = 'flow',
+                                                    direction = 'horizontal',
+                                                    style_mods = {
+                                                        vertical_align = 'center',
+                                                    },
+                                                    children = {
+                                                        {
+                                                            type = 'label',
+                                                            style = 'semibold_label',
+                                                            caption = { const:locale('network') },
+                                                            style_mods = {
+                                                                right_padding = 8,
+                                                            },
+                                                        },
+                                                        {
+                                                            type = 'drop-down',
+                                                            name = 'network_select',
+                                                            handler = { [defines.events.on_gui_selection_state_changed] = gui_events.onNetworkChanged },
+                                                            items = {},
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                }, -- tabbed pane
+                            },     -- children
+                        },         -- frame
                     },
                 },
             },
@@ -392,6 +488,38 @@ function Gui.onNewStrandConfirmed(event, gui)
     context.new_strand_name = ''
 end
 
+---@param event EventData.on_gui_selected_tab_changed
+---@param gui framework.gui
+function Gui.onTabChanged(event, gui)
+    local tab_index = event.element.selected_tab_index
+    local gui_tab = assert(event.element.tabs[tab_index])
+    local gui_type = assert(gui_tab.tab.tags.type)
+
+    ---@type fo.GuiContext
+    local context = gui.context
+    context.gui_tab = gui_type
+
+    ---@type fo.PlayerData
+    local player_data = assert(Player.pdata(gui.player_index))
+    -- player_data.tab always holds the current entity type
+    player_data.gui_tab = gui_type
+end
+
+---@param event EventData.on_gui_selection_state_changed
+---@param gui framework.gui
+function Gui.onNetworkChanged(event, gui)
+    local element = event.element
+
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    if element.selected_index > 0 and element.items[element.selected_index] then
+        ---@type fo.GuiContext
+        local context = gui.context
+        context.network_select = tonumber(element.items[element.selected_index])
+    end
+end
+
 ----------------------------------------------------------------------------------------------------
 -- helpers
 ----------------------------------------------------------------------------------------------------
@@ -424,15 +552,16 @@ local color_map = {
 }
 
 ---@param gui framework.gui
----@param fo_entity fo.FiberOptics
+---@param gui_type fo.GuiTabType
 ---@param idx integer
-local function add_signals(gui, fo_entity, idx)
-    local gui_element = assert(gui:find_element(('signal-view-%d'):format(idx)))
+---@param get_entity fun(): LuaEntity
+local function add_signals(gui, gui_type, idx, get_entity)
+    local gui_element = assert(gui:find_element((gui_type .. '-view-%d'):format(idx)))
     gui_element.clear()
 
     local signal_count = 0
     for _, connector_id in pairs { defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green } do
-        local signals = fo_entity.iopin[idx].get_signals(connector_id)
+        local signals = assert(get_entity()).get_signals(connector_id)
         if signals then
             for _, signal in ipairs(signals) do
                 gui_element.add {
@@ -449,14 +578,14 @@ local function add_signals(gui, fo_entity, idx)
             end
         end
     end
+end
 
-    while (signal_count % SIGNAL_COLUMN_COUNT) > 0 do
-        gui_element.add {
-            type = 'sprite',
-            enabled = true,
-            }
-        signal_count = signal_count + 1
-    end
+---@param gui framework.gui
+---@param gui_type fo.GuiTabType
+---@param idx integer
+local function clear_signals(gui, gui_type, idx)
+    local gui_element = assert(gui:find_element((gui_type .. '-view-%d'):format(idx)))
+    gui_element.clear()
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -490,7 +619,67 @@ local function update_gui(gui, fo_entity)
     if strand_text.text ~= context.new_strand_name then
         strand_text.text = context.new_strand_name
     end
+
+    local main_tab = assert(gui:find_element('main_tab'))
+    main_tab.selected_tab_index = context.gui_tab == 'iopin' and 1 or 2
+
+    local network_select = assert(gui:find_element('network_select'))
+    if table_size(fo_entity.networks) > 0 then
+        local network_index = fo_entity.networks[context.network_select] or 1
+        local network_fields = table.invert(fo_entity.networks, true)
+        network_select.items = network_fields
+        network_select.selected_index = network_index
+    else
+        network_select.items = {}
+        network_select.selected_index = 0
+    end
 end
+
+---@class fo.GuiTabControl
+---@field refresh fun(self: fo.GuiTabControl, gui: framework.gui, fo_entity: fo.FiberOptics)
+---@field clear fun(self: fo.GuiTabControl, gui: framework.gui)
+
+---@type table<fo.GuiTabType, fo.GuiTabControl>
+local gui_pane = {
+    iopin = {
+        refresh = function(self, gui, fo_entity)
+            -- iopin signal display
+            for idx = 1, const.max_pin_count do
+                add_signals(gui, 'iopin', idx, function() return fo_entity.iopin[idx] end)
+            end
+        end,
+        clear = function(self, gui)
+            for idx = 1, const.max_pin_count do
+                clear_signals(gui, 'iopin', idx)
+            end
+        end,
+    },
+    strand = {
+        refresh = function(self, gui, fo_entity)
+            local network = gui.context.network_select
+
+            if not (network and fo_entity.networks[network]) then return self:clear(gui) end
+
+            local strand_name = fo_entity.state.strand_names[network]
+            ---@type fo.FiberStrand
+            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network, strand_name)
+            if not fiber_strand then return self:clear(gui) end
+
+            -- strand signal display
+            for idx = 1, const.max_hub_count do
+                add_signals(gui, 'strand', idx, function()
+                    return fiber_strand.hubs[idx].hub
+                end)
+            end
+        end,
+        clear = function(self, gui)
+            for idx = 1, const.max_hub_count do
+                clear_signals(gui, 'strand', idx)
+            end
+        end,
+    },
+}
+
 
 --- Executed at every refresh tick
 ---
@@ -526,6 +715,8 @@ local function refresh_gui(gui, fo_entity)
     local connections = gui:find_element('connections')
     local connection_wire = gui:find_element('connection-wires')
 
+    local network_select = assert(gui:find_element('network_select'))
+
     if table_size(fo_entity.networks) > 0 then
         local networks = ''
         for _, network_id in pairs(table.keys(fo_entity.networks, true, false)) do
@@ -533,19 +724,23 @@ local function refresh_gui(gui, fo_entity)
             networks = networks .. ('%d (%d) '):format(network_id, endpoint_count)
         end
 
-        connections.caption = { 'gui-control-behavior.connected-to-network' }
+        connections.caption = { const:locale('connected_networks') }
         connection_wire.visible = true
         connection_wire.caption = networks
+
+        network_select.enabled = true
     else
         connections.caption = { 'gui-control-behavior.not-connected' }
         connection_wire.visible = false
         connection_wire.caption = nil
+
+        network_select.enabled = false
     end
 
-    -- Signal display
-    for idx = 1, This.pin.MAX_PIN_COUNT do
-        add_signals(gui, fo_entity, idx)
-    end
+    ---@type fo.GuiContext
+    local context = gui.context
+
+    assert(gui_pane[context.gui_tab]):refresh(gui, fo_entity)
 
     return util.copy(fo_entity.networks)
 end
@@ -556,7 +751,7 @@ end
 
 ---@param event EventData.on_gui_opened
 function Gui.onGuiOpened(event)
-    local player = Player.get(event.player_index)
+    local player, player_data = Player.get(event.player_index)
     if not player then return end
 
     -- close an eventually open gui
@@ -593,10 +788,14 @@ function Gui.onGuiOpened(event)
     ---@field last_config fo.FiberOpticsConfig?
     ---@field last_connection_state table<integer, integer>?
     ---@field new_strand_name string
+    ---@field network_select integer?
+    ---@field gui_tab string
     local gui_state = {
         last_config = nil,
         last_connection_state = nil,
         new_strand_name = '',
+        network_select = next(fo_entity.networks),
+        gui_tab = player_data.gui_tab or 'iopin',
     }
 
     local gui = Framework.gui_manager:create_gui {

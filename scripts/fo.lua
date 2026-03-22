@@ -238,7 +238,7 @@ function FiberOptics:create(cfg)
     cfg.main.direction = direction
 
     -- add io pins
-    for i = 1, This.pin.MAX_PIN_COUNT do
+    for i = 1, const.max_pin_count do
         local pos = This.pin:position {
             main = fo_entity.main,
             idx = i,
@@ -333,7 +333,7 @@ end
 
 function FiberOptics:getDefaultConfig()
     local config = util.copy(DEFAULT_CONFIG)
-    for idx = 1, This.pin.MAX_PIN_COUNT do
+    for idx = 1, const.max_pin_count do
         config.connected_pins[defines.wire_connector_id.circuit_red][idx] = true
         config.connected_pins[defines.wire_connector_id.circuit_green][idx] = true
     end
@@ -512,7 +512,7 @@ end
 function FiberOptics:repositionPins(fo_entity)
     if not (fo_entity and fo_entity.main.valid) then return end
 
-    for i = 1, This.pin.MAX_PIN_COUNT do
+    for i = 1, const.max_pin_count do
         local pos = This.pin:position {
             main = fo_entity.main,
             idx = i,
