@@ -30,7 +30,7 @@ data:extend {
 
     {
         type = 'technology',
-        name =  const:with_prefix('optical-connector-technology'),
+        name = const:with_prefix('optical-connector-technology'),
         icon_size = 128,
         icon = const:png('oc-tech'),
         effects = {

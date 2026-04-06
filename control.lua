@@ -48,7 +48,14 @@ local function on_entity_created(event)
 
     local h_flipped = (tags and tags.h_flipped) or false
     local v_flipped = (tags and tags.v_flipped) or false
+
+    ---@type fo.FiberOpticsConfig
     local config = (tags and tags.config)
+
+    -- fix up older blueprint configurations
+    if config then
+        config.connected_pins = config.connected_pins or This.fo:getDefaultConfig().connected_pins
+    end
 
     -- legacy (1.x) blueprints
     if tags and tags.flip_index then

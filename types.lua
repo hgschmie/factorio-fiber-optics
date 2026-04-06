@@ -20,8 +20,7 @@
 
 ---@class fo.FiberHub
 ---@field hub LuaEntity
----@field title string?
----@field description string?
+---@field description fo.Description?
 
 ---@class fo.Storage
 ---@field fo fo.FiberOptics[]
@@ -51,6 +50,7 @@
 ---@field enabled boolean
 ---@field strand_name string
 ---@field connected_pins table<defines.wire_connector_id, boolean[]>
+---@field descriptions fo.Description[]
 
 ---@class fo.AttachedEntity
 ---@field entity LuaEntity
@@ -61,3 +61,9 @@
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
 ---@field gui_tab fo.GuiTabType?
+---@field custom_key fo.CustomKey?
+---@field open_guis framework.gui[]?
+
+---@class fo.Description
+---@field title string
+---@field body string

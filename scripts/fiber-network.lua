@@ -77,7 +77,7 @@ local function create_fiber_strand(surface_index, force_id, strand_index)
                 -- spread out for debugging visibility
                 position = { x = idx * 4, y = strand_index * 4 },
                 force = force,
-            }
+            },
         }
         hubs[idx].hub.operable = false
     end

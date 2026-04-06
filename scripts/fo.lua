@@ -20,7 +20,8 @@ local DEFAULT_CONFIG = {
     connected_pins = {
         [defines.wire_connector_id.circuit_red] = {},
         [defines.wire_connector_id.circuit_green] = {},
-    }
+    },
+    descriptions = {},
 }
 
 local RED_RGB = 0xff0000

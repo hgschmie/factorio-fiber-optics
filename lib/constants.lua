@@ -108,6 +108,10 @@ Constants.led_name = Constants:with_prefix('led')
 Constants.controller_name = Constants:with_prefix('controller')
 Constants.fiber_hub_name = Constants:with_prefix('fiber-hub')
 
+Constants.custom_input_toggle_menu = Constants:with_prefix('toggle-menu')
+Constants.custom_input_confirm_gui = Constants:with_prefix('confirm-gui')
+Constants.custom_input_ignore_close = Constants:with_prefix('ignore-close')
+
 ---@type string[]
 Constants.attached_entity_names = {
     Constants.pin_entity_name,

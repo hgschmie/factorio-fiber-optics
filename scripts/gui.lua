@@ -6,8 +6,9 @@ assert(script)
 local Event = require('stdlib.event.event')
 local Player = require('stdlib.event.player')
 local table = require('stdlib.utils.table')
-local string = require('stdlib.utils.string')
 local Position = require('stdlib.area.position')
+
+require('stdlib.utils.string')
 
 local Matchers = require('framework.matchers')
 local tools = require('framework.tools')
@@ -18,73 +19,208 @@ local const = require('lib.constants')
 
 local SIGNAL_COLUMN_COUNT = 8
 
+local MAIN_GUI_NAME = 'fiber-optics-gui'
+local DESCRIPTION_GUI_NAME = 'fiber-optics-description-gui'
+
 ---@class fo.Gui
----@field NAME string
 local Gui = {
-    NAME = 'fiber-optics-gui',
 }
 
 ----------------------------------------------------------------------------------------------------
 -- UI definition
 ----------------------------------------------------------------------------------------------------
 
+--- Provides all the events used by the GUI and their mappings to functions. This must be outside the
+--- GUI definition as it can not be serialized into storage.
+---@return framework.gui_manager.event_definition
+local function get_gui_event_definition()
+    ---@type framework.gui_manager.event_definition
+    return {
+        events = {
+            onWindowClosed = Gui.onMainGuiClosed,
+            onSwitchEnabled = Gui.onSwitchEnabled,
+            onStrandChanged = Gui.onStrandChanged,
+            onStrandDeleted = Gui.onStrandDeleted,
+            onNewStrandChanged = Gui.onNewStrandChanged,
+            onNewStrandConfirmed = Gui.onNewStrandConfirmed,
+            onTabChanged = Gui.onTabChanged,
+            onNetworkChanged = Gui.onNetworkChanged,
+            onEnableWireSignal = Gui.onEnableWireSignal,
+            onToggleAllWires = Gui.onToggleAllWires,
+            onEditDesc = Gui.onEditDesc,
+            onDeleteDesc = Gui.onDeleteDesc,
+        },
+        callback = Gui.guiUpdater,
+        custominput_events = {
+            [defines.events.on_gui_closed] = {
+                [const.custom_input_confirm_gui] = Gui.onMainGuiClosed,
+                [const.custom_input_toggle_menu] = Gui.onMainGuiClosed,
+                -- Synthetic event created when the description gui is opened
+                -- to prevent the main gui from closing
+                [const.custom_input_ignore_close] = function() end
+            }
+        },
+    }
+end
+
 ---@alias fo.GuiTabType ('iopin'|'strand')
 
----@param tab_type fo.GuiTabType
----@param per_field fun(index: integer): framework.gui.element_definition?
+---@class fo.GuiCreateTagArgs
+---@field tab_type fo.GuiTabType
+---@field gui framework.gui
+---@field header framework.gui.element_definition?
+---@field per_field (fun(index: integer, gui: framework.gui): framework.gui.element_definition)?
+
+---@param args fo.GuiCreateTagArgs
 ---@return framework.gui.element_definition
-local function create_gui_fields(tab_type, per_field)
+local function create_gui_fields(args)
     local result = {}
 
     for i = 1, const.max_pin_count do
         local idx = bit32.band(i - 1, 1) * 8 + bit32.rshift(i - 1, 1) + 1
 
-        local flow_children = {
+        local headline_fields = {
             {
                 type = 'label',
                 style = 'semibold_label',
-                caption = { const:locale(tab_type .. '_caption'), idx },
-            },
-            {
-                type = 'scroll-pane',
-                style = 'deep_slots_scroll_pane',
-                direction = 'vertical',
-                vertical_scroll_policy = 'auto-and-reserve-space',
-                horizontal_scroll_policy = 'never',
                 style_mods = {
-                    width = 40 * SIGNAL_COLUMN_COUNT,
+                    right_padding = 8,
                 },
-                children = {
-                    {
-                        type = 'table',
-                        style = 'filter_slot_table',
-                        name = (tab_type .. '-view-%d'):format(idx),
-                        column_count = SIGNAL_COLUMN_COUNT,
-                        style_mods = {
-                            vertical_spacing = 4,
-                        },
-                    },
-                },
-            }
+
+                caption = { const:locale(args.tab_type .. '_caption'), idx },
+            },
         }
 
-        if per_field then table.insert(flow_children, 2, per_field(idx)) end
+        if args.per_field then
+            for _, headline_field in pairs(args.per_field(idx, args.gui)) do
+                table.insert(headline_fields, headline_field)
+            end
+        end
 
         result[i] = {
             type = 'flow',
             direction = 'vertical',
-            children = flow_children,
+            children = {
+                {
+                    type = 'flow',
+                    direction = 'horizontal',
+                    style_mods = {
+                        vertical_align = 'center',
+                    },
+                    children = headline_fields,
+                },
+                {
+                    type = 'flow',
+                    direction = 'horizontal',
+                    style_mods = {
+                        vertical_align = 'center',
+                    },
+                    children = {
+                        {
+                            type = 'label',
+                            name = 'desc_text_' .. args.tab_type .. idx,
+                            style_mods = {
+                                maximal_width = 40 * SIGNAL_COLUMN_COUNT - 42,
+                                width = 40 * SIGNAL_COLUMN_COUNT - 42,
+                            },
+                        },
+                        {
+                            type = 'sprite-button',
+                            style = 'mini_button_aligned_to_text_vertically_when_centered',
+                            style_mods = {
+                                left_margin = 4,
+                            },
+                            sprite = 'utility/rename_icon',
+                            mouse_button_filter = { 'left' },
+                            elem_mods = {
+                                auto_toggle = true,
+                            },
+                            handler = { [defines.events.on_gui_click] = args.gui.gui_events.onEditDesc },
+                            elem_tags = {
+                                type = args.tab_type,
+                                index = idx,
+                            },
+                        },
+                        {
+                            type = 'sprite-button',
+                            style = 'mini_tool_button_red',
+                            style_mods = {
+                                top_margin = 1,
+                            },
+                            sprite = 'utility/trash',
+                            mouse_button_filter = { 'left' },
+                            handler = { [defines.events.on_gui_click] = args.gui.gui_events.onDeleteDesc },
+                            elem_tags = {
+                                type = args.tab_type,
+                                index = idx,
+                            },
+                        },
+                    },
+                },
+                {
+                    type = 'scroll-pane',
+                    style = 'deep_slots_scroll_pane',
+                    direction = 'vertical',
+                    vertical_scroll_policy = 'auto-and-reserve-space',
+                    horizontal_scroll_policy = 'never',
+                    style_mods = {
+                        width = 40 * SIGNAL_COLUMN_COUNT,
+                    },
+                    children = {
+                        {
+                            type = 'table',
+                            style = 'filter_slot_table',
+                            name = (args.tab_type .. '-view-%d'):format(idx),
+                            column_count = SIGNAL_COLUMN_COUNT,
+                            style_mods = {
+                                vertical_spacing = 4,
+                            },
+                        },
+                    },
+                },
+            },
         }
     end
 
     return result
 end
 
----@class fo.GuiCreateTagArgs
----@field tab_type fo.GuiTabType
----@field gui_events framework.gui_events
----@field header framework.gui.element_definition?
----@field per_field (fun(idx: integer): framework.gui.element_definition)?
+---@param idx integer
+---@param gui framework.gui
+local function control_wires(idx, gui)
+    local fo_entity = assert(This.fo:getEntity(gui.entity_id))
+
+    return {
+        {
+            type = 'checkbox',
+            caption = { const:locale('red-label') },
+            tooltip = { const:locale('red-tooltip') },
+            name = 'enable-signals_red_' .. idx,
+            elem_tags = {
+                wire_connector_id = defines.wire_connector_id.circuit_red,
+                index = idx,
+            },
+            handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onEnableWireSignal },
+            state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_red][idx],
+        },
+        {
+            type = 'empty-widget',
+            style_mods = { width = 8 },
+        },
+        {
+            type = 'checkbox',
+            caption = { const:locale('green-label') },
+            tooltip = { const:locale('green-tooltip') },
+            name = 'enable-signals_green_' .. idx,
+            elem_tags = {
+                wire_connector_id = defines.wire_connector_id.circuit_green,
+                index = idx,
+            },
+            handler = { [defines.events.on_gui_checked_state_changed] = gui.gui_events.onEnableWireSignal },
+            state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_green][idx],
+        },
+    }
+end
 
 ---@param args fo.GuiCreateTagArgs
 ---@return framework.gui.element_definitions
@@ -99,7 +235,7 @@ local function create_tab(args)
                 margin = 4,
                 cell_padding = 2,
             },
-            children = create_gui_fields(args.tab_type, args.per_field),
+            children = create_gui_fields(args),
         },
     }
 
@@ -112,7 +248,7 @@ local function create_tab(args)
             type = 'tab',
             style = 'tab',
             caption = { const:locale(args.tab_type .. '_tab_caption') },
-            handler = { [defines.events.on_gui_selected_tab_changed] = args.gui_events.onTabChanged },
+            handler = { [defines.events.on_gui_selected_tab_changed] = args.gui.gui_events.onTabChanged },
             elem_tags = {
                 type = args.tab_type,
             }
@@ -141,25 +277,6 @@ local function create_tab(args)
 end
 
 
---- Provides all the events used by the GUI and their mappings to functions. This must be outside the
---- GUI definition as it can not be serialized into storage.
----@return framework.gui_manager.event_definition
-local function get_gui_event_definition()
-    return {
-        events = {
-            onWindowClosed = Gui.onWindowClosed,
-            onSwitchEnabled = Gui.onSwitchEnabled,
-            onStrandChanged = Gui.onStrandChanged,
-            onStrandDeleted = Gui.onStrandDeleted,
-            onNewStrandChanged = Gui.onNewStrandChanged,
-            onNewStrandConfirmed = Gui.onNewStrandConfirmed,
-            onTabChanged = Gui.onTabChanged,
-            onNetworkChanged = Gui.onNetworkChanged,
-        },
-        callback = Gui.guiUpdater,
-    }
-end
-
 --- Returns the definition of the GUI. All events must be mapped onto constants from the gui_events array.
 ---@param gui framework.gui
 ---@return framework.gui.element_definition ui
@@ -167,15 +284,16 @@ function Gui.getUi(gui)
     local player = assert(Player.get(gui.player_index))
     local fo_entity = assert(This.fo:getEntity(gui.entity_id))
 
-    local max_height = ((player.display_resolution.height / player.display_scale) - 80) * .8 -- not more than ~ 80% of the screen
+    local max_height = ((player.display_resolution.height / player.display_scale) - 80) * .85 -- not more than ~ 85% of the screen
     local gui_events = gui.gui_events
-
 
     return {
         type = 'frame',
         name = 'gui_root',
         direction = 'vertical',
-        handler = { [defines.events.on_gui_closed] = gui_events.onWindowClosed },
+        handler = {
+            [defines.events.on_gui_closed] = gui_events.onWindowClosed
+        },
         elem_mods = { auto_center = true },
         children = {
             { -- Title Bar
@@ -202,6 +320,7 @@ function Gui.getUi(gui)
                         hovered_sprite = 'utility/close_black',
                         clicked_sprite = 'utility/close_black',
                         mouse_button_filter = { 'left' },
+                        tooltip = { 'gui.close-instruction' },
                         handler = { [defines.events.on_gui_click] = gui_events.onWindowClosed },
                     },
                 },
@@ -344,17 +463,45 @@ function Gui.getUi(gui)
                                         children = {
                                             create_tab {
                                                 tab_type = 'iopin',
-                                                gui_events = gui_events,
-                                                per_field = function(idx)
-                                                    return {
-                                                        type = 'label',
-                                                        caption = 'xxx -> ' .. tostring(idx),
-                                                    }
-                                                end,
+                                                gui = gui,
+                                                per_field = control_wires,
+                                                header = {
+                                                    type = 'flow',
+                                                    direction = 'horizontal',
+                                                    style_mods = {
+                                                        vertical_align = 'center',
+                                                    },
+                                                    children = {
+                                                        {
+                                                            type = 'sprite-button',
+                                                            name = 'all-red',
+                                                            style = 'slot_button',
+                                                            sprite = const:with_prefix('red-wire'),
+                                                            mouse_button_filter = { 'left' },
+                                                            handler = { [defines.events.on_gui_click] = gui_events.onToggleAllWires },
+                                                            tooltip = { const:locale('red-toggle-tooltip') },
+                                                            elem_tags = {
+                                                                wire_connector_id = defines.wire_connector_id.circuit_red,
+                                                            },
+                                                        },
+                                                        {
+                                                            type = 'sprite-button',
+                                                            name = 'all-green',
+                                                            style = 'slot_button',
+                                                            sprite = const:with_prefix('green-wire'),
+                                                            mouse_button_filter = { 'left' },
+                                                            tooltip = { const:locale('green-toggle-tooltip') },
+                                                            handler = { [defines.events.on_gui_click] = gui_events.onToggleAllWires },
+                                                            elem_tags = {
+                                                                wire_connector_id = defines.wire_connector_id.circuit_green,
+                                                            },
+                                                        }
+                                                    },
+                                                },
                                             },
                                             create_tab {
                                                 tab_type = 'strand',
-                                                gui_events = gui_events,
+                                                gui = gui,
                                                 header = {
                                                     type = 'flow',
                                                     direction = 'horizontal',
@@ -391,15 +538,160 @@ function Gui.getUi(gui)
     }
 end
 
+local function get_description_gui_event_definition()
+    ---@type framework.gui_manager.event_definition
+    return {
+        events = {
+            onWindowClosed = Gui.onCloseDesc,
+            onConfirmDesc = Gui.onConfirmDesc,
+        },
+        cleanup = function(gui)
+            if not (gui.context.button and gui.context.button.valid) then return false end
+            -- untoggle button that opened the description window
+            gui.context.button.toggled = false
+
+            return false
+        end,
+        custominput_events = {
+            [defines.events.on_gui_closed] = {
+                [const.custom_input_confirm_gui] = Gui.onConfirmDesc,
+                [const.custom_input_toggle_menu] = Gui.onCloseDesc,
+            },
+        }
+    }
+end
+
+--- Returns the definition of the Description GUI. All events must be mapped onto constants from the gui_events array.
+---@param gui framework.gui
+---@return framework.gui.element_definition ui
+function Gui.getDescUi(gui)
+    local gui_events = gui.gui_events
+
+    return {
+        type = 'frame',
+        name = 'gui_root',
+        direction = 'vertical',
+        handler = {
+            [defines.events.on_gui_closed] = gui_events.onWindowClosed,
+        },
+        elem_mods = { auto_center = true },
+        style_mods = {
+            width = 400,
+            height = 300,
+        },
+        children = {
+            { -- Title Bar
+                type = 'flow',
+                style = 'frame_header_flow',
+                drag_target = 'gui_root',
+                children = {
+                    {
+                        type = 'label',
+                        style = 'frame_title',
+                        caption = 'Edit Description', -- { 'entity-name.' .. const.main_entity_name },
+                        drag_target = 'gui_root',
+                        ignored_by_interaction = true,
+                    },
+                    {
+                        type = 'empty-widget',
+                        style = 'framework_titlebar_drag_handle',
+                        ignored_by_interaction = true,
+                    },
+                    {
+                        type = 'sprite-button',
+                        style = 'frame_action_button',
+                        sprite = 'utility/close',
+                        hovered_sprite = 'utility/close_black',
+                        clicked_sprite = 'utility/close_black',
+                        mouse_button_filter = { 'left' },
+                        tooltip = { 'gui.cancel-instruction' },
+                        handler = { [defines.events.on_gui_click] = gui_events.onWindowClosed },
+                    },
+                },
+            },
+            {
+                type = 'flow',
+                direction = 'vertical',
+                children = {
+                    {
+                        type = 'textfield',
+                        name = 'desc_title',
+                        style_mods = {
+                            horizontally_stretchable = true,
+                            horizontally_squashable = true,
+                            width = 376,
+                        },
+                        lose_focus_on_confirm = true,
+                        clear_and_focus_on_right_click = true,
+                        icon_selector = true,
+                        handler = {
+                            [defines.events.on_gui_text_changed] = gui_events.onDescTitleChanged,
+                            [defines.events.on_gui_confirmed] = gui_events.onDescTitleConfirmed,
+                        },
+                    },
+                    {
+                        type = 'text-box',
+                        name = 'desc_body',
+                        style_mods = {
+                            horizontally_stretchable = true,
+                            horizontally_squashable = true,
+                            vertically_squashable = true,
+                            vertically_stretchable = true,
+                            width = 376,
+                            natural_height = 200,
+                        },
+                        icon_selector = true,
+                        handler = {
+                            [defines.events.on_gui_text_changed] = gui_events.onDescBodyChanged,
+                        },
+                    },
+                    {
+                        type = 'flow',
+                        direction = 'horizontal',
+                        style_mods = {
+                            vertically_stretchable = false,
+                        },
+                        children = {
+                            {
+                                type = 'empty-widget',
+                                style = 'draggable_space',
+                                style_mods = {
+                                    horizontally_stretchable = true,
+                                    vertically_stretchable = true,
+                                },
+                            },
+                            {
+                                type = 'button',
+                                style = 'confirm_button',
+                                caption = { 'gui-edit-label.save-description' },
+                                mouse_button_filter = { 'left' },
+                                handler = { [defines.events.on_gui_click] = gui_events.onConfirmDesc },
+                            }
+                        },
+                    }
+                }
+            },
+            --     },
+            -- },
+        }
+    }
+end
+
 ----------------------------------------------------------------------------------------------------
 -- UI Callbacks
 ----------------------------------------------------------------------------------------------------
 
---- close the UI (button or shortcut key)
+---@class framework.key_event
+---@field player_index integer
+---@field input_name string
+---@field tick uint32
+
+--- close the UI (with the UI button)
 ---
----@param event EventData.on_gui_click|EventData.on_gui_opened
-function Gui.onWindowClosed(event)
-    Framework.gui_manager:destroy_gui(event.player_index)
+---@param event EventData.on_gui_click|EventData.on_gui_opened|framework.gui.custominput_data
+---@param gui framework.gui
+function Gui.onMainGuiClosed(event, gui)
+    Framework.gui_manager:destroy_gui_by_player(event.player_index)
 end
 
 local on_off_values = {
@@ -520,6 +812,142 @@ function Gui.onNetworkChanged(event, gui)
     end
 end
 
+---@param event EventData.on_gui_checked_state_changed
+---@param gui framework.gui
+function Gui.onEnableWireSignal(event, gui)
+    local element = event.element
+
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    fo_entity.config.connected_pins[element.tags.wire_connector_id][element.tags.index] = element.state
+end
+
+---@param event EventData.on_gui_click
+---@param gui framework.gui
+function Gui.onToggleAllWires(event, gui)
+    local element = event.element
+
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    local count = 0
+
+    for _, flag in pairs(fo_entity.config.connected_pins[element.tags.wire_connector_id]) do
+        if flag then count = count + 1 end
+    end
+
+    for idx = 1, const.max_pin_count do
+        fo_entity.config.connected_pins[element.tags.wire_connector_id][idx] = (count < 8)
+    end
+end
+
+---@param event EventData.on_gui_click|EventData.on_gui_opened
+---@param gui framework.gui
+function Gui.onCloseDesc(event, gui)
+    Framework.gui_manager:destroy_gui(event.player_index, gui.type)
+
+    local main_gui = assert(Framework.gui_manager:find_gui(event.player_index, MAIN_GUI_NAME))
+    local player = Player.get(event.player_index)
+    player.opened = main_gui.root
+end
+
+---@param event EventData.on_gui_click
+---@param gui framework.gui
+function Gui.onEditDesc(event, gui)
+    local tab_type = assert(event.element.tags.type)
+    local index = assert(event.element.tags.index)
+
+    local player = Player.get(gui.player_index)
+    if not player then return end
+
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    if event.element.toggled then
+        local desc
+        if tab_type == 'strand' then
+            local network_id = gui.context.network_select
+            if not (network_id and fo_entity.networks[network_id]) then return end
+            local strand_name = fo_entity.state.strand_names[network_id]
+            ---@type fo.FiberStrand
+            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+            if not fiber_strand then return end
+            desc = fiber_strand.hubs[index].description
+        else
+            desc = fo_entity.config.descriptions[index]
+        end
+
+        desc = desc or {
+            title = '',
+            body = '',
+        }
+
+        ---@class fo.DescGuiContext
+        ---@field desc fo.Description
+        ---@field index integer
+        ---@field type fo.GuiTabType
+        ---@field button LuaGuiElement
+        local gui_state = {
+            desc = desc,
+            index = index,
+            type = tab_type,
+            button = event.element,
+        }
+
+        local desc_gui = Framework.gui_manager:create_gui {
+            type = DESCRIPTION_GUI_NAME,
+            player_index = player.index,
+            parent = player.gui.screen,
+            ui_tree_provider = Gui.getDescUi,
+            context = gui_state,
+            retain_open_guis = true,
+        }
+
+        -- create synthetic event to ignore the next
+        Framework.gui_manager:create_custominput(player.index, {
+            input_name = const.custom_input_ignore_close,
+            tick = game.tick,
+            element = player.opened
+        })
+
+        player.opened = desc_gui.root
+
+        local title = assert(desc_gui:find_element('desc_title'))
+        title.focus()
+    else
+        Framework.gui_manager:destroy_gui(player.index, DESCRIPTION_GUI_NAME)
+    end
+end
+
+---@param event EventData.on_gui_click
+---@param gui framework.gui
+function Gui.onConfirmDesc(event, gui)
+    Framework.gui_manager:destroy_gui(gui.player_index, DESCRIPTION_GUI_NAME)
+end
+
+---@param event EventData.on_gui_click
+---@param gui framework.gui
+function Gui.onDeleteDesc(event, gui)
+    local tab_type = assert(event.element.tags.type)
+    local index = assert(event.element.tags.index)
+
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    if tab_type == 'strand' then
+        local network_id = gui.context.network_select
+        if not (network_id and fo_entity.networks[network_id]) then return end
+        local strand_name = fo_entity.state.strand_names[network_id]
+        ---@type fo.FiberStrand
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+        if not fiber_strand then return end
+        fiber_strand.hubs[index].description = nil
+    else
+        fo_entity.config.descriptions[index] = nil
+    end
+end
+
 ----------------------------------------------------------------------------------------------------
 -- helpers
 ----------------------------------------------------------------------------------------------------
@@ -629,9 +1057,18 @@ local function update_gui(gui, fo_entity)
         local network_fields = table.invert(fo_entity.networks, true)
         network_select.items = network_fields
         network_select.selected_index = network_index
+        network_select.enabled = table_size(fo_entity.networks) > 1
     else
         network_select.items = {}
         network_select.selected_index = 0
+    end
+
+    for idx = 1, const.max_pin_count do
+        local red_wire_enable = assert(gui:find_element('enable-signals_red_' .. idx))
+        local green_wire_enable = assert(gui:find_element('enable-signals_green_' .. idx))
+
+        red_wire_enable.state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_red][idx]
+        green_wire_enable.state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_green][idx]
     end
 end
 
@@ -646,6 +1083,29 @@ local gui_pane = {
             -- iopin signal display
             for idx = 1, const.max_pin_count do
                 add_signals(gui, 'iopin', idx, function() return fo_entity.iopin[idx] end)
+
+                local desc = fo_entity.config.descriptions[idx]
+                if not desc then
+                    -- fall back to strand text
+                    for _, network_id in pairs(fo_entity.networks) do
+                        local strand_name = fo_entity.state.strand_names[network_id]
+                        ---@type fo.FiberStrand
+                        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+                        if fiber_strand then
+                            desc = fiber_strand.hubs[idx].description
+                            if desc then break end
+                        end
+                    end
+                end
+
+                local gui_desc = assert(gui:find_element('desc_text_iopin' .. idx))
+                if desc then
+                    gui_desc.caption = desc.title or ''
+                    gui_desc.tooltip = desc.body or ''
+                else
+                    gui_desc.caption = ''
+                    gui_desc.tooltip = ''
+                end
             end
         end,
         clear = function(self, gui)
@@ -656,13 +1116,13 @@ local gui_pane = {
     },
     strand = {
         refresh = function(self, gui, fo_entity)
-            local network = gui.context.network_select
+            local network_id = gui.context.network_select
 
-            if not (network and fo_entity.networks[network]) then return self:clear(gui) end
+            if not (network_id and fo_entity.networks[network_id]) then return self:clear(gui) end
 
-            local strand_name = fo_entity.state.strand_names[network]
+            local strand_name = fo_entity.state.strand_names[network_id]
             ---@type fo.FiberStrand
-            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network, strand_name)
+            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
             if not fiber_strand then return self:clear(gui) end
 
             -- strand signal display
@@ -670,11 +1130,27 @@ local gui_pane = {
                 add_signals(gui, 'strand', idx, function()
                     return fiber_strand.hubs[idx].hub
                 end)
+
+                local desc = fiber_strand.hubs[idx].description
+                if desc then
+                    local gui_desc = assert(gui:find_element('desc_text_strand' .. idx))
+                    if desc then
+                        gui_desc.caption = desc.title or ''
+                        gui_desc.tooltip = desc.body or ''
+                    else
+                        gui_desc.caption = ''
+                        gui_desc.tooltip = ''
+                    end
+                end
             end
         end,
         clear = function(self, gui)
             for idx = 1, const.max_hub_count do
                 clear_signals(gui, 'strand', idx)
+
+                local gui_desc = assert(gui:find_element('desc_text_strand' .. idx))
+                gui_desc.caption = ''
+                gui_desc.tooltip = ''
             end
         end,
     },
@@ -755,7 +1231,7 @@ function Gui.onGuiOpened(event)
     if not player then return end
 
     -- close an eventually open gui
-    Framework.gui_manager:destroy_gui(event.player_index)
+    Framework.gui_manager:destroy_gui_by_player(event.player_index)
 
     local clicked_entity = event and event.entity --[[@as LuaEntity]]
     if not clicked_entity then
@@ -799,12 +1275,12 @@ function Gui.onGuiOpened(event)
     }
 
     local gui = Framework.gui_manager:create_gui {
-        type = Gui.NAME,
+        type = MAIN_GUI_NAME,
         player_index = event.player_index,
         parent = player.gui.screen,
         ui_tree_provider = Gui.getUi,
         context = gui_state,
-        entity_id = entity.unit_number
+        entity_id = entity.unit_number,
     }
 
     player.opened = gui.root
@@ -857,7 +1333,8 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local function init_gui()
-    Framework.gui_manager:register_gui_type(Gui.NAME, get_gui_event_definition())
+    Framework.gui_manager:register_gui_type(MAIN_GUI_NAME, get_gui_event_definition())
+    Framework.gui_manager:register_gui_type(DESCRIPTION_GUI_NAME, get_description_gui_event_definition())
 
     local match_clickable_entities = Matchers:matchEventEntityName { const.pin_entity_name, const.pin_one_entity_name, const.powerpole_name }
     local match_ghost_clickable_entities = Matchers:matchEventEntityGhostName { const.pin_entity_name, const.pin_one_entity_name, const.powerpole_name }
