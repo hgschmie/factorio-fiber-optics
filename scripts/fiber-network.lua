@@ -49,7 +49,6 @@ local function count_networks()
     return count
 end
 
-
 ---@param surface_index integer
 ---@return fo.SurfaceNetwork
 function Network:locateSurfaceNetwork(surface_index)

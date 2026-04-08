@@ -6,12 +6,12 @@
 -- A surface network contains a number of fiber networks. Each fiber network is carried by a power network
 ---@alias fo.SurfaceNetwork fo.FiberNetwork[]
 
--- A fiber network contains a number of fiber strands. A single fiber connector can be connected to a single strand. There is a limited number
--- of fiber strands in a network
+-- A fiber network contains a number of fiber strands. A single fiber connector can be connected to a single strand.
+-- There is an unlimited number of fiber strands in a network
 ---@alias fo.FiberNetwork table<string, fo.FiberStrand>
 
--- A fiber strand contains a number of hubs. Each hub is connected to a single pin on a fiber connector
--- and carries a red and a green signal
+-- A fiber strand contains a number of colors that are accessible through hubs.
+-- Each hub is connected to a single pin on a fiber connector and carries a red and a green signal
 
 ---@class fo.FiberStrand
 ---@field endpoint_count integer
@@ -57,12 +57,12 @@
 ---@field tags Tags?
 ---@field tick integer
 
+---@alias fo.DescType ('iopin'|'strand')
+
 ---@class fo.PlayerData
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
----@field gui_tab fo.GuiTabType?
----@field custom_key fo.CustomKey?
----@field open_guis framework.gui[]?
+---@field gui_tab fo.DescType?
 
 ---@class fo.Description
 ---@field title string

@@ -70,6 +70,55 @@ function FiberOptics:setEntity(entity_id, fo_entity)
 end
 
 ------------------------------------------------------------------------
+-- manage descriptions
+------------------------------------------------------------------------
+
+---@class fo.FoGetSetDescriptionArgs
+---@field entity_id integer
+---@field desc_type fo.DescType
+---@field network_id integer?
+---@field index integer
+---@field desc fo.Description?
+
+
+---@param args fo.FoGetSetDescriptionArgs
+---@return fo.Description?
+function FiberOptics:getDescription(args)
+    local fo_entity = self:getEntity(args.entity_id)
+    if not fo_entity then return end
+
+    if args.desc_type == 'iopin' then
+        return fo_entity.config.descriptions[args.index]
+    else
+        if not (args.network_id and fo_entity.networks[args.network_id]) then return end
+        local strand_name = fo_entity.state.strand_names[args.network_id]
+
+        ---@type fo.FiberStrand
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name)
+        if not fiber_strand then return end
+        return fiber_strand.hubs[args.index].description
+    end
+end
+
+---@param args fo.FoGetSetDescriptionArgs
+function FiberOptics:setDescription(args)
+    local fo_entity = self:getEntity(args.entity_id)
+    if not fo_entity then return end
+
+    if args.desc_type == 'iopin' then
+        fo_entity.config.descriptions[args.index] = args.desc
+    else
+        if not (args.network_id and fo_entity.networks[args.network_id]) then return end
+        local strand_name = fo_entity.state.strand_names[args.network_id]
+
+        ---@type fo.FiberStrand
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name)
+        if not fiber_strand then return end
+        fiber_strand.hubs[args.index].description = args.desc
+    end
+end
+
+------------------------------------------------------------------------
 -- create/destroy
 ------------------------------------------------------------------------
 

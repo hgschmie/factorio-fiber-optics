@@ -9,6 +9,7 @@
 ---@field other fo.Other
 ---@field network fo.Network
 ---@field gui fo.Gui
+---@field desc_gui fo.DescGui
 ---@field console fo.Console
 This = {
     other_mods = {
@@ -22,6 +23,7 @@ if script then
     This.other = require('scripts.other')
     This.network = require('scripts.fiber-network')
     This.gui = require('scripts.gui')
+    This.desc_gui = require('scripts.desc-gui')
     This.console = require('scripts.console')
 end
 

@@ -97,6 +97,14 @@ end
 Constants.max_pin_count = #Constants.pin_positions
 Constants.max_hub_count = 16
 
+Constants.title_style = Constants:with_prefix('title')
+Constants.title_style_dimmed = Constants:with_prefix('title_dimmed')
+
+
+Constants.ui_signal_column_count = 8
+Constants.ui_scrollpane_width = Constants.ui_signal_column_count * 40
+Constants.ui_title_width = Constants.ui_scrollpane_width - 42
+
 -- These names *MUST* match the 1.x.x code. DO NOT CHANGE!
 Constants.main_entity_name = Constants:with_prefix('optical-connector')
 Constants.pin_entity_name = Constants:with_prefix('oc-io_pin')

@@ -12,6 +12,7 @@ require('prototypes.network')
 require('prototypes.technology')
 require('prototypes.sprites')
 require('prototypes.custom-input')
+require('prototypes.styles')
 
 ---@diagnostic disable-next-line: undefined-field
 Framework.post_data_stage()
