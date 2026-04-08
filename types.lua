@@ -57,7 +57,7 @@
 ---@field tags Tags?
 ---@field tick integer
 
----@alias fo.DescType ('iopin'|'strand')
+---@alias fo.DescType ('iopin'|'color')
 
 ---@class fo.PlayerData
 ---@field h_flipped boolean?

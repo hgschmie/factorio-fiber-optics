@@ -269,6 +269,15 @@ function FiberOptics:create(cfg)
 
     local direction, reverse = compute_rflip(cfg.main.direction, h_flipped, v_flipped)
 
+    local config = cfg.config or self:getDefaultConfig()
+    -- fix up that sparse arrays come out of blueprints as table<string, ...>
+    for idx = 1, const.max_pin_count do
+        if config.descriptions[tostring(idx)] then
+            config.descriptions[idx] = config.descriptions[tostring(idx)]
+            config.descriptions[tostring(idx)] = nil
+        end
+    end
+
     ---@type fo.FiberOptics
     local fo_entity = {
         main = cfg.main,
@@ -282,10 +291,10 @@ function FiberOptics:create(cfg)
         state = {
             strand_names = {},
         },
-        config = cfg.config or self:getDefaultConfig(),
+        config = config,
     }
 
-    cfg.main.direction = direction
+    fo_entity.main.direction = direction
 
     -- add io pins
     for i = 1, const.max_pin_count do

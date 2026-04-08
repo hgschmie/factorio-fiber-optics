@@ -90,6 +90,8 @@ local function create_gui_fields(args)
             end
         end
 
+        local type_idx = args.tab_type .. idx
+
         result[i] = {
             type = 'flow',
             direction = 'vertical',
@@ -112,11 +114,12 @@ local function create_gui_fields(args)
                         {
                             type = 'label',
                             style = const.title_style,
-                            name = 'desc_text_' .. args.tab_type .. idx,
+                            name = 'desc_text_' .. type_idx,
                         },
                         {
                             type = 'sprite-button',
                             style = 'mini_button_aligned_to_text_vertically_when_centered',
+                            name = 'edit_' .. type_idx,
                             style_mods = {
                                 left_margin = 4,
                             },
@@ -134,6 +137,7 @@ local function create_gui_fields(args)
                         {
                             type = 'sprite-button',
                             style = 'mini_tool_button_red',
+                            name = 'delete_' .. type_idx,
                             style_mods = {
                                 top_margin = 1,
                             },
@@ -490,7 +494,7 @@ function Gui.getUi(gui)
                                                 },
                                             },
                                             create_tab {
-                                                tab_type = 'strand',
+                                                tab_type = 'color',
                                                 gui = gui,
                                                 header = {
                                                     type = 'flow',
@@ -914,7 +918,7 @@ local gui_pane = {
             end
         end,
     },
-    strand = {
+    color = {
         refresh = function(self, gui, fo_entity)
             ---@type fo.GuiContext
             local context = gui.context
@@ -927,23 +931,23 @@ local gui_pane = {
             local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
             if not fiber_strand then return self.clear(gui) end
 
-            -- strand signal display
+            -- color signal display
             for idx = 1, const.max_hub_count do
-                add_signals(gui, 'strand', idx, function()
+                add_signals(gui, 'color', idx, function()
                     return fiber_strand.hubs[idx].hub
                 end)
 
                 local desc = fiber_strand.hubs[idx].description
-                local gui_desc = assert(gui:find_element('desc_text_strand' .. idx))
+                local gui_desc = assert(gui:find_element('desc_text_color' .. idx))
                 gui_desc.caption = desc and desc.title or ''
                 gui_desc.tooltip = desc and desc.body or ''
             end
         end,
         clear = function(gui)
             for idx = 1, const.max_hub_count do
-                clear_signals(gui, 'strand', idx)
+                clear_signals(gui, 'color', idx)
 
-                local gui_desc = assert(gui:find_element('desc_text_strand' .. idx))
+                local gui_desc = assert(gui:find_element('desc_text_color' .. idx))
                 gui_desc.caption = ''
                 gui_desc.tooltip = ''
             end
@@ -951,6 +955,20 @@ local gui_pane = {
     },
 }
 
+
+---@param gui framework.gui
+---@param enabled boolean
+local function control_strand_elements(gui, enabled)
+    local network_select = assert(gui:find_element('network_select'))
+    network_select.enabled = enabled
+
+    for idx = 1, const.max_hub_count do
+        local edit_button = assert(gui:find_element('edit_color' .. idx))
+        edit_button.enabled = enabled
+        local delete_button = assert(gui:find_element('delete_color' .. idx))
+        delete_button.enabled = enabled
+    end
+end
 
 --- Executed at every refresh tick
 ---
@@ -999,13 +1017,13 @@ local function refresh_gui(gui, fo_entity)
         connection_wire.visible = true
         connection_wire.caption = networks
 
-        network_select.enabled = true
+        control_strand_elements(gui, true)
     else
         connections.caption = { 'gui-control-behavior.not-connected' }
         connection_wire.visible = false
         connection_wire.caption = nil
 
-        network_select.enabled = false
+        control_strand_elements(gui, false)
     end
 
     ---@type fo.GuiContext
