@@ -862,7 +862,7 @@ local function update_gui(gui, fo_entity)
 
     local network_select = assert(gui:find_element('network_select'))
     if table_size(fo_entity.networks) > 0 then
-        local network_index = fo_entity.networks[context.network_select] or 1
+        local network_index = assert(fo_entity.networks[context.network_select])
         local network_fields = table.invert(fo_entity.networks, true)
         network_select.items = network_fields
         network_select.selected_index = network_index
@@ -959,8 +959,10 @@ local gui_pane = {
 ---@param gui framework.gui
 ---@param enabled boolean
 local function control_strand_elements(gui, enabled)
-    local network_select = assert(gui:find_element('network_select'))
-    network_select.enabled = enabled
+    if not enabled then
+        local network_select = assert(gui:find_element('network_select'))
+        network_select.enabled = false
+    end
 
     for idx = 1, const.max_hub_count do
         local edit_button = assert(gui:find_element('edit_color' .. idx))
@@ -1004,9 +1006,14 @@ local function refresh_gui(gui, fo_entity)
     local connections = gui:find_element('connections')
     local connection_wire = gui:find_element('connection-wires')
 
-    local network_select = assert(gui:find_element('network_select'))
+    ---@type fo.GuiContext
+    local context = gui.context
 
     if table_size(fo_entity.networks) > 0 then
+        if not (context.network_select and fo_entity.networks[context.network_select]) then
+            context.network_select = next(fo_entity.networks)
+        end
+
         local networks = ''
         for _, network_id in pairs(table.keys(fo_entity.networks, true, false)) do
             local endpoint_count = This.network:getEndpointCount(fo_entity.main.surface_index, network_id, fo_entity.config.strand_name)
@@ -1024,10 +1031,9 @@ local function refresh_gui(gui, fo_entity)
         connection_wire.caption = nil
 
         control_strand_elements(gui, false)
-    end
 
-    ---@type fo.GuiContext
-    local context = gui.context
+        context.network_select = nil
+    end
 
     assert(gui_pane[context.gui_tab]):refresh(gui, fo_entity)
 
