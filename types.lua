@@ -26,7 +26,7 @@
 ---@field fo fo.FiberOptics[]
 ---@field fo_count integer
 ---@field attached_entities fo.AttachedEntity[]
----@field iopins integer[]
+---@field iopins fo.IoPin[]
 ---@field iopin_count integer
 ---@field surface_networks fo.SurfaceNetwork[]
 

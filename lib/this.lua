@@ -5,7 +5,7 @@
 ---@class fo.Mod
 ---@field other_mods table<string, string>
 ---@field fo fo.Fo
----@field pin fo.Pin
+---@field pin fo.FoPin
 ---@field other fo.Other
 ---@field network fo.Network
 ---@field gui fo.Gui

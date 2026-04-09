@@ -108,6 +108,42 @@ function FiberOptics:getDescription(args)
     end
 end
 
+---@class fo.FoPinCaption
+---@field desc fo.Description?
+---@field style string
+---@field red boolean
+---@field green boolean
+
+---@param fo_entity fo.FiberOptics
+---@param idx integer
+function FiberOptics:getCaptionForPin(fo_entity, idx)
+    ---@type fo.FoPinCaption
+    local caption = {
+        desc = fo_entity.config.descriptions[idx],
+        style = const.title_style,
+        red = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_red][idx],
+        green = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_green][idx]
+    }
+
+    if caption.desc then return caption end
+
+    -- fall back to strand text
+    for _, network_id in pairs(fo_entity.state.networks) do
+        local strand_name = fo_entity.state.strand_names[network_id]
+        ---@type fo.FiberStrand
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+        if fiber_strand then
+            caption.desc = fiber_strand.hubs[idx].description
+            if caption.desc then
+                caption.style = const.title_style_dimmed
+                break
+            end
+        end
+    end
+
+    return caption
+end
+
 ---@param args fo.FoGetSetDescriptionArgs
 function FiberOptics:setDescription(args)
     local fo_entity = self:getEntity(args.entity_id)
@@ -322,7 +358,7 @@ function FiberOptics:create(cfg)
         }
 
         if entity then
-            This.pin:adopt(entity, i)
+            This.pin:adopt(fo_entity.main.unit_number, entity, i)
         else
             entity = This.pin:create {
                 main = fo_entity.main,

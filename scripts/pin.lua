@@ -9,9 +9,11 @@ local table = require('stdlib.utils.table')
 
 local const = require('lib.constants')
 
+---@class fo.IoPin
+---@field index integer
+---@field entity_id integer
 
-
----@class fo.Pin
+---@class fo.FoPin
 local Pins = {}
 
 ------------------------------------------------------------------------
@@ -19,25 +21,31 @@ local Pins = {}
 ------------------------------------------------------------------------
 
 ---@param entity_id integer
+---@param pin_id integer
 ---@param idx integer
-function Pins:addPin(entity_id, idx)
+function Pins:addPin(entity_id, pin_id, idx)
     assert(idx)
+
+    ---@type fo.Storage
     local fo_storage = This.storage()
 
-    if (entity_id and fo_storage.iopins[entity_id]) then
-        Framework.logger:logf('[BUG] Overwriting existing iopin %d', entity_id)
+    if (entity_id and fo_storage.iopins[pin_id]) then
+        Framework.logger:logf('[BUG] Overwriting existing iopin %d for entity %d', pin_id, entity_id)
     else
         fo_storage.iopin_count = fo_storage.iopin_count + 1
     end
 
-    fo_storage.iopins[entity_id] = idx
+    fo_storage.iopins[pin_id] = {
+        entity_id = entity_id,
+        index = idx
+    }
 end
 
----@param entity_id integer
-function Pins:deletePin(entity_id)
+---@param pin_id integer
+function Pins:deletePin(pin_id)
     local fo_storage = This.storage()
-    if (entity_id and fo_storage.iopins[entity_id]) then
-        fo_storage.iopins[entity_id] = nil
+    if (pin_id and fo_storage.iopins[pin_id]) then
+        fo_storage.iopins[pin_id] = nil
         fo_storage.iopin_count = fo_storage.iopin_count - 1
     end
 
@@ -47,8 +55,10 @@ function Pins:deletePin(entity_id)
     end
 end
 
-function Pins:findPin(entity_id)
-    return This.storage().iopins[entity_id]
+---@param pin_id integer
+---@return fo.IoPin?
+function Pins:findPin(pin_id)
+    return This.storage().iopins[pin_id]
 end
 
 ---@class fo.PinCreateParams
@@ -76,21 +86,21 @@ function Pins:create(cfg)
 
     assert(pin_entity, ("Could not create entity for '%s'"):format(name))
 
-    self:adopt(pin_entity, cfg.idx)
+    self:adopt(cfg.main.unit_number, pin_entity, cfg.idx)
 
     return pin_entity
 end
 
+---@param entity_id integer
 ---@param pin_entity LuaEntity
 ---@param idx integer
-function Pins:adopt(pin_entity, idx)
+function Pins:adopt(entity_id, pin_entity, idx)
 
     pin_entity.minable = false
     pin_entity.destructible = false
     pin_entity.operable = true
 
-    self:addPin(pin_entity.unit_number, idx)
-
+    self:addPin(entity_id, pin_entity.unit_number, idx)
 end
 
 ---@class fo.PinPositionParams
@@ -161,7 +171,7 @@ function Pins:serialize(entity_id)
     if not iopin_idx then return end
 
     return {
-        iopin_index = iopin_idx,
+        iopin_index = iopin_idx.index,
     }
 end
 
@@ -179,21 +189,27 @@ local IOPIN_COLOR = {
 function Pins:displayCaption(entity, player_index)
     if not (entity and entity.valid) then return end
 
-    local iopin_idx = self:findPin(entity.unit_number)
-    if not iopin_idx then return end
+    local iopin = self:findPin(entity.unit_number)
+    if not iopin then return end
 
-    -- local wire_connectors = entity.get_wire_connectors(true)
-
-    -- local red_count = get_connection_count(wire_connectors[defines.wire_connector_id.circuit_red])
-    -- local green_count = get_connection_count(wire_connectors[defines.wire_connector_id.circuit_green])
-
+    local text = {"", { IOPIN_CAPTION, iopin.index }}
     local color_index = 1
-    -- -- > 1 b/c every pin is connected to a network
-    -- color_index = color_index + ((red_count > 0) and 1 or 0)
-    -- color_index = color_index + ((green_count > 0) and 2 or 0)
+
+    local fo_entity = This.fo:getEntity(iopin.entity_id)
+    if fo_entity then
+        local caption = This.fo:getCaptionForPin(fo_entity, iopin.index)
+
+        color_index = color_index + (caption.red and 1 or 0)
+        color_index = color_index + (caption.green and 2 or 0)
+
+        if caption.desc then
+            table.insert(text, ' - ')
+            table.insert(text, caption.desc.title)
+        end
+    end
 
     Framework.render:renderText(player_index, {
-        text = { IOPIN_CAPTION, iopin_idx },
+        text = text,
         surface = entity.surface,
         target = entity,
         color = IOPIN_COLOR[color_index],

@@ -898,28 +898,12 @@ local gui_pane = {
             for idx = 1, const.max_pin_count do
                 add_signals(gui, 'iopin', idx, function() return fo_entity.iopin[idx] end)
 
-                local desc = fo_entity.config.descriptions[idx]
-                local style = const.title_style
-                if not desc then
-                    -- fall back to strand text
-                    for _, network_id in pairs(fo_entity.state.networks) do
-                        local strand_name = fo_entity.state.strand_names[network_id]
-                        ---@type fo.FiberStrand
-                        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
-                        if fiber_strand then
-                            desc = fiber_strand.hubs[idx].description
-                            if desc then
-                                style = const.title_style_dimmed
-                                break
-                            end
-                        end
-                    end
-                end
-
+                local caption = This.fo:getCaptionForPin(fo_entity, idx)
                 local gui_desc = assert(gui:find_element('desc_text_iopin' .. idx))
-                gui_desc.style = style
-                gui_desc.caption = desc and desc.title or ''
-                gui_desc.tooltip = desc and desc.body or ''
+
+                gui_desc.style = caption.style
+                gui_desc.caption = caption.desc and caption.desc.title or ''
+                gui_desc.tooltip = caption.desc and caption.desc.body or ''
             end
         end,
     },
