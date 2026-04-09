@@ -662,7 +662,7 @@ function Gui.onNetworkChanged(event, gui)
     if element.selected_index > 0 and element.items[element.selected_index] then
         ---@type fo.GuiContext
         local context = gui.context
-        context.network_select = tonumber(element.items[element.selected_index])
+        context.network_select = element.selected_index
     end
 end
 
@@ -709,12 +709,18 @@ function Gui.onEditDesc(event, gui)
     ---@type fo.GuiContext
     local context = gui.context
 
+    local fo_entity = This.fo:getEntity(gui.entity_id)
+    if not fo_entity then return end
+
+    local network_id = fo_entity.state.networks[context.network_select]
+    if not network_id then return end
+
     if event.element.toggled then
         ---@type fo.FoGetSetDescriptionArgs
         local desc_args = {
             entity_id = gui.entity_id,
             desc_type = tab_type,
-            network_id = context.network_select,
+            network_id = network_id,
             index = index
         }
 
@@ -770,7 +776,7 @@ local function create_strand_items(fo_entity)
     }
 
     local entity = fo_entity.main
-    for network_id in pairs(fo_entity.networks) do
+    for _, network_id in pairs(fo_entity.state.networks) do
         local network = This.network:getOrCreateFiberNetwork(entity.surface_index, entity.force_index, network_id)
         for strand_name in pairs(network) do
             strands[strand_name] = true
@@ -861,12 +867,11 @@ local function update_gui(gui, fo_entity)
     main_tab.selected_tab_index = context.gui_tab == 'iopin' and 1 or 2
 
     local network_select = assert(gui:find_element('network_select'))
-    if table_size(fo_entity.networks) > 0 then
-        local network_index = assert(fo_entity.networks[context.network_select])
-        local network_fields = table.invert(fo_entity.networks, true)
-        network_select.items = network_fields
-        network_select.selected_index = network_index
-        network_select.enabled = table_size(fo_entity.networks) > 1
+    if table_size(fo_entity.state.networks) > 0 then
+        -- items before selected_index, otherwise you win an "Index out of range." exception.
+        network_select.items = fo_entity.state.networks
+        network_select.selected_index = context.network_select or 1
+        network_select.enabled = table_size(fo_entity.state.networks) > 1
     else
         network_select.items = {}
         network_select.selected_index = 0
@@ -897,7 +902,7 @@ local gui_pane = {
                 local style = const.title_style
                 if not desc then
                     -- fall back to strand text
-                    for network_id in pairs(fo_entity.networks) do
+                    for _, network_id in pairs(fo_entity.state.networks) do
                         local strand_name = fo_entity.state.strand_names[network_id]
                         ---@type fo.FiberStrand
                         local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
@@ -922,9 +927,9 @@ local gui_pane = {
         refresh = function(self, gui, fo_entity)
             ---@type fo.GuiContext
             local context = gui.context
-            local network_id = context.network_select
+            local network_id = fo_entity.state.networks[context.network_select]
 
-            if not (network_id and fo_entity.networks[network_id]) then return self.clear(gui) end
+            if not (network_id) then return self.clear(gui) end
 
             local strand_name = fo_entity.state.strand_names[network_id]
             ---@type fo.FiberStrand
@@ -976,7 +981,7 @@ end
 ---
 ---@param gui framework.gui
 ---@param fo_entity fo.FiberOptics
----@return table<integer, integer> connection_state
+---@return fo.FiberOpticsState
 local function refresh_gui(gui, fo_entity)
     local fo_config = fo_entity.config
 
@@ -987,7 +992,7 @@ local function refresh_gui(gui, fo_entity)
     if fo_config.enabled then
         if fo_entity.status ~= defines.entity_status.working then
             entity_status = fo_entity.status or defines.entity_status.broken
-        elseif table_size(fo_entity.networks) > 0 then
+        elseif table_size(fo_entity.state.networks) > 0 then
             entity_status = defines.entity_status.working
         else
             entity_status = defines.entity_status.networks_disconnected
@@ -1009,13 +1014,13 @@ local function refresh_gui(gui, fo_entity)
     ---@type fo.GuiContext
     local context = gui.context
 
-    if table_size(fo_entity.networks) > 0 then
-        if not (context.network_select and fo_entity.networks[context.network_select]) then
-            context.network_select = next(fo_entity.networks)
+    if table_size(fo_entity.state.networks) > 0 then
+        if not (fo_entity.state.networks[context.network_select]) then
+            context.network_select = next(fo_entity.state.networks)
         end
 
         local networks = ''
-        for _, network_id in pairs(table.keys(fo_entity.networks, true, false)) do
+        for _, network_id in pairs(fo_entity.state.networks) do
             local endpoint_count = This.network:getEndpointCount(fo_entity.main.surface_index, network_id, fo_entity.config.strand_name)
             networks = networks .. ('%d (%d) '):format(network_id, endpoint_count)
         end
@@ -1037,7 +1042,7 @@ local function refresh_gui(gui, fo_entity)
 
     assert(gui_pane[context.gui_tab]):refresh(gui, fo_entity)
 
-    return util.copy(fo_entity.networks)
+    return fo_entity.state
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -1081,15 +1086,15 @@ function Gui.onGuiOpened(event)
 
     ---@class fo.GuiContext
     ---@field last_config fo.FiberOpticsConfig?
-    ---@field last_connection_state table<integer, integer>?
+    ---@field last_state fo.FiberOpticsState?
     ---@field new_strand_name string
     ---@field network_select integer?
     ---@field gui_tab string
     local gui_state = {
         last_config = nil,
-        last_connection_state = nil,
+        last_state = nil,
         new_strand_name = '',
-        network_select = next(fo_entity.networks),
+        network_select = next(fo_entity.state.networks),
         gui_tab = player_data.gui_tab or 'iopin',
     }
 
@@ -1126,10 +1131,10 @@ function Gui.guiUpdater(gui)
     local context = gui.context
 
     -- always update wire state and preview
-    local connection_state = refresh_gui(gui, fo_entity)
+    local current_state = refresh_gui(gui, fo_entity)
 
     local refresh_config = not (context.last_config and table.compare(context.last_config, fo_entity.config))
-    local refresh_state = not (context.last_connection_state and table.compare(context.last_connection_state, connection_state))
+    local refresh_state = not (context.last_state and table.compare(context.last_state, current_state))
 
     if refresh_config or refresh_state then
         update_gui(gui, fo_entity)
@@ -1141,7 +1146,7 @@ function Gui.guiUpdater(gui)
     end
 
     if refresh_state then
-        context.last_connection_state = connection_state
+        context.last_state = tools.copy(current_state)
     end
 
     return true

@@ -55,6 +55,7 @@ local function on_entity_created(event)
     -- fix up older blueprint configurations
     if config then
         config.connected_pins = config.connected_pins or This.fo:getDefaultConfig().connected_pins
+        config.descriptions = config.descriptions or {}
     end
 
     -- legacy (1.x) blueprints

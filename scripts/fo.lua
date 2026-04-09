@@ -81,6 +81,14 @@ end
 ---@field desc fo.Description?
 
 
+---@param networks integer[]
+---@param network_id integer
+---@return boolean
+local function has_network(networks, network_id)
+    if not network_id then return false end
+    return networks[1] == network_id or networks[2] == network_id
+end
+
 ---@param args fo.FoGetSetDescriptionArgs
 ---@return fo.Description?
 function FiberOptics:getDescription(args)
@@ -90,7 +98,7 @@ function FiberOptics:getDescription(args)
     if args.desc_type == 'iopin' then
         return fo_entity.config.descriptions[args.index]
     else
-        if not (args.network_id and fo_entity.networks[args.network_id]) then return end
+        if not (args.network_id and has_network(fo_entity.state.networks, args.network_id)) then return end
         local strand_name = fo_entity.state.strand_names[args.network_id]
 
         ---@type fo.FiberStrand
@@ -108,7 +116,7 @@ function FiberOptics:setDescription(args)
     if args.desc_type == 'iopin' then
         fo_entity.config.descriptions[args.index] = args.desc
     else
-        if not (args.network_id and fo_entity.networks[args.network_id]) then return end
+        if not (args.network_id and has_network(fo_entity.state.networks, args.network_id)) then return end
         local strand_name = fo_entity.state.strand_names[args.network_id]
 
         ---@type fo.FiberStrand
@@ -287,9 +295,9 @@ function FiberOptics:create(cfg)
         v_flipped = v_flipped,
         iopin = {},
         internal = {},
-        networks = {},
         state = {
             strand_names = {},
+            networks = {},
         },
         config = config,
     }
@@ -611,19 +619,17 @@ function FiberOptics:register_blueprint_context(entity_id, context)
 end
 
 ---@param power_pole LuaEntity
----@return table<integer, integer> network_map
+---@return integer[] network_map
 local function get_connected_networks(power_pole)
     local result = {}
     if not (power_pole and power_pole.valid) then return result end
 
-    local idx = 1
     for _, connector in pairs { defines.wire_connector_id.power_switch_left_copper, defines.wire_connector_id.power_switch_right_copper } do
         local wire_connector = assert(power_pole.get_wire_connector(connector, true))
         local connected = wire_connector.network_id > 0 or wire_connector.real_connection_count > 0 -- https://forums.factorio.com/viewtopic.php?t=127085
 
-        if connected and not result[wire_connector.network_id] then
-            result[wire_connector.network_id] = idx
-            idx = idx + 1
+        if connected and not has_network(result, wire_connector.network_id) then
+            table.insert(result, wire_connector.network_id)
         end
     end
 
@@ -645,25 +651,26 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     local signals = { DARK_RGB, DARK_RGB }
     local active_signals = 0
 
+    local all_networks = get_connected_networks(fo_entity.internal.powerpole)
     -- if the unit is in red status, disconnect all networks
-    local current_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or get_connected_networks(fo_entity.internal.powerpole)
+    local connected_networks = ((tools.STATUS_TABLE[fo_entity.status] == 'RED') and {}) or all_networks
 
     -- disconnect networks if reconnect is forced or the entity is not enabled or
     -- a network is missing from the set of current network or if the current strand name does not match the configured strand name.
-    for network_id in pairs(fo_entity.networks) do
+    for _, network_id in pairs(fo_entity.state.networks) do
         if (force_reconnect or not (fo_entity.config.enabled
-                and current_networks[network_id]
+                and has_network(connected_networks, network_id)
                 and fo_entity.state.strand_names[network_id]
                 and fo_entity.state.strand_names[network_id] == fo_entity.config.strand_name)) then
             This.network:disconnectEntity(network_id, fo_entity)
-            fo_entity.networks[network_id] = nil
+
             connection_change = true
         end
     end
 
     -- connect new networks if the entity is enabled and the network is not already connected
     -- or if reconnection is forced.
-    for network_id, idx in pairs(current_networks) do
+    for idx, network_id in pairs(connected_networks) do
         signals[idx] = fo_entity.config.enabled and GREEN_RGB or RED_RGB
         active_signals = active_signals + 1
         connection_change = This.network:connectEntity(network_id, fo_entity) or connection_change -- do not flip around, otherwise connectEntity is not called
@@ -699,12 +706,13 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
             name = 'signal-E',
             quality = 'normal',
         },
-        min = fo_entity.config.enabled and (active_signals > 0) and 1 or 0,
+        -- control through total connected signals, otherwise, if there is no power, it will flip back and forth between "disabled" and "no power"
+        min = fo_entity.config.enabled and table_size(all_networks) and 1 or 0,
     }
 
     sc_section.filters = filters
 
-    fo_entity.networks = current_networks
+    fo_entity.state.networks = connected_networks
 end
 
 ------------------------------------------------------------------------

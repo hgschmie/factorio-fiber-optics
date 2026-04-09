@@ -35,7 +35,6 @@
 ---@field status defines.entity_status?
 ---@field iopin LuaEntity[]
 ---@field internal table<string, LuaEntity>
----@field networks table<integer, integer>
 ---@field direction defines.direction
 ---@field reverse boolean
 ---@field h_flipped boolean
@@ -44,7 +43,8 @@
 ---@field config fo.FiberOpticsConfig
 
 ---@class fo.FiberOpticsState
----@field strand_names table<integer, string>
+---@field strand_names table<integer, string> -- represents the currently connected networks
+---@field networks integer[]
 
 ---@class fo.FiberOpticsConfig
 ---@field enabled boolean

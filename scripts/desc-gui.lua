@@ -53,6 +53,9 @@ end
 function Gui.getUi(gui)
     local gui_events = gui.gui_events
 
+    ---@type fo.DescGuiContext
+    local context = gui.context
+
     return {
         type = 'frame',
         name = 'gui_root',
@@ -74,7 +77,7 @@ function Gui.getUi(gui)
                     {
                         type = 'label',
                         style = 'frame_title',
-                        caption = 'Edit Description', -- { 'entity-name.' .. const.main_entity_name },
+                        caption = { '', { const:locale('edit_description') }, ' - ', { const:locale(context.desc_args.desc_type .. '_caption'), context.desc_args.index } },
                         drag_target = 'gui_root',
                         ignored_by_interaction = true,
                     },
@@ -186,7 +189,6 @@ end
 ---@param event EventData.on_gui_click
 ---@param gui framework.gui
 function Gui.onConfirmDesc(event, gui)
-
     ---@type fo.DescGuiContext
     local context = gui.context
 
@@ -216,7 +218,6 @@ function Gui.onDescTitleConfirmed(event, gui)
     body.focus()
 end
 
-
 ----------------------------------------------------------------------------------------------------
 -- open/close
 ----------------------------------------------------------------------------------------------------
@@ -231,7 +232,6 @@ end
 ---@param desc_args fo.FoGetSetDescriptionArgs
 ---@param button LuaGuiElement
 function Gui.openGui(player, desc_args, button)
-
     local desc = desc_args.desc and util.copy(desc_args.desc) or {
         title = '',
         body = ''

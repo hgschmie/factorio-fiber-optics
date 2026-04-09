@@ -106,7 +106,6 @@ function Network:getOrCreateFiberNetwork(surface_index, force_id, network_id)
         default = create_fiber_strand(surface_index, force_id, 0) -- default is always strand index 0
     }
 
-
     return surface_network[network_id]
 end
 
@@ -133,7 +132,7 @@ function Network:locateFiberStrand(entity, network_id, strand_name)
     return fiber_network[strand_name]
 end
 
----@param fo_entity fo.FiberOptics
+---@param fo_entity fo.FiberOptics Entity used to determine the surface and networks to delete
 ---@param strand_name string
 function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
     if strand_name == 'default' then return end -- default network is never deleted
@@ -145,7 +144,7 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
 
     local entities_to_update = {}
 
-    for network_id in pairs(fo_entity.networks) do
+    for _, network_id in pairs(fo_entity.state.networks) do
         assert(surface_network[network_id])
         local fiber_strand = surface_network[network_id][strand_name]
         if fiber_strand then
@@ -158,7 +157,7 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
             end
 
             for _, hub in pairs(fiber_strand.hubs) do
-                if (hub.hub and hub.hub.valid) then hub.hub.destroy() end
+                if hub.hub.valid then hub.hub.destroy() end
             end
 
             surface_network[network_id][strand_name] = nil
@@ -252,6 +251,7 @@ function Network:updateFiberStrandConnections(network_id, fo_entity, fiber_stran
 
     -- can be nil (if called from disconnectEntity and a fiber_strand was passed in)
     local strand_name = fo_entity.state.strand_names[network_id]
+    assert(strand_name or fiber_strand)
 
     fiber_strand = assert(fiber_strand or self:locateFiberStrand(main, network_id, strand_name))
 
@@ -266,20 +266,20 @@ function Network:updateFiberStrandConnections(network_id, fo_entity, fiber_stran
                 local pin_connector = assert(iopin.get_wire_connector(circuit, true))
                 local hub_connector = assert(hub.get_wire_connector(circuit, true))
 
-                local is_connected = pin_connector.is_connected_to(hub_connector, defines.wire_origin.player) or pin_connector.is_connected_to(hub_connector, defines.wire_origin.script)
+                local is_connected = pin_connector.is_connected_to(hub_connector, defines.wire_origin.player) or
+                pin_connector.is_connected_to(hub_connector, defines.wire_origin.script)
 
                 -- only connect if the connector is enabled, a strand name is present and a connection was requested
                 if fo_entity.config.enabled and strand_name and fo_entity.config.connected_pins[circuit][idx] then
                     if not is_connected then
-                        result = true
                         pin_connector.connect_to(hub_connector, false, WIRE_TYPE)
-                    end
-                else
-                    if is_connected then
                         result = true
-                        pin_connector.disconnect_from(hub_connector, defines.wire_origin.player)
-                        pin_connector.disconnect_from(hub_connector, defines.wire_origin.script)
                     end
+                elseif is_connected then
+                    -- disconnect both player and script wires (debug mode creates player wires)
+                    pin_connector.disconnect_from(hub_connector, defines.wire_origin.player)
+                    pin_connector.disconnect_from(hub_connector, defines.wire_origin.script)
+                    result = true
                 end
             end
         end

@@ -11,4 +11,6 @@ This:init()
 
 for _, fo_entity in pairs(This.fo:getAllEntities()) do
     fo_entity.config.descriptions = fo_entity.config.descriptions or {}
+    fo_entity.state.networks = {}
+    fo_entity.networks = nil
 end
