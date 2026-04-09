@@ -197,7 +197,7 @@ function Gui.onConfirmDesc(event, gui)
 
     This.fo:setDescription(desc_args)
 
-    Gui.closeGui(event.player_index)
+    return Gui.onCloseDesc(event, gui)
 end
 
 ---@param event EventData.on_gui_text_changed

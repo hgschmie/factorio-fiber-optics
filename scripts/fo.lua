@@ -452,6 +452,11 @@ function FiberOptics:destroy(entity_id)
     local fo_entity = self:getEntity(entity_id)
     if not fo_entity then return false end
 
+    -- disconnect from fiber networks before destroying iopins
+    for _, network_id in pairs(fo_entity.state.networks) do
+        This.network:disconnectEntity(network_id, fo_entity)
+    end
+
     -- delete iopins
     for _, pin in pairs(fo_entity.iopin) do
         if (pin and pin.valid) then
@@ -683,7 +688,7 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     fo_entity.status = fo_entity.status == defines.entity_status.disabled_by_control_behavior and defines.entity_status.working or fo_entity.status
 
     -- check connected networks
-    local connection_change = true
+    local connection_change = false
     local signals = { DARK_RGB, DARK_RGB }
     local active_signals = 0
 
@@ -734,19 +739,19 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
                 min = value,
             }
         end
+
+        filters[3] = {
+            value = {
+                type = 'virtual',
+                name = 'signal-E',
+                quality = 'normal',
+            },
+            -- control through total connected signals, otherwise, if there is no power, it will flip back and forth between "disabled" and "no power"
+            min = fo_entity.config.enabled and (table_size(all_networks) > 0 and 1 or 0),
+        }
+
+        sc_section.filters = filters
     end
-
-    filters[3] = {
-        value = {
-            type = 'virtual',
-            name = 'signal-E',
-            quality = 'normal',
-        },
-        -- control through total connected signals, otherwise, if there is no power, it will flip back and forth between "disabled" and "no power"
-        min = fo_entity.config.enabled and table_size(all_networks) and 1 or 0,
-    }
-
-    sc_section.filters = filters
 
     fo_entity.state.networks = connected_networks
 end

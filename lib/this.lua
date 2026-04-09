@@ -48,6 +48,8 @@ function This:init()
     storage.ticker = {}
 end
 
+Framework.settings:add_defaults(require('lib.settings'))
+
 ---@return fo.Storage
 function This.storage()
     return assert(storage.fo_data)

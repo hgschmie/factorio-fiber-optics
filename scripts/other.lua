@@ -162,7 +162,6 @@ function Other:tick()
     if ticker.last_tick + ticks_per_entity > game.tick then return end
 
     local process_count = math.ceil(entity_count / interval)
-    local index = ticker.last_tick_index
     local context = { index = ticker.last_tick_index }
 
     local iterator = helpers.createWorkIterator {

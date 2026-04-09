@@ -713,7 +713,7 @@ function Gui.onEditDesc(event, gui)
     if not fo_entity then return end
 
     local network_id = fo_entity.state.networks[context.network_select]
-    if not network_id then return end
+    if not (network_id or tab_type == 'iopin') then return end
 
     if event.element.toggled then
         ---@type fo.FoGetSetDescriptionArgs
@@ -748,17 +748,20 @@ function Gui.onDeleteDesc(event, gui)
     local tab_type = assert(event.element.tags.type)
     local index = assert(event.element.tags.index)
 
+    ---@type fo.GuiContext
+    local context = gui.context
+
     local fo_entity = This.fo:getEntity(gui.entity_id)
     if not fo_entity then return end
 
-    ---@type fo.GuiContext
-    local context = gui.context
+    local network_id = fo_entity.state.networks[context.network_select]
+    if not (network_id or tab_type == 'iopin') then return end
 
     This.fo:setDescription {
         desc_type = tab_type,
         entity_id = gui.entity_id,
         index = index,
-        network_id = context.network_select,
+        network_id = network_id,
         desc = nil
     }
 end
