@@ -124,6 +124,7 @@ local function create_gui_fields(args)
                                 left_margin = 4,
                             },
                             sprite = 'utility/rename_icon',
+                            tooltip = { const:locale('button_edit') },
                             mouse_button_filter = { 'left' },
                             elem_mods = {
                                 auto_toggle = true,
@@ -142,6 +143,7 @@ local function create_gui_fields(args)
                                 top_margin = 1,
                             },
                             sprite = 'utility/trash',
+                            tooltip = { const:locale('button_clear') },
                             mouse_button_filter = { 'left' },
                             handler = { [defines.events.on_gui_click] = args.gui.gui_events.onDeleteDesc },
                             elem_tags = {
@@ -421,6 +423,7 @@ function Gui.getUi(gui)
                                         name = 'strand_delete',
                                         style = 'tool_button_red',
                                         sprite = 'utility/trash',
+                                        tooltip = { const:locale('button_delete') },
                                         mouse_button_filter = { 'left' },
                                         handler = { [defines.events.on_gui_click] = gui_events.onStrandDeleted },
                                     },
