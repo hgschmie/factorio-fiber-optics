@@ -175,8 +175,6 @@ function Pins:serialize(entity_id)
     }
 end
 
-local IOPIN_CAPTION = const:locale('hover_pin_caption')
-
 local IOPIN_COLOR = {
     { 1,   1,   1, },  -- none
     { 1,   0.5, 0.5 }, -- red
@@ -192,20 +190,19 @@ function Pins:displayCaption(entity, player_index)
     local iopin = self:findPin(entity.unit_number)
     if not iopin then return end
 
-    local text = {"", { IOPIN_CAPTION, iopin.index }}
     local color_index = 1
+
+    local text = { const.IOPIN_CAPTION, iopin.index }
 
     local fo_entity = This.fo:getEntity(iopin.entity_id)
     if fo_entity then
         local caption = This.fo:getCaptionForPin(fo_entity, iopin.index)
+        if caption.desc and caption.desc.title ~= '' then
+            text = { '', { const.IOPIN_CAPTION, iopin.index }, ': ', caption.desc.title }
+        end
 
         color_index = color_index + (caption.red and 1 or 0)
         color_index = color_index + (caption.green and 2 or 0)
-
-        if caption.desc then
-            table.insert(text, ': ')
-            table.insert(text, caption.desc.title)
-        end
     end
 
     Framework.render:renderText(player_index, {

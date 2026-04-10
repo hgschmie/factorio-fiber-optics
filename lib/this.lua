@@ -24,6 +24,7 @@ if script then
     This.network = require('scripts.fiber-network')
     This.gui = require('scripts.gui')
     This.desc_gui = require('scripts.desc-gui')
+    This.signal_gui = require('scripts.signal-gui')
     This.console = require('scripts.console')
 end
 

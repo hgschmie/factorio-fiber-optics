@@ -7,7 +7,6 @@ local util = require('util')
 
 local Event = require('stdlib.event.event')
 local Player = require('stdlib.event.player')
-local table = require('stdlib.utils.table')
 
 local const = require('lib.constants')
 

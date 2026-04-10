@@ -794,10 +794,6 @@ local function create_strand_items(fo_entity)
     return strand_items, strand_index or 0
 end
 
-local color_map = {
-    [defines.wire_connector_id.circuit_red] = 'red',
-    [defines.wire_connector_id.circuit_green] = 'green',
-}
 
 ---@param gui framework.gui
 ---@param gui_type fo.DescType
@@ -817,7 +813,7 @@ local function add_signals(gui, gui_type, idx, get_entity)
                     sprite = signal_converter:signal_to_sprite_name(signal),
                     number = signal.count,
                     quality = signal.signal.quality,
-                    style = color_map[connector_id] .. '_circuit_network_content_slot',
+                    style = const.COLOR_MAP[connector_id] .. '_circuit_network_content_slot',
                     tooltip = signal_converter:signal_to_prototype(signal).localised_name,
                     elem_tooltip = signal_converter:signal_to_elem_id(signal),
                     enabled = true,

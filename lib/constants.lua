@@ -100,7 +100,6 @@ Constants.max_hub_count = 16
 Constants.title_style = Constants:with_prefix('title')
 Constants.title_style_dimmed = Constants:with_prefix('title_dimmed')
 
-
 Constants.ui_signal_column_count = 8
 Constants.ui_scrollpane_width = Constants.ui_signal_column_count * 40
 Constants.ui_title_width = Constants.ui_scrollpane_width - 42
@@ -129,6 +128,18 @@ Constants.attached_entity_names = {
     Constants.led_name,
     Constants.controller_name,
 }
+
+Constants.IOPIN_CAPTION = Constants:locale('hover_pin_caption')
+
+-- Only available in runtime
+
+if script then
+    ---@type table<defines.wire_connector_id, string>
+    Constants.COLOR_MAP = {
+        [defines.wire_connector_id.circuit_red] = 'red',
+        [defines.wire_connector_id.circuit_green] = 'green',
+    }
+end
 
 --------------------------------------------------------------------------------
 -- settings
