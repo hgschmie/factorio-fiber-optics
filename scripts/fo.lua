@@ -745,7 +745,7 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
                 quality = 'normal',
             },
             -- control through total connected signals, otherwise, if there is no power, it will flip back and forth between "disabled" and "no power"
-            min = fo_entity.config.enabled and (table_size(all_networks) > 0 and 1 or 0),
+            min = (fo_entity.config.enabled and table_size(all_networks) > 0) and 1 or 0,
         }
 
         sc_section.filters = filters

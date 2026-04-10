@@ -74,7 +74,7 @@ local function create_fiber_strand(surface_index, force_id, strand_index)
             hub = surface.create_entity {
                 name = HUB_ENTITY_NAME,
                 -- spread out for debugging visibility
-                position = { x = idx * 4, y = strand_index * 4 },
+                position = DEBUG_MODE and { x = idx * 4, y = strand_index * 4 } or { x = 0, y = 0 },
                 force = force,
             },
         }

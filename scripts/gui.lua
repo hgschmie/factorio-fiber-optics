@@ -692,7 +692,7 @@ function Gui.onToggleAllWires(event, gui)
     end
 
     for idx = 1, const.max_pin_count do
-        fo_entity.config.connected_pins[element.tags.wire_connector_id][idx] = (count < 8)
+        fo_entity.config.connected_pins[element.tags.wire_connector_id][idx] = (count < (const.max_pin_count / 2))
     end
 end
 
