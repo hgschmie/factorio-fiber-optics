@@ -92,11 +92,14 @@ end
 ---@param surface_index integer
 ---@param force_id integer
 ---@param network_id integer
----@return fo.FiberNetwork
-function Network:getOrCreateFiberNetwork(surface_index, force_id, network_id)
+---@param create boolean?
+---@return fo.FiberNetwork?
+function Network:getOrCreateFiberNetwork(surface_index, force_id, network_id, create)
     local surface_network = self:locateSurfaceNetwork(surface_index)
 
     if not surface_network[network_id] then
+        if not create then return nil end
+
         debug_print('Create Network', function()
             return ('Creating surface network %d on surface %d'):format(network_id, surface_index)
         end)
@@ -113,13 +116,16 @@ end
 ---@param entity LuaEntity
 ---@param network_id integer
 ---@param strand_name string
+---@param create boolean?
 ---@return fo.FiberNetwork? fiber_network
-function Network:locateFiberStrand(entity, network_id, strand_name)
+function Network:locateFiberStrand(entity, network_id, strand_name, create)
     if not strand_name then return nil end
 
     local surface_index = entity.surface_index
 
-    local fiber_network = self:getOrCreateFiberNetwork(surface_index, entity.force_index, network_id)
+    local fiber_network = self:getOrCreateFiberNetwork(surface_index, entity.force_index, network_id, create)
+
+    if not fiber_network then return nil end
 
     if not fiber_network[strand_name] then
         debug_print('Create Fiber Strand', function()
@@ -127,7 +133,9 @@ function Network:locateFiberStrand(entity, network_id, strand_name)
         end)
     end
 
-    fiber_network[strand_name] = fiber_network[strand_name] or create_fiber_strand(surface_index, entity.force_index, table_size(fiber_network))
+    if create then
+        fiber_network[strand_name] = fiber_network[strand_name] or create_fiber_strand(surface_index, entity.force_index, table_size(fiber_network))
+    end
 
     return fiber_network[strand_name]
 end
@@ -145,8 +153,7 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
     local entities_to_update = {}
 
     for _, network_id in pairs(fo_entity.state.networks) do
-        assert(surface_network[network_id])
-        local fiber_strand = surface_network[network_id][strand_name]
+        local fiber_strand = surface_network[network_id] and surface_network[network_id][strand_name]
         if fiber_strand then
             for _, endpoint in pairs(fiber_strand.endpoints) do
                 if endpoint.valid then
@@ -196,7 +203,7 @@ function Network:connectEntity(network_id, fo_entity)
     local main = fo_entity.main
     if not (main and main.valid) then return false end
 
-    local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.config.strand_name)
+    local fiber_strand = self:locateFiberStrand(main, network_id, fo_entity.config.strand_name, true)
     if not fiber_strand then return false end
 
     -- register as endpoint
@@ -222,15 +229,16 @@ function Network:disconnectEntity(network_id, fo_entity)
     if not (main and main.valid) then return false end
 
     local strand_name = fo_entity.state.strand_names[network_id]
+    fo_entity.state.strand_names[network_id] = nil
 
-    local fiber_strand = self:locateFiberStrand(main, network_id, strand_name)
+    -- if the network is gone, don't bother with the fiber strand
+    local fiber_strand = self:locateFiberStrand(main, network_id, strand_name, false)
     if not fiber_strand then return false end
 
     if not fiber_strand.endpoints[main.unit_number] then return false end
 
     fiber_strand.endpoints[main.unit_number] = nil
     fiber_strand.endpoint_count = fiber_strand.endpoint_count - 1
-    fo_entity.state.strand_names[network_id] = nil
 
     self:updateFiberStrandConnections(network_id, fo_entity, fiber_strand)
 
@@ -253,7 +261,7 @@ function Network:updateFiberStrandConnections(network_id, fo_entity, fiber_stran
     local strand_name = fo_entity.state.strand_names[network_id]
     assert(strand_name or fiber_strand)
 
-    fiber_strand = assert(fiber_strand or self:locateFiberStrand(main, network_id, strand_name))
+    fiber_strand = assert(fiber_strand or self:locateFiberStrand(main, network_id, strand_name, true))
 
     local result = false
     -- wire each IO pin to its corresponding hub
@@ -266,8 +274,7 @@ function Network:updateFiberStrandConnections(network_id, fo_entity, fiber_stran
                 local pin_connector = assert(iopin.get_wire_connector(circuit, true))
                 local hub_connector = assert(hub.get_wire_connector(circuit, true))
 
-                local is_connected = pin_connector.is_connected_to(hub_connector, defines.wire_origin.player) or
-                pin_connector.is_connected_to(hub_connector, defines.wire_origin.script)
+                local is_connected = pin_connector.is_connected_to(hub_connector, defines.wire_origin.player) or pin_connector.is_connected_to(hub_connector, defines.wire_origin.script)
 
                 -- only connect if the connector is enabled, a strand name is present and a connection was requested
                 if fo_entity.config.enabled and strand_name and fo_entity.config.connected_pins[circuit][idx] then

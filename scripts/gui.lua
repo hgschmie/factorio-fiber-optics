@@ -780,9 +780,11 @@ local function create_strand_items(fo_entity)
 
     local entity = fo_entity.main
     for _, network_id in pairs(fo_entity.state.networks) do
-        local network = This.network:getOrCreateFiberNetwork(entity.surface_index, entity.force_index, network_id)
-        for strand_name in pairs(network) do
-            strands[strand_name] = true
+        local network = This.network:getOrCreateFiberNetwork(entity.surface_index, entity.force_index, network_id, false)
+        if network then
+            for strand_name in pairs(network) do
+                strands[strand_name] = true
+            end
         end
     end
 
@@ -920,7 +922,7 @@ local gui_pane = {
 
             local strand_name = fo_entity.state.strand_names[network_id]
             ---@type fo.FiberStrand
-            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name, false)
             if not fiber_strand then return self.clear(gui) end
 
             -- color signal display

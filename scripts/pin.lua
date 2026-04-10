@@ -175,7 +175,7 @@ function Pins:serialize(entity_id)
     }
 end
 
-local IOPIN_CAPTION = const:locale('iopin_caption')
+local IOPIN_CAPTION = const:locale('hover_pin_caption')
 
 local IOPIN_COLOR = {
     { 1,   1,   1, },  -- none
@@ -203,7 +203,7 @@ function Pins:displayCaption(entity, player_index)
         color_index = color_index + (caption.green and 2 or 0)
 
         if caption.desc then
-            table.insert(text, ' - ')
+            table.insert(text, ': ')
             table.insert(text, caption.desc.title)
         end
     end

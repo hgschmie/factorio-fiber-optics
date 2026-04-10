@@ -102,7 +102,7 @@ function FiberOptics:getDescription(args)
         local strand_name = fo_entity.state.strand_names[args.network_id]
 
         ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name)
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name, false)
         if not fiber_strand then return end
         return fiber_strand.hubs[args.index].description
     end
@@ -131,7 +131,7 @@ function FiberOptics:getCaptionForPin(fo_entity, idx)
     for _, network_id in pairs(fo_entity.state.networks) do
         local strand_name = fo_entity.state.strand_names[network_id]
         ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name)
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name, false)
         if fiber_strand then
             caption.desc = fiber_strand.hubs[idx].description
             if caption.desc then
@@ -156,7 +156,7 @@ function FiberOptics:setDescription(args)
         local strand_name = fo_entity.state.strand_names[args.network_id]
 
         ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name)
+        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name, false)
         if not fiber_strand then return end
         fiber_strand.hubs[args.index].description = args.desc
     end
@@ -690,7 +690,6 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     -- check connected networks
     local connection_change = false
     local signals = { DARK_RGB, DARK_RGB }
-    local active_signals = 0
 
     local all_networks = get_connected_networks(fo_entity.internal.powerpole)
     -- if the unit is in red status, disconnect all networks
@@ -713,7 +712,6 @@ function FiberOptics:updateEntityStatus(fo_entity, force_reconnect)
     -- or if reconnection is forced.
     for idx, network_id in pairs(connected_networks) do
         signals[idx] = fo_entity.config.enabled and GREEN_RGB or RED_RGB
-        active_signals = active_signals + 1
         connection_change = This.network:connectEntity(network_id, fo_entity) or connection_change -- do not flip around, otherwise connectEntity is not called
 
         if fo_entity.state.strand_names[network_id] then
