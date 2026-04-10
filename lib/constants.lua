@@ -99,6 +99,7 @@ Constants.max_hub_count = 16
 
 Constants.title_style = Constants:with_prefix('title')
 Constants.title_style_dimmed = Constants:with_prefix('title_dimmed')
+Constants.pin_table_style = Constants:with_prefix('pin_table')
 
 Constants.ui_signal_column_count = 8
 Constants.ui_scrollpane_width = Constants.ui_signal_column_count * 40

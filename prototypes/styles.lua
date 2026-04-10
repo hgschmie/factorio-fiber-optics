@@ -18,3 +18,14 @@ styles[const:with_prefix('title_dimmed')] = {
     parent = const:with_prefix('title'),
     font_color = gui_color.grey
 }
+
+styles[const:with_prefix('pin_table')] = {
+    type = 'table_style',
+    parent = 'table',
+    margin = 4,
+    cell_padding = 2,
+    column_alignments = {
+        { column = 1, alignment = 'top-left' },
+        { column = 2, alignment = 'top-left' },
+    },
+}

@@ -95,6 +95,10 @@ local function create_gui_fields(args)
         result[i] = {
             type = 'flow',
             direction = 'vertical',
+            style_mods = {
+                vertical_align = 'top',
+                vertically_stretchable = true,
+            },
             children = {
                 {
                     type = 'flow',
@@ -224,13 +228,9 @@ local function create_tab(args)
     local tab_children = {
         {
             type = 'table',
-            style = 'table',
+            style = const.pin_table_style,
             name = args.tab_type,
             column_count = 2,
-            style_mods = {
-                margin = 4,
-                cell_padding = 2,
-            },
             children = create_gui_fields(args),
         },
     }
