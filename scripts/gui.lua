@@ -1113,7 +1113,7 @@ end
 ---@return boolean
 function Gui.guiUpdater(gui)
     local fo_entity = This.fo:getEntity(gui.entity_id)
-    if not fo_entity then return false end
+    if not (fo_entity and fo_entity.main.valid) then return false end
 
     ---@type fo.GuiContext
     local context = gui.context

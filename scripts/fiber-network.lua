@@ -59,6 +59,16 @@ function Network:locateSurfaceNetwork(surface_index)
 end
 
 ---@param surface_index integer
+function Network:deleteSurfaceNetwork(surface_index)
+    local all_surface_networks = self:allSurfaceNetworks()
+    if not all_surface_networks[surface_index] then return end
+    for _, fiber_network in pairs(all_surface_networks[surface_index]) do
+        self:destroyNetwork(fiber_network)
+    end
+    all_surface_networks[surface_index] = nil
+end
+
+---@param surface_index integer
 ---@param force_id integer
 ---@param strand_index integer
 ---@return fo.FiberStrand fiber_strand
@@ -157,9 +167,11 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
         if fiber_strand then
             for _, endpoint in pairs(fiber_strand.endpoints) do
                 if endpoint.valid then
-                    local endpoint_entity = assert(This.fo:getEntity(endpoint.unit_number))
-                    endpoint_entity.state.strand_names[network_id] = nil
-                    entities_to_update[endpoint.unit_number] = true
+                    local endpoint_entity = This.fo:getEntity(endpoint.unit_number)
+                    if endpoint_entity then
+                        endpoint_entity.state.strand_names[network_id] = nil
+                        entities_to_update[endpoint.unit_number] = true
+                    end
                 end
             end
 

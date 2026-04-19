@@ -385,11 +385,11 @@ function FiberOptics:create(cfg)
         }
 
         if not entity then
-            entity = self:createInternal {
+            entity = assert(self:createInternal {
                 main = fo_entity.main,
                 name = internal_cfg.name,
                 pos = pos,
-            }
+            })
         end
 
         fo_entity.internal[internal_cfg.id] = entity

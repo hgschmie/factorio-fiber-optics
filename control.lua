@@ -148,6 +148,15 @@ local function on_object_destroyed(event)
 end
 
 --------------------------------------------------------------------------------
+-- Surface changes
+--------------------------------------------------------------------------------
+
+---@param event EventData.on_surface_cleared|EventData.on_surface_deleted
+local function on_surface_deleted(event)
+    This.network:deleteSurfaceNetwork(event.surface_index)
+end
+
+--------------------------------------------------------------------------------
 -- rotation
 --------------------------------------------------------------------------------
 
@@ -276,6 +285,9 @@ local function register_events()
     -- rotation and flipping
     Event.register(defines.events.on_player_rotated_entity, on_player_rotated_entity, main_entity_matcher)
     Event.register(defines.events.on_player_flipped_entity, on_player_flipped_entity, main_entity_matcher)
+
+    -- Surface management
+    Event.register({ defines.events.on_surface_cleared, defines.events.on_surface_deleted }, on_surface_deleted)
 
     -- ticker code
     Event.register(defines.events.on_tick, on_tick)
