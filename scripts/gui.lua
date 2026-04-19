@@ -721,10 +721,14 @@ function Gui.onEditDesc(event, gui)
     if event.element.toggled then
         ---@type fo.FoGetSetDescriptionArgs
         local desc_args = {
-            entity_id = gui.entity_id,
             desc_type = tab_type,
-            network_id = network_id,
-            index = index
+            index = index,
+            entity_id = gui.entity_id,
+            network_args = {
+                surface_index = fo_entity.main.surface_index,
+                network_id = network_id,
+                strand_name = fo_entity.config.strand_name,
+            }
         }
 
         local desc = This.fo:getDescription(desc_args)
@@ -762,9 +766,13 @@ function Gui.onDeleteDesc(event, gui)
 
     This.fo:setDescription {
         desc_type = tab_type,
-        entity_id = gui.entity_id,
         index = index,
-        network_id = network_id,
+        entity_id = gui.entity_id,
+        network_args = {
+            surface_index = fo_entity.main.surface_index,
+            network_id = network_id,
+            strand_name = fo_entity.config.strand_name,
+        },
         desc = nil
     }
 end
@@ -783,7 +791,11 @@ local function create_strand_items(fo_entity)
 
     local entity = fo_entity.main
     for _, network_id in pairs(fo_entity.state.networks) do
-        local network = This.network:getOrCreateFiberNetwork(entity.surface_index, entity.force_index, network_id, false)
+        local network = This.network:getOrCreateFiberNetwork {
+            surface_index = entity.surface_index,
+            network_id = network_id
+        }
+
         if network then
             for strand_name in pairs(network) do
                 strands[strand_name] = true
@@ -921,7 +933,12 @@ local gui_pane = {
 
             local strand_name = fo_entity.state.strand_names[network_id]
             ---@type fo.FiberStrand
-            local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name, false)
+            local fiber_strand = This.network:locateFiberStrand {
+                surface_index = fo_entity.main.surface_index,
+                network_id = network_id,
+                strand_name = strand_name
+            }
+
             if not fiber_strand then return self.clear(gui) end
 
             -- color signal display

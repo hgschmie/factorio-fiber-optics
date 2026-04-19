@@ -73,14 +73,6 @@ end
 -- manage descriptions
 ------------------------------------------------------------------------
 
----@class fo.FoGetSetDescriptionArgs
----@field entity_id integer
----@field desc_type fo.DescType
----@field network_id integer?
----@field index integer
----@field desc fo.Description?
-
-
 ---@param networks integer[]
 ---@param network_id integer
 ---@return boolean
@@ -89,22 +81,40 @@ local function has_network(networks, network_id)
     return networks[1] == network_id or networks[2] == network_id
 end
 
+---@class fo.FoGetSetDescriptionArgs
+---@field desc_type fo.DescType
+---@field index integer
+---@field entity_id integer?
+---@field network_args fo.FiberNetworkArgs?
+---@field desc fo.Description?
+
 ---@param args fo.FoGetSetDescriptionArgs
 ---@return fo.Description?
 function FiberOptics:getDescription(args)
-    local fo_entity = self:getEntity(args.entity_id)
-    if not fo_entity then return end
-
     if args.desc_type == 'iopin' then
-        return fo_entity.config.descriptions[args.index]
+        local fo_entity = self:getEntity(args.entity_id)
+        return fo_entity and fo_entity.config.descriptions[args.index] or nil
     else
-        if not (args.network_id and has_network(fo_entity.state.networks, args.network_id)) then return end
-        local strand_name = fo_entity.state.strand_names[args.network_id]
-
         ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name, false)
+        local fiber_strand = This.network:locateFiberStrand(args.network_args)
         if not fiber_strand then return end
+
         return fiber_strand.hubs[args.index].description
+    end
+end
+
+---@param args fo.FoGetSetDescriptionArgs
+function FiberOptics:setDescription(args)
+    if args.desc_type == 'iopin' then
+        local fo_entity = self:getEntity(args.entity_id)
+        if not fo_entity then return end
+        fo_entity.config.descriptions[args.index] = args.desc
+    else
+        ---@type fo.FiberStrand
+        local fiber_strand = This.network:locateFiberStrand(args.network_args)
+        if not fiber_strand then return end
+
+        fiber_strand.hubs[args.index].description = args.desc
     end
 end
 
@@ -131,7 +141,12 @@ function FiberOptics:getCaptionForPin(fo_entity, idx)
     for _, network_id in pairs(fo_entity.state.networks) do
         local strand_name = fo_entity.state.strand_names[network_id]
         ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, network_id, strand_name, false)
+        local fiber_strand = This.network:locateFiberStrand {
+            surface_index = fo_entity.main.surface_index,
+            network_id = network_id,
+            strand_name = strand_name
+        }
+
         if fiber_strand then
             caption.desc = fiber_strand.hubs[idx].description
             if caption.desc then
@@ -142,24 +157,6 @@ function FiberOptics:getCaptionForPin(fo_entity, idx)
     end
 
     return caption
-end
-
----@param args fo.FoGetSetDescriptionArgs
-function FiberOptics:setDescription(args)
-    local fo_entity = self:getEntity(args.entity_id)
-    if not fo_entity then return end
-
-    if args.desc_type == 'iopin' then
-        fo_entity.config.descriptions[args.index] = args.desc
-    else
-        if not (args.network_id and has_network(fo_entity.state.networks, args.network_id)) then return end
-        local strand_name = fo_entity.state.strand_names[args.network_id]
-
-        ---@type fo.FiberStrand
-        local fiber_strand = This.network:locateFiberStrand(fo_entity.main, args.network_id, strand_name, false)
-        if not fiber_strand then return end
-        fiber_strand.hubs[args.index].description = args.desc
-    end
 end
 
 ------------------------------------------------------------------------
