@@ -394,7 +394,8 @@ function FiberOptics:create(cfg)
 
     -- configure entities
 
-    fo_entity.internal.powerpole.operable = true
+    -- change when power switch GUI adheres to distance rules
+    fo_entity.internal.powerpole.operable = false
 
     -- power switch
     local pp_control = assert(fo_entity.internal.powerpole.get_or_create_control_behavior()) --[[@as LuaGenericOnOffControlBehavior ]]
