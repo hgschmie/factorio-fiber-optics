@@ -156,11 +156,21 @@ The main use case for having two network connections is to provide continuous da
 
 ![image12](https://raw.githubusercontent.com/hgschmie/factorio-fiber-optics/main/.portal/foc-12.gif)
 
+## Migrating from Version 1.x.x
+
+This is a full rewrite of the original Fiber Optics mod. The original code was my first attempt at writing a mod and it showed. The new code is simplified when handling the various entities and now offers a full GUI to control connector behavior.
+
+Saves that use a very old version of the mod (before Mod version 1.1.0 or Factorio 2.0) must be migrated to 1.2.2 first. Migrating directly to Version 2.x.x might fail with an error `This is an extremely old save. Migrate it to Factorio 2.0 first by using the latest fiber-optics 1.x release.`. In this case, install Fiber Optics 1.2.2 from the mod portal, migrate to that version first and then migrate to 2.x.x. This should rarely be needed.
+
+When opening an older save with Version 2.0.0 for the first time, the game will show a "Migrated Content" dialog:
+
+![image13](https://raw.githubusercontent.com/hgschmie/factorio-fiber-optics/main/.portal/foc-13.png)
+
+This is normal and the migrated connectors will work after confirming the dialog.
+
 ## Background
 
-Did you know that modern power cables have a fiber core? [Optical Fiber Composite Phase Wire (OPPC)](https://teletechnonet.com/en/products/networking/fibra-optica/optical-fiber-composite-phase-wire-oppc) is a real thing. Factorio actually uses such cables in-game. So every power cable that was ever placed in your factory has a number of optical fibers in it. And the Fiber Optics connector makes those available for signal transfer.
-
-This mod supports Picker Dollies; when moving the connector, all related entities will be moved with it.
+Did you know that modern power cables have a fiber core? [Optical Fiber Composite Phase Wire (OPPC)](https://teletechnonet.com/en/products/networking/fibra-optica/optical-fiber-composite-phase-wire-oppc) is a real thing. Factorio actually uses such cables in-game. So every power cable that was ever placed in your factory has a optical fibers in it. And the Fiber Optics connector makes those available for signal transfer.
 
 ## Credits / Acknowledgements
 

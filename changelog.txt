@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Date: ????-??-??
-  Features:
-    - Started rewrite
+  Major Features:
+    - This is a full rewrite of the Fiber Optics mod. While it still looks the same, almost all of the code is new.
+    - Adds a GUI for all connectors
+    - Adds a Signal GUI when hovering over a Pin
 ---------------------------------------------------------------------------------------------------
 Version: 1.2.2
 Date: 2025-09-13
