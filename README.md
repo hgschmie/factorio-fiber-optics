@@ -113,9 +113,21 @@ How often each Fiber connector is checked for new or changed power connections. 
 
 How often each power network is checked for removed or invalid connectors. This is internal housekeeping and debugging only. Settings this to low values will affect FPS. The default (60 ticks = 1 second) should for almost any game.
 
-## Debugging Mode (Startup, Default: off)
+### Debugging Mode (Startup, Default: off)
 
 Makes the fiber connection Hubs visible and draws wires from each connector to the hubs. Only turn on for debugging, preferably in a separate game to find problems.
+
+## Console Commands
+
+### /fiber-optics-resync-networks - Update all Fiber network connections
+
+Rebuilds the Fiber network connections of all Fiber Optics connectors. Fixes any connector that has a "dangling" network connection or is not connected to a power network even though it has a copper connection. Rarely used, often for debugging or fixing some weird connector state.
+
+### /fiber-optics-prune-networks - Remove all fiber networks without corresponding power network
+
+As mentioned above, as soon as a Fiber Optics connector is hooked up to a power network, the corresponding fibers are organized in a fiber network. This exists as long as there is at least one power pole representing that network. When the last power pole is removed, the power network is deleted and will never be reused. But the corresponding internal state for the fiber network is still stored. This is a small amount of data but it can compound over time, especially when many small networks are created and deleted. Running this command finds all fiber networks for whom no power network exists and deletes those.
+
+This is not automated as finding all power networks is relatively expensive (for a medium sized surface it can take 80-100ms) and might lead to a short FPS drop when the command is run.
 
 ## Blueprinting
 
