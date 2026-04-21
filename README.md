@@ -142,7 +142,9 @@ If you load an old (pre-2.0) blueprint, it will substitute:
 
 The main use case for having two network connections is to provide continuous data connections across a power switch. Power switches break the fiber connections. If signals need to cross a power switch, connect one wire to each side of the power switch (the fiber optics connector does not transfer energy!).
 
-![screenshot2](https://raw.githubusercontent.com/hgschmie/factorio-fiber-optics/main/.portal/screenshot-2.png)
+![image12](https://raw.githubusercontent.com/hgschmie/factorio-fiber-optics/main/.portal/foc-12.gif)
+
+(This is an image using the pre-2.0 version of the Fiber Optics connector. The status LEDs look different now)
 
 ## Background
 
