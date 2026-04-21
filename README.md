@@ -144,8 +144,6 @@ The main use case for having two network connections is to provide continuous da
 
 ![image12](https://raw.githubusercontent.com/hgschmie/factorio-fiber-optics/main/.portal/foc-12.gif)
 
-(This is an image using the pre-2.0 version of the Fiber Optics connector. The status LEDs look different now)
-
 ## Background
 
 Did you know that modern power cables have a fiber core? [Optical Fiber Composite Phase Wire (OPPC)](https://teletechnonet.com/en/products/networking/fibra-optica/optical-fiber-composite-phase-wire-oppc) is a real thing. Factorio actually uses such cables in-game. So every power cable that was ever placed in your factory has a number of optical fibers in it. And the Fiber Optics connector makes those available for signal transfer.

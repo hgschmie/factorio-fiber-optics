@@ -8,12 +8,18 @@
   "homepage": "https://github.com/hgschmie/factorio-fiber-optics",
   "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.0.36"
+    "base >= 2.0.70"
   ],
   "package": {
     "git_publish_branch": "main",
-    "readme": ".portal/README",
-    "gallery": [ ".portal/screenshot-1.png", ".portal/screenshot-2.png" ],
+    "readme": "README.md",
+    "gallery": [ 
+      ".portal/foc-1.png", 
+      ".portal/foc-animation-1.gif", 
+      ".portal/foc-2.png", 
+      ".portal/foc-3.png", 
+      ".portal/foc-12.gif" 
+    ],
     "sync_portal_details": true
   }
 }
