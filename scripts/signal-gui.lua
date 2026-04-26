@@ -91,14 +91,14 @@ function Gui.guiUpdater(gui)
     end
 
     -- update label
-    local pin_label = assert(gui:find_element('pin_label'))
+    local pin_label = assert(gui:findElement('pin_label'))
     pin_label.caption = text
 
     -- update signals
-    local red_signal_table = assert(gui:find_element('red_signal_table'))
+    local red_signal_table = assert(gui:findElement('red_signal_table'))
     red_signal_table.clear()
 
-    local green_signal_table = assert(gui:find_element('green_signal_table'))
+    local green_signal_table = assert(gui:findElement('green_signal_table'))
     green_signal_table.clear()
 
     local table_map = {

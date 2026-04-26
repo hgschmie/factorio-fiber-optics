@@ -200,20 +200,25 @@ function Gui.onConfirmDesc(event, gui)
 end
 
 ---@param event EventData.on_gui_text_changed
+---@param gui framework.gui
 function Gui.onDescBodyChanged(event, gui)
     ---@type fo.DescGuiContext
     local context = gui.context
     context.desc.body = event.text
 end
 
+---@param event EventData.on_gui_text_changed
+---@param gui framework.gui
 function Gui.onDescTitleChanged(event, gui)
     ---@type fo.DescGuiContext
     local context = gui.context
     context.desc.title = event.text
 end
 
+---@param event EventData.on_gui_confirmed
+---@param gui framework.gui
 function Gui.onDescTitleConfirmed(event, gui)
-    local body = assert(gui:find_element('desc_body'))
+    local body = assert(gui:findElement('desc_body'))
     body.focus()
 end
 
@@ -257,7 +262,7 @@ function Gui.openGui(player, desc_args, button)
 
     player.opened = gui.root
 
-    local title = assert(gui:find_element('desc_title'))
+    local title = assert(gui:findElement('desc_title'))
     title.focus()
 end
 

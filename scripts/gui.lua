@@ -596,7 +596,7 @@ function Gui.onStrandDeleted(event, gui)
     local fo_entity = This.fo:getEntity(gui.entity_id)
     if not fo_entity then return end
 
-    local strand_select = assert(gui:find_element('strand_select'))
+    local strand_select = assert(gui:findElement('strand_select'))
     if strand_select.selected_index < 1 then return end
 
     local strand_name = strand_select.items[strand_select.selected_index]
@@ -815,7 +815,7 @@ end
 ---@param idx integer
 ---@param get_entity fun(): LuaEntity
 local function add_signals(gui, gui_type, idx, get_entity)
-    local gui_element = assert(gui:find_element((gui_type .. '-view-%d'):format(idx)))
+    local gui_element = assert(gui:findElement((gui_type .. '-view-%d'):format(idx)))
     gui_element.clear()
 
     local signal_count = 0
@@ -843,7 +843,7 @@ end
 ---@param gui_type fo.DescType
 ---@param idx integer
 local function clear_signals(gui, gui_type, idx)
-    local gui_element = assert(gui:find_element((gui_type .. '-view-%d'):format(idx)))
+    local gui_element = assert(gui:findElement((gui_type .. '-view-%d'):format(idx)))
     gui_element.clear()
 end
 
@@ -859,30 +859,30 @@ local function update_gui(gui, fo_entity)
     local fo_config = fo_entity.config
 
     local enabled = fo_config.enabled
-    local on_off = gui:find_element('on-off')
+    local on_off = gui:findElement('on-off')
     on_off.switch_state = values_on_off[enabled]
 
     local strand_items, strand_index = create_strand_items(fo_entity)
 
-    local strand_select = assert(gui:find_element('strand_select'))
+    local strand_select = assert(gui:findElement('strand_select'))
     strand_select.items = strand_items
     strand_select.selected_index = assert(strand_index)
 
-    local strand_delete = gui:find_element('strand_delete')
+    local strand_delete = gui:findElement('strand_delete')
     strand_delete.enabled = strand_items[strand_index] ~= 'default'
 
     ---@type fo.GuiContext
     local context = gui.context
 
-    local strand_text = assert(gui:find_element('strand_text'))
+    local strand_text = assert(gui:findElement('strand_text'))
     if strand_text.text ~= context.new_strand_name then
         strand_text.text = context.new_strand_name
     end
 
-    local main_tab = assert(gui:find_element('main_tab'))
+    local main_tab = assert(gui:findElement('main_tab'))
     main_tab.selected_tab_index = context.gui_tab == 'iopin' and 1 or 2
 
-    local network_select = assert(gui:find_element('network_select'))
+    local network_select = assert(gui:findElement('network_select'))
     if table_size(fo_entity.state.networks) > 0 then
         -- items before selected_index, otherwise you win an "Index out of range." exception.
         network_select.items = fo_entity.state.networks
@@ -894,8 +894,8 @@ local function update_gui(gui, fo_entity)
     end
 
     for idx = 1, const.max_pin_count do
-        local red_wire_enable = assert(gui:find_element('enable-signals_red_' .. idx))
-        local green_wire_enable = assert(gui:find_element('enable-signals_green_' .. idx))
+        local red_wire_enable = assert(gui:findElement('enable-signals_red_' .. idx))
+        local green_wire_enable = assert(gui:findElement('enable-signals_green_' .. idx))
 
         red_wire_enable.state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_red][idx]
         green_wire_enable.state = fo_entity.config.connected_pins[defines.wire_connector_id.circuit_green][idx]
@@ -915,7 +915,7 @@ local gui_pane = {
                 add_signals(gui, 'iopin', idx, function() return fo_entity.iopin[idx] end)
 
                 local caption = This.fo:getCaptionForPin(fo_entity, idx)
-                local gui_desc = assert(gui:find_element('desc_text_iopin' .. idx))
+                local gui_desc = assert(gui:findElement('desc_text_iopin' .. idx))
 
                 gui_desc.style = caption.style
                 gui_desc.caption = caption.desc and caption.desc.title or ''
@@ -948,7 +948,7 @@ local gui_pane = {
                 end)
 
                 local desc = fiber_strand.hubs[idx].description
-                local gui_desc = assert(gui:find_element('desc_text_color' .. idx))
+                local gui_desc = assert(gui:findElement('desc_text_color' .. idx))
                 gui_desc.caption = desc and desc.title or ''
                 gui_desc.tooltip = desc and desc.body or ''
             end
@@ -957,7 +957,7 @@ local gui_pane = {
             for idx = 1, const.max_hub_count do
                 clear_signals(gui, 'color', idx)
 
-                local gui_desc = assert(gui:find_element('desc_text_color' .. idx))
+                local gui_desc = assert(gui:findElement('desc_text_color' .. idx))
                 gui_desc.caption = ''
                 gui_desc.tooltip = ''
             end
@@ -970,14 +970,14 @@ local gui_pane = {
 ---@param enabled boolean
 local function control_strand_elements(gui, enabled)
     if not enabled then
-        local network_select = assert(gui:find_element('network_select'))
+        local network_select = assert(gui:findElement('network_select'))
         network_select.enabled = false
     end
 
     for idx = 1, const.max_hub_count do
-        local edit_button = assert(gui:find_element('edit_color' .. idx))
+        local edit_button = assert(gui:findElement('edit_color' .. idx))
         edit_button.enabled = enabled
-        local delete_button = assert(gui:find_element('delete_color' .. idx))
+        local delete_button = assert(gui:findElement('delete_color' .. idx))
         delete_button.enabled = enabled
     end
 end
@@ -1006,15 +1006,15 @@ local function refresh_gui(gui, fo_entity)
         entity_status = defines.entity_status.disabled
     end
 
-    local lamp = gui:find_element('status-lamp')
+    local lamp = gui:findElement('status-lamp')
     lamp.sprite = tools.STATUS_SPRITES[entity_status] or tools.STATUS_LEDS.RED
 
-    local status = gui:find_element('status-label')
+    local status = gui:findElement('status-label')
     status.caption = entity_status and { tools.STATUS_NAMES[entity_status] } or { 'gui-control-behavior.not-connected' }
 
     -- wire connections
-    local connections = gui:find_element('connections')
-    local connection_wire = gui:find_element('connection-wires')
+    local connections = gui:findElement('connections')
+    local connection_wire = gui:findElement('connection-wires')
 
     ---@type fo.GuiContext
     local context = gui.context
