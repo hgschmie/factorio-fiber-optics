@@ -22,7 +22,6 @@ local Gui = {
 ---@return framework.gui_manager.event_definition
 local function get_gui_event_definition()
     return {
-        events = {},
         callback = Gui.guiUpdater,
     }
 end
@@ -75,9 +74,9 @@ function Gui.guiUpdater(gui)
     local entity = player.selected
     if not (entity and entity.valid) then return false end
 
-    ---@type fo.IoPin
-    local iopin = This.pin:findPin(entity.unit_number)
-    if not iopin then return false end
+    ---@type fo.SignalGuiContext
+    local context = gui.context
+    local iopin = context.iopin
 
     local text = { const.IOPIN_CAPTION, iopin.index }
 
@@ -136,20 +135,26 @@ end
 ----------------------------------------------------------------------------------------------------
 
 ---@param player LuaPlayer
-function Gui.openGui(player)
-    Framework.gui_manager:create_gui {
+---@param iopin fo.IoPin
+function Gui.openGui(player, iopin)
+    Framework.gui_manager:createGui {
         type = Gui.SIGNAL_GUI_NAME,
         player_index = player.index,
         parent = player.gui.left,
         ui_tree_provider = Gui.getUi,
-        context = {},
+        ---@class fo.SignalGuiContext
+        ---@field iopin fo.IoPin
+        context = {
+            iopin = iopin,
+        },
+        entity_id = iopin.entity_id,
         retain_open_guis = true,
     }
 end
 
 ---@param player_index integer
 function Gui.closeGui(player_index)
-    Framework.gui_manager:destroy_gui(player_index, Gui.SIGNAL_GUI_NAME)
+    Framework.gui_manager:destroyGui(player_index, Gui.SIGNAL_GUI_NAME)
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -162,15 +167,18 @@ local function on_selected_entity_changed(event)
     if not player then return end
 
     local entity = player.selected
-    if entity and entity.valid and This.pin:findPin(entity.unit_number) then
-        Gui.openGui(player)
+    if entity and entity.valid then
+        local iopin = This.pin:findPin(entity.unit_number)
+        if iopin then
+            Gui.openGui(player, iopin)
+        end
     else
         Gui.closeGui(event.player_index)
     end
 end
 
 local function init_gui()
-    Framework.gui_manager:register_gui_type(Gui.SIGNAL_GUI_NAME, get_gui_event_definition())
+    Framework.gui_manager:registerGuiType(Gui.SIGNAL_GUI_NAME, get_gui_event_definition())
     Event.on_event(defines.events.on_selected_entity_changed, on_selected_entity_changed)
 end
 

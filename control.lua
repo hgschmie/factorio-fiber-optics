@@ -129,7 +129,7 @@ local function on_entity_deleted(event)
     if not (entity and entity.valid) then return end
 
     if This.fo:destroy(entity.unit_number) then
-        Framework.gui_manager:destroy_gui_by_entity_id(entity.unit_number)
+        Framework.gui_manager:destroyGuiByEntityId(entity.unit_number)
     end
 
     This.pin:deletePin(entity.unit_number)
@@ -143,7 +143,7 @@ end
 ---@param event EventData.on_object_destroyed
 local function on_object_destroyed(event)
     if This.fo:destroy(event.useful_id) then
-        Framework.gui_manager:destroy_gui_by_entity_id(event.useful_id)
+        Framework.gui_manager:destroyGuiByEntityId(event.useful_id)
     end
 end
 

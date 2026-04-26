@@ -174,14 +174,14 @@ end
 ---@param event EventData.on_gui_click|EventData.on_gui_opened
 ---@param gui framework.gui
 function Gui.onCloseDesc(event, gui)
-    Framework.gui_manager:destroy_gui(event.player_index, gui.type)
+    Framework.gui_manager:destroyGui(event.player_index, gui.type)
 
-    local main_gui = Framework.gui_manager:find_gui(event.player_index, This.gui.MAIN_GUI_NAME)
+    local main_gui = Framework.gui_manager:findGui(event.player_index, This.gui.MAIN_GUI_NAME)
     if main_gui then
         local player = Player.get(event.player_index)
         player.opened = main_gui.root
     else
-        Framework.gui_manager:destroy_gui_by_player(event.player_index)
+        Framework.gui_manager:destroyGuiByPlayer(event.player_index)
     end
 end
 
@@ -245,12 +245,13 @@ function Gui.openGui(player, desc_args, button)
         button = button
     }
 
-    local gui = Framework.gui_manager:create_gui {
+    local gui = Framework.gui_manager:createGui {
         type = Gui.DESCRIPTION_GUI_NAME,
         player_index = player.index,
         parent = player.gui.screen,
         ui_tree_provider = Gui.getUi,
         context = gui_context,
+        entity_id = desc_args.entity_id,
         retain_open_guis = true,
     }
 
@@ -262,7 +263,7 @@ end
 
 ---@param player_index integer
 function Gui.closeGui(player_index)
-    Framework.gui_manager:destroy_gui(player_index, Gui.DESCRIPTION_GUI_NAME)
+    Framework.gui_manager:destroyGui(player_index, Gui.DESCRIPTION_GUI_NAME)
 end
 
 ----------------------------------------------------------------------------------------------------
@@ -270,7 +271,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local function init_gui()
-    Framework.gui_manager:register_gui_type(Gui.DESCRIPTION_GUI_NAME, get_gui_event_definition())
+    Framework.gui_manager:registerGuiType(Gui.DESCRIPTION_GUI_NAME, get_gui_event_definition())
 end
 
 Event.on_init(init_gui)

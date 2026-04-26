@@ -549,7 +549,7 @@ end
 ---@param event EventData.on_gui_click|EventData.on_gui_opened|framework.gui.custominput_data
 ---@param gui framework.gui
 function Gui.onGuiClosed(event, gui)
-    Framework.gui_manager:destroy_gui_by_player(event.player_index)
+    Framework.gui_manager:destroyGuiByPlayer(event.player_index)
 end
 
 local on_off_values = {
@@ -737,7 +737,7 @@ function Gui.onEditDesc(event, gui)
 
         -- create synthetic event to ignore the next onGuiClosed
         -- event that would otherwise close the main GUI window
-        Framework.gui_manager:create_custominput(player.index, {
+        Framework.gui_manager:createCustominput(player.index, {
             input_name = const.custom_input_ignore_close,
             tick = game.tick,
             element = player.opened
@@ -1059,9 +1059,6 @@ function Gui.onGuiOpened(event)
     local player, player_data = Player.get(event.player_index)
     if not player then return end
 
-    -- close an eventually open gui
-    Framework.gui_manager:destroy_gui_by_player(event.player_index)
-
     local clicked_entity = event and event.entity --[[@as LuaEntity]]
     if not clicked_entity then
         player.opened = nil
@@ -1103,7 +1100,7 @@ function Gui.onGuiOpened(event)
         gui_tab = player_data.gui_tab or 'iopin',
     }
 
-    local gui = Framework.gui_manager:create_gui {
+    local gui = Framework.gui_manager:createGui {
         type = Gui.MAIN_GUI_NAME,
         player_index = event.player_index,
         parent = player.gui.screen,
@@ -1162,7 +1159,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local function init_gui()
-    Framework.gui_manager:register_gui_type(Gui.MAIN_GUI_NAME, get_gui_event_definition())
+    Framework.gui_manager:registerGuiType(Gui.MAIN_GUI_NAME, get_gui_event_definition())
 
     local match_clickable_entities = Matchers:matchEventEntityName { const.pin_entity_name, const.pin_one_entity_name, const.powerpole_name }
     local match_ghost_clickable_entities = Matchers:matchEventEntityGhostName { const.pin_entity_name, const.pin_one_entity_name, const.powerpole_name }
