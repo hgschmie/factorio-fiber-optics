@@ -608,7 +608,9 @@ function FiberOptics:move(entity_id, start_pos, player)
 
     -- move internal entities
     for _, internal_entity in pairs(fo_entity.internal) do
-        internal_entity.teleport(Position(internal_entity.position):add(diff))
+        if internal_entity and internal_entity.valid then
+            internal_entity.teleport(Position(internal_entity.position):add(diff))
+        end
     end
 
     return true

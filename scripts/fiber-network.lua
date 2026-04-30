@@ -80,12 +80,12 @@ local function create_fiber_strand(surface_index, strand_index)
 
     for idx = 1, const.max_hub_count, 1 do
         hubs[idx] = {
-            hub = surface.create_entity {
+            hub = assert(surface.create_entity {
                 name = HUB_ENTITY_NAME,
                 -- spread out for debugging visibility
                 position = DEBUG_MODE and { x = idx * 4, y = strand_index * 4 } or { x = 0, y = 0 },
                 force = neutral_force,
-            },
+            }),
         }
         hubs[idx].hub.operable = false
     end
