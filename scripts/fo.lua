@@ -3,6 +3,8 @@
 ------------------------------------------------------------------------
 assert(script)
 
+local util = require('util')
+
 local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 

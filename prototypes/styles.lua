@@ -16,6 +16,7 @@ styles[const:with_prefix('title')] = {
 styles[const:with_prefix('title_dimmed')] = {
     type = 'label_style',
     parent = const:with_prefix('title'),
+    ---@diagnostic disable-next-line: undefined-global
     font_color = gui_color.grey
 }
 

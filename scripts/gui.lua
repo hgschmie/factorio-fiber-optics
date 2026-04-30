@@ -866,10 +866,10 @@ local function update_gui(gui, fo_entity)
 
     local strand_select = assert(gui:findElement('strand_select'))
     strand_select.items = strand_items
-    strand_select.selected_index = assert(strand_index)
+    strand_select.selected_index = strand_index
 
     local strand_delete = gui:findElement('strand_delete')
-    strand_delete.enabled = strand_items[strand_index] ~= 'default'
+    strand_delete.enabled = strand_index > 0 and strand_items[strand_index] ~= 'default'
 
     ---@type fo.GuiContext
     local context = gui.context
