@@ -1,6 +1,6 @@
 {
   "name": "fiber-optics",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "title": "Fiber Optics",
   "description": "Connects to the optical fibers in power lines to transfer red and green signals across power networks.",
   "author": "hgschmie",
@@ -13,12 +13,12 @@
   "package": {
     "git_publish_branch": "main",
     "readme": "README.md",
-    "gallery": [ 
-      ".portal/foc-1.png", 
-      ".portal/foc-animation-1.gif", 
-      ".portal/foc-2.png", 
-      ".portal/foc-3.png", 
-      ".portal/foc-12.gif" 
+    "gallery": [
+      ".portal/foc-1.png",
+      ".portal/foc-animation-1.gif",
+      ".portal/foc-2.png",
+      ".portal/foc-3.png",
+      ".portal/foc-12.gif"
     ],
     "sync_portal_details": true
   }

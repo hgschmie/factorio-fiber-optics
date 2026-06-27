@@ -2,7 +2,7 @@
 -- data phase 1
 ------------------------------------------------------------------------
 
-require('lib.init')
+This, Framework = require('lib.init')()
 local const = require('lib.constants')
 
 require('prototypes.main')

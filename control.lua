@@ -4,7 +4,7 @@
 assert(script)
 
 -- first line
-require('lib.init')
+This, Framework = require('lib.init')()
 
 local Event = require('stdlib.event.event')
 local Player = require('stdlib.event.player')
@@ -312,8 +312,6 @@ Player.register_events(true)
 
 Event.on_init(on_init)
 Event.on_load(on_load)
-
---------------------------------------------------------------------------------
 
 ---@diagnostic disable-next-line: undefined-field
 Framework.post_runtime_stage()
