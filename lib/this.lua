@@ -12,8 +12,8 @@
 ---@field desc_gui fo.DescGui
 ---@field console fo.Console
 This = {
-    other_mods = {
-        ['even-pickier-dollies'] = 'epd',
+    remote_apis = {
+        ['PickerDollies'] = 'picker-dollies',
     },
 }
 

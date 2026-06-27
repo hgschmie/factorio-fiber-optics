@@ -272,6 +272,16 @@ local function register_events()
     Framework.ghost_manager:registerForName(const.main_entity_name, ghost_refresh)
     Framework.ghost_manager:registerForName(const.attached_entity_names)
 
+    Framework.Tombstone:registerCallback(const.main_entity_name, {
+        create_tombstone = serialize_fo,
+        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
+    })
+
+    Framework.Tombstone:registerCallback({ const.pin_one_entity_name, const.pin_entity_name }, {
+        create_tombstone = serialize_pin,
+        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
+    })
+
     -- selection change (pin label hovers)
     Event.register(defines.events.on_selected_entity_changed, on_selected_entity_changed)
 
