@@ -9,9 +9,9 @@ local Direction = require('stdlib.area.direction')
 local Position = require('stdlib.area.position')
 
 local tools = require('framework.tools')
+local Ticker = require('framework.ticker')
 
 local const = require('lib.constants')
-local helpers = require('scripts.helpers')
 
 ------------------------------------------------------------------------
 
@@ -767,7 +767,7 @@ local function ticker_unit_of_work(_, values)
 end
 
 function FiberOptics:tick()
-    local ticker = helpers:getTicker('fiber_optics')
+    local ticker = Ticker.getTicker('fiber_optics')
     local interval = Framework.settings:startup_setting(const.settings_names.fo_refresh) or 300
 
     local fo_entities = self:getAllEntities()
@@ -781,7 +781,7 @@ function FiberOptics:tick()
     local process_count = math.ceil(count / interval)
     local context = { index = ticker.last_tick_index }
 
-    local iterator = helpers.createWorkIterator {
+    local iterator = Ticker.createWorkIterator {
         context = context,
         field_name = 'index',
         iterable = fo_entities,

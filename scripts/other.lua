@@ -7,7 +7,7 @@ assert(script)
 local Area = require('stdlib.area.area')
 local Position = require('stdlib.area.position')
 
-local helpers = require('scripts.helpers')
+local Ticker = require('framework.ticker')
 
 local LINGER_TIME = 600
 
@@ -150,7 +150,7 @@ local function ticker_unit_of_work(keys, values)
 end
 
 function Other:tick()
-    local ticker = helpers:getTicker('attached_entities')
+    local ticker = Ticker.getTicker('attached_entities')
 
     local interval = 60
 
@@ -164,7 +164,7 @@ function Other:tick()
     local process_count = math.ceil(entity_count / interval)
     local context = { index = ticker.last_tick_index }
 
-    local iterator = helpers.createWorkIterator {
+    local iterator = Ticker.createWorkIterator {
         context = context,
         field_name = 'index',
         iterable = state.attached_entities,

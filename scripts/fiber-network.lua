@@ -5,9 +5,9 @@ assert(script)
 
 require('stdlib.utils.string')
 
-local const = require('lib.constants')
+local Ticker = require('framework.ticker')
 
-local helpers = require('scripts.helpers')
+local const = require('lib.constants')
 
 local DEBUG_MODE = Framework.settings:startup_setting('debug_mode')
 local WIRE_TYPE = DEBUG_MODE and defines.wire_origin.player or defines.wire_origin.script
@@ -374,7 +374,7 @@ end
 
 
 function Network:tick()
-    local ticker = helpers:getTicker('network')
+    local ticker = Ticker.getTicker('network')
 
     --- interval per network refresh
     local interval = Framework.settings:startup_setting(const.settings_names.network_refresh) or 60
@@ -396,14 +396,14 @@ function Network:tick()
 
     local context = ticker.last_tick_context or {}
 
-    local surfaceIterator = helpers.createWorkIterator {
+    local surfaceIterator = Ticker.createWorkIterator {
         context = context,
         field_name = 'surface_index',
         iterable = self:allSurfaceNetworks(),
-        sub_iterator = helpers.createWorkIterator {
+        sub_iterator = Ticker.createWorkIterator {
             context = context,
             field_name = 'network_index',
-            sub_iterator = helpers.createWorkIterator {
+            sub_iterator = Ticker.createWorkIterator {
                 context = context,
                 field_name = 'strand_name',
             },
