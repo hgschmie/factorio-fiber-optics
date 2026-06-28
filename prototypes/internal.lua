@@ -64,6 +64,7 @@ local powerpole_entity = {
         shadow = { copper = util.by_pixel_hr(16, 4) },
     },
 
+    ---@diagnostic disable-next-line: undefined-global
     wire_max_distance = default_circuit_wire_max_distance + 1,
     draw_copper_wires = true,
     draw_circuit_wires = false,
@@ -152,6 +153,7 @@ local led_entity = {
 
     energy_usage_per_tick = '1J',
     energy_source = { type = 'void' },
+    ---@diagnostic disable-next-line: undefined-global
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_copper_wires = false,
     draw_circuit_wires = false,
@@ -184,6 +186,7 @@ local controller_entity = {
     sprites = util.empty_sprite(),
     activity_led_light_offsets = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } },
     circuit_wire_connection_points = sprites.empty_connection_points(4),
+    ---@diagnostic disable-next-line: undefined-global
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_copper_wires = false,
     draw_circuit_wires = false,

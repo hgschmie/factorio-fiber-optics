@@ -62,6 +62,7 @@ local pin_entity = {
     -- ContainerPrototype
     inventory_size = 0,
     picture = pin_sprite_orange,
+    ---@diagnostic disable-next-line: undefined-global
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_copper_wires = false,
     draw_circuit_wires = true,

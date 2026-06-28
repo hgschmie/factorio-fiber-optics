@@ -22,6 +22,7 @@ local fiber_hub_entity = {
     -- ContainerPrototype
     inventory_size = 0,
     picture = util.empty_sprite(),
+    ---@diagnostic disable-next-line: undefined-global
     circuit_wire_max_distance = default_circuit_wire_max_distance,
     draw_copper_wires = false,
     draw_circuit_wires = false,

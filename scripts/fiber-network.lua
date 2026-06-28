@@ -21,6 +21,7 @@ local Network = {}
 local function debug_print(prefix, format_func)
     if not DEBUG_MODE then return end
 
+    ---@diagnostic disable-next-line: undefined-field
     prefix = assert(prefix):ljust(18, ' ')
     game.print(('[font=debug-mono][fiber-optics][%s][%s][/font] %s'):format(const.formatTime(game.tick), prefix, format_func()),
         { sound = defines.print_sound.never, skip = defines.print_skip.never })
