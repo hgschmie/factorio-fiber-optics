@@ -44,9 +44,6 @@ function This:init()
         -- network configuration
         surface_networks = {},
     }
-
-    ---@type table<string, helper.TickerContext>
-    storage.ticker = {}
 end
 
 Framework.settings:add_defaults(require('lib.settings'))
