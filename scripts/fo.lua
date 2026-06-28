@@ -760,7 +760,7 @@ end
 -- Ticker
 ------------------------------------------------------------------------
 
----@param values helper.TickerContext
+---@param values ff2.ticker.TickerContext
 local function ticker_unit_of_work(_, values)
     local fo_entity = values.index
     This.fo:updateEntityStatus(fo_entity)

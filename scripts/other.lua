@@ -133,8 +133,8 @@ end
 -- ticker
 --------------------------------------------------------------------------------
 
----@param keys helper.TickerContext
----@param values helper.TickerContext
+---@param keys ff2.ticker.TickerContext
+---@param values ff2.ticker.TickerContext
 ---@return any
 local function ticker_unit_of_work(keys, values)
     -- deal with placed entities. that is simple because
