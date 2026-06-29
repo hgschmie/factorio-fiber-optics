@@ -182,7 +182,7 @@ FiberOptics.INTERNAL_CFG = {
 
 ---@class fo.FoAdoptParams
 ---@field entity fo.AttachedEntity?
----@field ghost framework.ghost_manager.AttachedEntity?
+---@field ghost ff2.ghost_manager.AttachedEntity?
 ---@field main LuaEntity
 ---@field pos MapPosition
 
@@ -295,7 +295,7 @@ end
 ---@class fo.FoCreateParams
 ---@field main LuaEntity
 ---@field attached_entities fo.AttachedEntity[]?
----@field attached_ghosts table<any, framework.ghost_manager.AttachedEntity>
+---@field attached_ghosts table<any, ff2.ghost_manager.AttachedEntity>
 ---@field config fo.FiberOpticsConfig?
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
@@ -636,7 +636,7 @@ function FiberOptics:repositionPins(fo_entity)
 end
 
 ---@param entity_id integer
----@return table<string, any>?
+---@return Tags?
 function FiberOptics:serialize(entity_id)
     local fo_entity = self:getEntity(entity_id)
     if not fo_entity then return end

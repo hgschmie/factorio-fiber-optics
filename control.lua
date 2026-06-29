@@ -88,7 +88,7 @@ local function on_entity_created(event)
     -- find all the ghosts that are covered by the new entity
     -- Those would be placed by paste / blueprint and the main entity
     -- will pick them up and revive (to keep e.g. wire connections)
-    local attached_ghosts = Framework.ghost_manager:findGhostsInArea(area, function(ghost)
+    local attached_ghosts = Framework.Ghost:findGhostsInArea(area, function(ghost)
         -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
         -- store it under the iopin index value, not its name. The creation code will
         -- pick it up using the index because most pins have the same name.
@@ -209,16 +209,16 @@ end
 -- Entity serialization
 --------------------------------------------------------------------------------
 ---@param entity LuaEntity
----@return table<string, any>?
+---@return Tags?
 local function serialize_fo(entity)
-    if not (entity and entity.valid) then return end
+    if not (entity and entity.valid) then return nil end
     return This.fo:serialize(entity.unit_number)
 end
 
 ---@param entity LuaEntity
----@return table<string, any>?
+---@return Tags?
 local function serialize_pin(entity)
-    if not (entity and entity.valid) then return end
+    if not (entity and entity.valid) then return nil end
     return This.pin:serialize(entity.unit_number)
 end
 
@@ -230,11 +230,22 @@ local function register_iopin(main_entity, idx, context)
     return This.fo:register_blueprint_context(main_entity.unit_number, context)
 end
 
----@param attached_entity framework.ghost_manager.AttachedEntity
----@param all_entities framework.ghost_manager.AttachedEntity[]
----@return table<integer, framework.ghost_manager.AttachedEntity>
+---@param attached_entity ff2.ghost_manager.AttachedEntity
+---@param all_entities ff2.ghost_manager.AttachedEntity[]
+---@return table<integer, ff2.ghost_manager.AttachedEntity>
 local function ghost_refresh(attached_entity, all_entities)
     return This.other:ghostRefresh(attached_entity, all_entities)
+end
+
+---@param attached_entity ff2.ghost_manager.AttachedEntity
+local function add_pin_tags(attached_entity)
+    if attached_entity.tags then return end
+
+    if attached_entity.entity.ghost_unit_number then
+        local tags = This.pin:serialize(attached_entity.entity.ghost_unit_number)
+        attached_entity.tags = tags
+        attached_entity.entity.tags = tags
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -269,17 +280,23 @@ local function register_events()
     Event.register(defines.events.on_object_destroyed, on_object_destroyed)
 
     -- manage ghost building (robot building)
-    Framework.ghost_manager:registerForName(const.main_entity_name, ghost_refresh)
-    Framework.ghost_manager:registerForName(const.attached_entity_names)
+    Framework.Ghost:registerForName {
+        names = const.main_entity_name,
+        refresh_callback = ghost_refresh,
+    }
+
+    Framework.Ghost:registerForName {
+        names = { const.pin_one_entity_name, const.pin_entity_name },
+        ghost_callback = add_pin_tags,
+    }
+
+    Framework.Ghost:registerForName {
+        names = { const.powerpole_name },
+    }
 
     Framework.Tombstone:registerCallback(const.main_entity_name, {
         create_tombstone = serialize_fo,
-        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
-    })
-
-    Framework.Tombstone:registerCallback({ const.pin_one_entity_name, const.pin_entity_name }, {
-        create_tombstone = serialize_pin,
-        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
+        apply_tombstone = Framework.Ghost.mapTombstoneToGhostTags
     })
 
     -- selection change (pin label hovers)

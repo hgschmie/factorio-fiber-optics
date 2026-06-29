@@ -165,10 +165,10 @@ function Pins:check_move(iopin, dst_pos, player)
 end
 
 ---@param entity_id integer
----@return table<string, any>?
+---@return Tags?
 function Pins:serialize(entity_id)
     local iopin_idx = self:findPin(entity_id)
-    if not iopin_idx then return end
+    if not iopin_idx then return nil end
 
     return {
         iopin_index = iopin_idx.index,
