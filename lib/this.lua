@@ -11,7 +11,7 @@
 ---@field gui fo.Gui
 ---@field desc_gui fo.DescGui
 ---@field console fo.Console
-This = {
+local This = {
     remote_apis = {
         ['PickerDollies'] = 'picker-dollies',
     },
