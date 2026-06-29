@@ -27,6 +27,9 @@ local Other = {}
 function Other:registerEntity(entity, tags)
     local state = This.storage()
 
+    entity.minable = false
+    entity.destructible = false
+
     state.attached_entities[entity.unit_number] = {
         entity = entity,
         tags = tags,
@@ -39,7 +42,7 @@ end
 -- remove attached entity
 --------------------------------------------------------------------------------
 
-function Other:deleteEntity(unit_number)
+function Other:deleteAttachedEntity(unit_number)
     local state = This.storage()
 
     ---@type fo.AttachedEntity?
@@ -145,9 +148,9 @@ local function ticker_unit_of_work(keys, values)
     -- it can simply be removed.
     local attached_entity = values.index
     if not (attached_entity.entity and attached_entity.entity.valid) then
-        This.other:deleteEntity(keys.index)
+        This.other:deleteAttachedEntity(keys.index)
     elseif attached_entity.tick < game.tick then
-        This.other:deleteEntity(keys.index)
+        This.other:deleteAttachedEntity(keys.index)
     end
 end
 

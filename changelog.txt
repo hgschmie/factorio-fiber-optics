@@ -3,6 +3,9 @@ Version: 2.0.1
 Date: ????
   Changes:
     - synced with Factorio 2.1 code
+    Bugfixes:
+    - Handle entities dying correctly, retain wire connections for ghost so that repaired/replaced
+      units retain connections / configuration
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Date: 2026-04-20

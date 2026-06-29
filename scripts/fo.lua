@@ -391,6 +391,10 @@ function FiberOptics:create(cfg)
             })
         end
 
+        entity.minable = false
+        entity.destructible = false
+        entity.operable = true
+
         fo_entity.internal[internal_cfg.id] = entity
     end
 
@@ -445,8 +449,10 @@ function FiberOptics:getDefaultConfig()
 end
 
 ---@param entity_id integer
+---@param died boolean?
+---@param killer_entity LuaEntity?
 ---@return boolean True if an entity was destroyed
-function FiberOptics:destroy(entity_id)
+function FiberOptics:destroyOrDie(entity_id, died, killer_entity)
     if not entity_id then return false end
 
     local fo_entity = self:getEntity(entity_id)
@@ -458,16 +464,21 @@ function FiberOptics:destroy(entity_id)
     end
 
     -- delete iopins
-    for _, pin in pairs(fo_entity.iopin) do
-        if (pin and pin.valid) then
-            This.pin:deletePin(pin.unit_number)
-            pin.destroy()
+    This.pin:deleteOrDiePinsForEntity(fo_entity, died, killer_entity)
+
+    -- delete internal entities
+    local powerpole = fo_entity.internal.powerpole
+    if powerpole and powerpole.valid then
+        if died then
+            powerpole.destructible = true
+            powerpole.die(killer_entity and killer_entity.force, killer_entity)
         end
     end
 
-    -- delete internal entities
     for _, internal_entity in pairs(fo_entity.internal) do
-        if internal_entity and internal_entity.valid then internal_entity.destroy() end
+        if internal_entity and internal_entity.valid then
+            internal_entity.destroy()
+        end
     end
 
     self:setEntity(entity_id, nil)

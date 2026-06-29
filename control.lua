@@ -128,12 +128,23 @@ local function on_entity_deleted(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
 
-    if This.fo:destroy(entity.unit_number) then
+    if This.fo:destroyOrDie(entity.unit_number) then
         Framework.gui_manager:destroyGuiByEntityId(entity.unit_number)
     end
 
-    This.pin:deletePin(entity.unit_number)
-    This.other:deleteEntity(entity.unit_number)
+    This.other:deleteAttachedEntity(entity.unit_number)
+end
+
+---@param event EventData.on_entity_died
+local function on_entity_died(event)
+    local entity = event and event.entity
+    if not (entity and entity.valid) then return end
+
+    if This.fo:destroyOrDie(entity.unit_number, true, event.cause) then
+        Framework.gui_manager:destroyGuiByEntityId(entity.unit_number)
+    end
+
+    This.other:deleteAttachedEntity(entity.unit_number)
 end
 
 --------------------------------------------------------------------------------
@@ -142,9 +153,11 @@ end
 
 ---@param event EventData.on_object_destroyed
 local function on_object_destroyed(event)
-    if This.fo:destroy(event.useful_id) then
+    if This.fo:destroyOrDie(event.useful_id) then
         Framework.gui_manager:destroyGuiByEntityId(event.useful_id)
     end
+
+    This.other:deleteAttachedEntity(event.useful_id)
 end
 
 --------------------------------------------------------------------------------
@@ -275,6 +288,7 @@ local function register_events()
 
     -- deletion events
     Event.register(Matchers.DELETION_EVENTS, on_entity_deleted, main_entity_matcher)
+    Event.register(defines.events.on_entity_died, on_entity_died, main_entity_matcher)
 
     -- entity destroy (can't filter on that)
     Event.register(defines.events.on_object_destroyed, on_object_destroyed)

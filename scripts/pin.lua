@@ -42,16 +42,34 @@ function Pins:addPin(entity_id, pin_id, idx)
 end
 
 ---@param pin_id integer
-function Pins:deletePin(pin_id)
+local function delete_pin(pin_id)
     local fo_storage = This.storage()
-    if (pin_id and fo_storage.iopins[pin_id]) then
-        fo_storage.iopins[pin_id] = nil
-        fo_storage.iopin_count = fo_storage.iopin_count - 1
-    end
+    if not (pin_id and fo_storage.iopins[pin_id]) then return end
+
+    fo_storage.iopins[pin_id] = nil
+    fo_storage.iopin_count = fo_storage.iopin_count - 1
 
     if fo_storage.iopin_count < 0 then
         fo_storage.iopin_count = table_size(fo_storage.iopins)
         Framework.logger:logf('[BUG] Fiber Optics IO pin count got negative, size is now: %d', fo_storage.iopin_count)
+    end
+end
+
+---@param fo_entity fo.FiberOptics
+---@param died boolean?
+---@param killer_entity LuaEntity?
+function Pins:deleteOrDiePinsForEntity(fo_entity, died, killer_entity)
+    for _, pin in pairs(fo_entity.iopin) do
+        if (pin and pin.valid) then
+            local pin_id = pin.unit_number
+            pin.destructible = true
+            if died then
+                pin.die(killer_entity and killer_entity.force, killer_entity)
+            else
+                pin.destroy()
+            end
+            delete_pin(pin_id)
+        end
     end
 end
 
