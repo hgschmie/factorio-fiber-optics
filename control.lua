@@ -34,23 +34,26 @@ local function on_entity_created(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
 
-    script.register_on_object_destroyed(entity)
-
     ---@type Tags?
     local tags = event.tags
     local player_index = event.player_index
 
-    local entity_ghost = Framework.ghost_manager:findGhostForEntity(entity)
-    if entity_ghost then
-        tags = tags or entity_ghost.tags
-        player_index = player_index or entity_ghost.player_index
+    local config, h_flipped, v_flipped = This.fo:deserialize(tags)
+
+    if not config then
+        -- normal build
+
+        -- see if a ghost (with tags) from a blueprint is replaced
+        local entity_ghost = Framework.Ghost:findGhostForEntity(entity)
+        if entity_ghost then
+            tags = tags or entity_ghost.tags
+            player_index = player_index or entity_ghost.player_index
+        end
+
+        if tags then
+            config, h_flipped, v_flipped = This.fo:deserialize(tags)
+        end
     end
-
-    local h_flipped = (tags and tags.h_flipped) or false
-    local v_flipped = (tags and tags.v_flipped) or false
-
-    ---@type fo.FiberOpticsConfig
-    local config = (tags and tags.config)
 
     -- fix up older blueprint configurations
     if config then

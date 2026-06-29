@@ -313,13 +313,6 @@ function FiberOptics:create(cfg)
     local direction, reverse = compute_rflip(cfg.main.direction, h_flipped, v_flipped)
 
     local config = cfg.config or self:getDefaultConfig()
-    -- fix up that sparse arrays come out of blueprints as table<string, ...>
-    for idx = 1, const.max_pin_count do
-        if config.descriptions[tostring(idx)] then
-            config.descriptions[idx] = config.descriptions[tostring(idx)]
-            config.descriptions[tostring(idx)] = nil
-        end
-    end
 
     ---@type fo.FiberOptics
     local fo_entity = {
@@ -657,6 +650,32 @@ function FiberOptics:serialize(entity_id)
         v_flipped = fo_entity.v_flipped,
         config = fo_entity.config,
     }
+end
+
+---@param tags Tags?
+---@return fo.FiberOpticsConfig? config
+---@return boolean h_flipped
+---@return boolean v_flipped
+function FiberOptics:deserialize(tags)
+    if not (tags and tags.config) then return nil, false, false end
+
+    ---@type fo.FiberOpticsConfig
+    local config = util.copy(tags.config)
+
+    local descriptions = {}
+    -- fix up that sparse arrays come out of blueprints as table<string, ...>
+    if config.descriptions then
+        for key, value in pairs(config.descriptions) do
+            local new_key = tonumber(key)
+            if new_key then descriptions[new_key] = value end
+        end
+    end
+    config.descriptions = descriptions
+
+    local h_flipped = tostring(tags.h_flipped) == 'true'
+    local v_flipped = tostring(tags.v_flipped) == 'true'
+
+    return config, h_flipped, v_flipped
 end
 
 ---@param entity_id integer
