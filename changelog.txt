@@ -2,6 +2,7 @@
 Version: 2.1.1
 Date: ????
   Changes:
+    - fix another "flipping and rotating blueprints bug"
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.0
 Date: 2026-06-28
