@@ -182,7 +182,7 @@ FiberOptics.INTERNAL_CFG = {
 
 ---@class fo.FoAdoptParams
 ---@field entity fo.AttachedEntity?
----@field ghost framework.ghost_manager.AttachedEntity?
+---@field ghost ff2.ghost_manager.AttachedEntity?
 ---@field main LuaEntity
 ---@field pos MapPosition
 
@@ -295,7 +295,7 @@ end
 ---@class fo.FoCreateParams
 ---@field main LuaEntity
 ---@field attached_entities fo.AttachedEntity[]?
----@field attached_ghosts table<any, framework.ghost_manager.AttachedEntity>
+---@field attached_ghosts table<any, ff2.ghost_manager.AttachedEntity>
 ---@field config fo.FiberOpticsConfig?
 ---@field h_flipped boolean?
 ---@field v_flipped boolean?
@@ -313,13 +313,6 @@ function FiberOptics:create(cfg)
     local direction, reverse = compute_rflip(cfg.main.direction, h_flipped, v_flipped)
 
     local config = cfg.config or self:getDefaultConfig()
-    -- fix up that sparse arrays come out of blueprints as table<string, ...>
-    for idx = 1, const.max_pin_count do
-        if config.descriptions[tostring(idx)] then
-            config.descriptions[idx] = config.descriptions[tostring(idx)]
-            config.descriptions[tostring(idx)] = nil
-        end
-    end
 
     ---@type fo.FiberOptics
     local fo_entity = {
@@ -391,6 +384,10 @@ function FiberOptics:create(cfg)
             })
         end
 
+        entity.minable = false
+        entity.destructible = false
+        entity.operable = true
+
         fo_entity.internal[internal_cfg.id] = entity
     end
 
@@ -445,8 +442,10 @@ function FiberOptics:getDefaultConfig()
 end
 
 ---@param entity_id integer
+---@param died boolean?
+---@param killer_entity LuaEntity?
 ---@return boolean True if an entity was destroyed
-function FiberOptics:destroy(entity_id)
+function FiberOptics:destroyOrDie(entity_id, died, killer_entity)
     if not entity_id then return false end
 
     local fo_entity = self:getEntity(entity_id)
@@ -458,16 +457,21 @@ function FiberOptics:destroy(entity_id)
     end
 
     -- delete iopins
-    for _, pin in pairs(fo_entity.iopin) do
-        if (pin and pin.valid) then
-            This.pin:deletePin(pin.unit_number)
-            pin.destroy()
+    This.pin:deleteOrDiePinsForEntity(fo_entity, died, killer_entity)
+
+    -- delete internal entities
+    local powerpole = fo_entity.internal.powerpole
+    if powerpole and powerpole.valid then
+        if died then
+            powerpole.destructible = true
+            powerpole.die(killer_entity and killer_entity.force, killer_entity)
         end
     end
 
-    -- delete internal entities
     for _, internal_entity in pairs(fo_entity.internal) do
-        if internal_entity and internal_entity.valid then internal_entity.destroy() end
+        if internal_entity and internal_entity.valid then
+            internal_entity.destroy()
+        end
     end
 
     self:setEntity(entity_id, nil)
@@ -636,7 +640,7 @@ function FiberOptics:repositionPins(fo_entity)
 end
 
 ---@param entity_id integer
----@return table<string, any>?
+---@return Tags?
 function FiberOptics:serialize(entity_id)
     local fo_entity = self:getEntity(entity_id)
     if not fo_entity then return end
@@ -646,6 +650,32 @@ function FiberOptics:serialize(entity_id)
         v_flipped = fo_entity.v_flipped,
         config = fo_entity.config,
     }
+end
+
+---@param tags Tags?
+---@return fo.FiberOpticsConfig? config
+---@return boolean h_flipped
+---@return boolean v_flipped
+function FiberOptics:deserialize(tags)
+    if not (tags and tags.config) then return nil, false, false end
+
+    ---@type fo.FiberOpticsConfig
+    local config = util.copy(tags.config)
+
+    local descriptions = {}
+    -- fix up that sparse arrays come out of blueprints as table<string, ...>
+    if config.descriptions then
+        for key, value in pairs(config.descriptions) do
+            local new_key = tonumber(key)
+            if new_key then descriptions[new_key] = value end
+        end
+    end
+    config.descriptions = descriptions
+
+    local h_flipped = tostring(tags.h_flipped) == 'true'
+    local v_flipped = tostring(tags.v_flipped) == 'true'
+
+    return config, h_flipped, v_flipped
 end
 
 ---@param entity_id integer

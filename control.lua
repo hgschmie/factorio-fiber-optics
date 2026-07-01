@@ -34,23 +34,22 @@ local function on_entity_created(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
 
-    script.register_on_object_destroyed(entity)
-
     ---@type Tags?
     local tags = event.tags
     local player_index = event.player_index
 
-    local entity_ghost = Framework.ghost_manager:findGhostForEntity(entity)
+    local config, h_flipped, v_flipped = nil, false, false
+
+    -- see if a ghost (with tags) from a blueprint is replaced
+    local entity_ghost = Framework.Ghost:findGhostForEntity(entity)
     if entity_ghost then
         tags = tags or entity_ghost.tags
         player_index = player_index or entity_ghost.player_index
     end
 
-    local h_flipped = (tags and tags.h_flipped) or false
-    local v_flipped = (tags and tags.v_flipped) or false
-
-    ---@type fo.FiberOpticsConfig
-    local config = (tags and tags.config)
+    if tags then
+        config, h_flipped, v_flipped = This.fo:deserialize(tags)
+    end
 
     -- fix up older blueprint configurations
     if config then
@@ -88,7 +87,7 @@ local function on_entity_created(event)
     -- find all the ghosts that are covered by the new entity
     -- Those would be placed by paste / blueprint and the main entity
     -- will pick them up and revive (to keep e.g. wire connections)
-    local attached_ghosts = Framework.ghost_manager:findGhostsInArea(area, function(ghost)
+    local attached_ghosts = Framework.Ghost:findGhostsInArea(area, function(ghost)
         -- if the ghost has tags with an iopin_index (therefore represents an IO Pin),
         -- store it under the iopin index value, not its name. The creation code will
         -- pick it up using the index because most pins have the same name.
@@ -128,12 +127,23 @@ local function on_entity_deleted(event)
     local entity = event and event.entity
     if not (entity and entity.valid) then return end
 
-    if This.fo:destroy(entity.unit_number) then
+    if This.fo:destroyOrDie(entity.unit_number) then
         Framework.gui_manager:destroyGuiByEntityId(entity.unit_number)
     end
 
-    This.pin:deletePin(entity.unit_number)
-    This.other:deleteEntity(entity.unit_number)
+    This.other:deleteAttachedEntity(entity.unit_number)
+end
+
+---@param event EventData.on_entity_died
+local function on_entity_died(event)
+    local entity = event and event.entity
+    if not (entity and entity.valid) then return end
+
+    if This.fo:destroyOrDie(entity.unit_number, true, event.cause) then
+        Framework.gui_manager:destroyGuiByEntityId(entity.unit_number)
+    end
+
+    This.other:deleteAttachedEntity(entity.unit_number)
 end
 
 --------------------------------------------------------------------------------
@@ -142,9 +152,11 @@ end
 
 ---@param event EventData.on_object_destroyed
 local function on_object_destroyed(event)
-    if This.fo:destroy(event.useful_id) then
+    if This.fo:destroyOrDie(event.useful_id) then
         Framework.gui_manager:destroyGuiByEntityId(event.useful_id)
     end
+
+    This.other:deleteAttachedEntity(event.useful_id)
 end
 
 --------------------------------------------------------------------------------
@@ -209,16 +221,16 @@ end
 -- Entity serialization
 --------------------------------------------------------------------------------
 ---@param entity LuaEntity
----@return table<string, any>?
+---@return Tags?
 local function serialize_fo(entity)
-    if not (entity and entity.valid) then return end
+    if not (entity and entity.valid) then return nil end
     return This.fo:serialize(entity.unit_number)
 end
 
 ---@param entity LuaEntity
----@return table<string, any>?
+---@return Tags?
 local function serialize_pin(entity)
-    if not (entity and entity.valid) then return end
+    if not (entity and entity.valid) then return nil end
     return This.pin:serialize(entity.unit_number)
 end
 
@@ -230,11 +242,22 @@ local function register_iopin(main_entity, idx, context)
     return This.fo:register_blueprint_context(main_entity.unit_number, context)
 end
 
----@param attached_entity framework.ghost_manager.AttachedEntity
----@param all_entities framework.ghost_manager.AttachedEntity[]
----@return table<integer, framework.ghost_manager.AttachedEntity>
+---@param attached_entity ff2.ghost_manager.AttachedEntity
+---@param all_entities ff2.ghost_manager.AttachedEntity[]
+---@return table<integer, ff2.ghost_manager.AttachedEntity>
 local function ghost_refresh(attached_entity, all_entities)
     return This.other:ghostRefresh(attached_entity, all_entities)
+end
+
+---@param attached_entity ff2.ghost_manager.AttachedEntity
+local function add_pin_tags(attached_entity)
+    if attached_entity.tags then return end
+
+    if attached_entity.entity.ghost_unit_number then
+        local tags = This.pin:serialize(attached_entity.entity.ghost_unit_number)
+        attached_entity.tags = tags
+        attached_entity.entity.tags = tags
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -264,22 +287,29 @@ local function register_events()
 
     -- deletion events
     Event.register(Matchers.DELETION_EVENTS, on_entity_deleted, main_entity_matcher)
+    Event.register(defines.events.on_entity_died, on_entity_died, main_entity_matcher)
 
     -- entity destroy (can't filter on that)
     Event.register(defines.events.on_object_destroyed, on_object_destroyed)
 
     -- manage ghost building (robot building)
-    Framework.ghost_manager:registerForName(const.main_entity_name, ghost_refresh)
-    Framework.ghost_manager:registerForName(const.attached_entity_names)
+    Framework.Ghost:registerForName {
+        names = const.main_entity_name,
+        refresh_callback = ghost_refresh,
+    }
+
+    Framework.Ghost:registerForName {
+        names = { const.pin_one_entity_name, const.pin_entity_name },
+        ghost_callback = add_pin_tags,
+    }
+
+    Framework.Ghost:registerForName {
+        names = { const.powerpole_name },
+    }
 
     Framework.Tombstone:registerCallback(const.main_entity_name, {
         create_tombstone = serialize_fo,
-        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
-    })
-
-    Framework.Tombstone:registerCallback({ const.pin_one_entity_name, const.pin_entity_name }, {
-        create_tombstone = serialize_pin,
-        apply_tombstone = Framework.ghost_manager.mapTombstoneToGhostTags
+        apply_tombstone = Framework.Ghost.mapTombstoneToGhostTags
     })
 
     -- selection change (pin label hovers)

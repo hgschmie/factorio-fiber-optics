@@ -27,6 +27,9 @@ local Other = {}
 function Other:registerEntity(entity, tags)
     local state = This.storage()
 
+    entity.minable = false
+    entity.destructible = false
+
     state.attached_entities[entity.unit_number] = {
         entity = entity,
         tags = tags,
@@ -39,7 +42,7 @@ end
 -- remove attached entity
 --------------------------------------------------------------------------------
 
-function Other:deleteEntity(unit_number)
+function Other:deleteAttachedEntity(unit_number)
     local state = This.storage()
 
     ---@type fo.AttachedEntity?
@@ -96,9 +99,9 @@ end
 --- Called by the ghost manager to ensure that all built entities under an fo ghost
 --- may disappear again if the ghost is never built.
 ---
----@param attached_entity framework.ghost_manager.AttachedEntity
----@param all_entities framework.ghost_manager.AttachedEntity[]
----@return table<integer, framework.ghost_manager.AttachedEntity>
+---@param attached_entity ff2.ghost_manager.AttachedEntity
+---@param all_entities ff2.ghost_manager.AttachedEntity[]
+---@return table<integer, ff2.ghost_manager.AttachedEntity>
 function Other:ghostRefresh(attached_entity, all_entities)
     local state = This.storage()
 
@@ -115,13 +118,15 @@ function Other:ghostRefresh(attached_entity, all_entities)
 
     for _, found_entity in pairs(found_entities) do
         if found_entity and found_entity.valid then
-            local id = assert(found_entity.unit_number)
-            -- refresh actual entities
-            if state.attached_entities[id] then
-                state.attached_entities[id].tick = game.tick + LINGER_TIME
-                -- refresh ghosts
-            elseif all_entities[id] then
-                entities[id] = all_entities[id]
+            local id = found_entity.unit_number
+            if id then
+                -- refresh actual entities
+                if state.attached_entities[id] then
+                    state.attached_entities[id].tick = game.tick + LINGER_TIME
+                    -- refresh ghosts
+                elseif all_entities[id] then
+                    entities[id] = all_entities[id]
+                end
             end
         end
     end
@@ -143,9 +148,9 @@ local function ticker_unit_of_work(keys, values)
     -- it can simply be removed.
     local attached_entity = values.index
     if not (attached_entity.entity and attached_entity.entity.valid) then
-        This.other:deleteEntity(keys.index)
+        This.other:deleteAttachedEntity(keys.index)
     elseif attached_entity.tick < game.tick then
-        This.other:deleteEntity(keys.index)
+        This.other:deleteAttachedEntity(keys.index)
     end
 end
 
