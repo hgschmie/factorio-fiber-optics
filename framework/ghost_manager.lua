@@ -27,16 +27,41 @@ local FrameworkGhostManager = {
     ghost_callbacks = {},
 }
 
+---@param force boolean? If true, force reinit
 ---@return ff2.ghost_manager.State state Manages ghost state
-function FrameworkGhostManager:state()
+function FrameworkGhostManager:state(force)
     local state = Framework.runtime:storage()
 
     ---@type ff2.ghost_manager.State
-    state.ghost_manager = state.ghost_manager or {
+    state.ghost_manager = (state.ghost_manager and not force) and state.ghost_manager or {
         ghost_entities = {},
+        pre_build = {},
     }
 
     return state.ghost_manager
+end
+
+---@param event EventData.on_pre_build
+local function on_pre_build(event)
+
+    local state = FrameworkGhostManager:state()
+
+    state.pre_build[event.player_index] = {
+        tick = game.tick,
+        direction = event.direction,
+        flip_horizontal = event.flip_horizontal,
+        flip_vertical = event.flip_vertical,
+    }
+end
+
+---@param player_index integer
+---@return ff2.ghost_manager.PreBuild? pre_build
+function FrameworkGhostManager:getPreBuild(player_index)
+    local state = self:state()
+    local pre_build = state.pre_build[player_index]
+    if not pre_build or pre_build.tick ~= game.tick then return nil end
+
+    return pre_build
 end
 
 ---@param entity LuaEntity
@@ -54,6 +79,7 @@ function FrameworkGhostManager:registerGhost(entity, player_index)
         player_index = player_index,
         -- allow 10 seconds of lingering time until a refresh must have happened
         tick = game.tick + ATTACHED_GHOST_LINGER_TIME,
+        pre_build = util.copy(self:getPreBuild(player_index)),
     }
 
     if self.ghost_callbacks[entity.ghost_name] then
@@ -271,6 +297,7 @@ end
 --------------------------------------------------------------------------------
 
 local function register_events()
+    Event.register(defines.events.on_pre_build, on_pre_build)
     Event.register(defines.events.on_object_destroyed, on_object_destroyed)
 end
 
