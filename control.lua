@@ -19,16 +19,6 @@ local const = require('lib.constants')
 -- entity create / delete
 --------------------------------------------------------------------------------
 
----@param event EventData.on_pre_build
-local function on_pre_build(event)
-    ---@type fo.PlayerData
-    local player_data = Player.pdata(event.player_index)
-
-    -- register the per-player flip state
-    player_data.h_flipped = event.flip_horizontal
-    player_data.v_flipped = event.flip_vertical
-end
-
 ---@param event EventData.on_built_entity | EventData.on_robot_built_entity | EventData.on_space_platform_built_entity | EventData.script_raised_revive | EventData.script_raised_built
 local function on_entity_created(event)
     local entity = event and event.entity
@@ -37,6 +27,8 @@ local function on_entity_created(event)
     ---@type Tags?
     local tags = event.tags
     local player_index = event.player_index
+    ---@type ff2.ghost_manager.PreBuild?
+    local pre_build
 
     local config, h_flipped, v_flipped = nil, false, false
 
@@ -45,6 +37,7 @@ local function on_entity_created(event)
     if entity_ghost then
         tags = tags or entity_ghost.tags
         player_index = player_index or entity_ghost.player_index
+        pre_build = pre_build or entity_ghost.pre_build
     end
 
     if tags then
@@ -66,11 +59,13 @@ local function on_entity_created(event)
     local tag_reverse = h_flipped ~= v_flipped
     local player_reverse = false
 
-    if player_index then
-        ---@type fo.PlayerData
-        local player_data = Player.pdata(player_index)
-        local player_h_flipped = player_data.h_flipped or false
-        local player_v_flipped = player_data.v_flipped or false
+    if player_index and not pre_build then
+        pre_build = Framework.Ghost:getPreBuild(player_index)
+    end
+
+    if pre_build then
+        local player_h_flipped = pre_build.flip_horizontal or false
+        local player_v_flipped = pre_build.flip_vertical or false
 
         -- if the blueprint was flipped, revert the flip bits
         h_flipped = player_h_flipped ~= h_flipped
@@ -277,9 +272,6 @@ end
 local function register_events()
     local main_entity_matcher = Matchers:matchEventEntityName(const.main_entity_name)
     local attached_entities_matcher = Matchers:matchEventEntityName(const.attached_entity_names)
-
-    -- entity create / delete
-    Event.register(defines.events.on_pre_build, on_pre_build)
 
     -- creation events
     Event.register(Matchers.CREATION_EVENTS, on_entity_created, main_entity_matcher)

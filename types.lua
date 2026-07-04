@@ -60,8 +60,6 @@
 ---@alias fo.DescType ('iopin'|'color')
 
 ---@class fo.PlayerData
----@field h_flipped boolean?
----@field v_flipped boolean?
 ---@field gui_tab fo.DescType?
 
 ---@class fo.Description
