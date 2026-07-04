@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.1
-Date: ????
+Date: 2026-07-04
   Changes:
     - fix another "flipping and rotating blueprints bug"
     - Register pre_build events on ghosts to allow multiple rotated/flipped blueprints built simultaneously.
