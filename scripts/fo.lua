@@ -384,7 +384,7 @@ function FiberOptics:create(cfg)
             })
         end
 
-        entity.minable = false
+        entity.minable_flag = false
         entity.destructible = false
         entity.operable = true
 

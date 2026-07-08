@@ -27,7 +27,7 @@ local Other = {}
 function Other:registerEntity(entity, tags)
     local state = This.storage()
 
-    entity.minable = false
+    entity.minable_flag = false
     entity.destructible = false
 
     state.attached_entities[entity.unit_number] = {

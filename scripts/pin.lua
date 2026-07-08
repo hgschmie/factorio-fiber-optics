@@ -113,7 +113,8 @@ end
 ---@param pin_entity LuaEntity
 ---@param idx integer
 function Pins:adopt(entity_id, pin_entity, idx)
-    pin_entity.minable = false
+
+    pin_entity.minable_flag = false
     pin_entity.destructible = false
     pin_entity.operable = true
 
