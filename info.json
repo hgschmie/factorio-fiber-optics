@@ -11,7 +11,7 @@
     "base >= 2.0.70"
   ],
   "package": {
-    "git_publish_branch": "2.0-maintenance",
+    "git_publish_branch": "2.0-maint",
     "readme": "README.md",
     "gallery": [
       ".portal/foc-1.png",
