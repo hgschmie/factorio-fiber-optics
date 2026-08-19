@@ -1080,8 +1080,8 @@ function Gui.onGuiOpened(event)
     local fo_entity = This.fo:getEntity(entity.unit_number)
 
     if not fo_entity then
-        Framework.logger:logf('Data missing for %s on %s at %s, refusing to display UI',
-            event.entity.name, event.entity.surface.name, serpent.line(event.entity.position))
+        Framework.logger.log(0, 'onGuiOpened', 'Data missing for %s on %s at %s, refusing to display UI',
+            function() return event.entity.name, event.entity.surface.name, serpent.line(event.entity.position) end)
         player.opened = nil
         return
     end

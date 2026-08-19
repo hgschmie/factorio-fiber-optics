@@ -59,7 +59,7 @@ function FiberOptics:setEntity(entity_id, fo_entity)
     local fo_storage = This.storage()
 
     if (fo_entity and fo_storage.fo[entity_id]) then
-        Framework.logger:logf('[BUG] Overwriting existing fo_entity for unit %d', entity_id)
+        Framework.logger.log(0, 'setEntity', '[BUG] Overwriting existing fo_entity for unit %d', function() return entity_id end)
     end
 
     fo_storage.fo[entity_id] = fo_entity
@@ -67,7 +67,7 @@ function FiberOptics:setEntity(entity_id, fo_entity)
 
     if fo_storage.fo_count < 0 then
         fo_storage.fo_count = table_size(fo_storage.fo)
-        Framework.logger:logf('Fiber Optics Connector count got negative (bug), size is now: %d', fo_storage.fo_count)
+        Framework.logger.log(0, 'setEntity', 'Fiber Optics Connector count got negative (bug), size is now: %d', function() return fo_storage.fo_count end)
     end
 end
 

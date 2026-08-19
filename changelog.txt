@@ -1,12 +1,15 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.0
 Date: ????
+  Changes:
+    - official first release for Factorio 2.1
   Bugfixes:
     - fix that closing the main gui or opening another gui may leave GUis linger around
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.2
 Date: 2026-07-04
   Changes:
+    - "unofficial" Factorio 2.1 release
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.1
 Date: 2026-07-04

@@ -9,23 +9,12 @@ local Ticker = require('framework.ticker')
 
 local const = require('lib.constants')
 
-local DEBUG_MODE = Framework.settings:startup_setting('debug_mode')
+local DEBUG_MODE = (Framework.settings:get_debug_level() > 1)
 local WIRE_TYPE = DEBUG_MODE and defines.wire_origin.player or defines.wire_origin.script
 local HUB_ENTITY_NAME = DEBUG_MODE and const.debug_name(const.fiber_hub_name) or const.fiber_hub_name
 
 ---@class fo.Network
 local Network = {}
-
----@param prefix string
----@param format_func fun(...: any?):string
-local function debug_print(prefix, format_func)
-    if not DEBUG_MODE then return end
-
-    ---@diagnostic disable-next-line: undefined-field
-    prefix = assert(prefix):ljust(18, ' ')
-    game.print(('[font=debug-mono][fiber-optics][%s][%s][/font] %s'):format(const.formatTime(game.tick), prefix, format_func()),
-        { sound = defines.print_sound.never, skip = defines.print_skip.never })
-end
 
 ------------------------------------------------------------------------
 -- getters
@@ -114,9 +103,7 @@ function Network:getOrCreateFiberNetwork(args)
     if not surface_network[args.network_id] then
         if not args.create then return nil end
 
-        debug_print('Create Network', function()
-            return ('Creating surface network %d on surface %d'):format(args.network_id, args.surface_index)
-        end)
+        Framework.logger.log(1, 'Create Network', 'Creating surface network %d on surface %d', function() return args.network_id, args.surface_index end)
     end
 
     surface_network[args.network_id] = surface_network[args.network_id] or {
@@ -137,9 +124,7 @@ function Network:locateFiberStrand(args)
     if not fiber_network then return nil end
 
     if not fiber_network[args.strand_name] then
-        debug_print('Create Fiber Strand', function()
-            return ('Creating Fiber Strand %s for network %d on surface %d'):format(args.strand_name, args.network_id, args.surface_index)
-        end)
+        Framework.logger.log(1, 'Creating Fiber Strand', 'Creating Fiber Strand %s for network %d on surface %d', function() return args.strand_name, args.network_id, args.surface_index end)
 
         if args.create then
             fiber_network[args.strand_name] = create_fiber_strand(args.surface_index, table_size(fiber_network))
@@ -180,9 +165,7 @@ function Network:destroyFiberStrandAndReconnectEntities(fo_entity, strand_name)
 
             surface_network[network_id][strand_name] = nil
 
-            debug_print('Remove Fiber Strand', function()
-                return ('Removed Fiber Strand %s from network %d on surface %d'):format(strand_name, network_id, main.surface_index)
-            end)
+            Framework.logger.log(1, 'Remove Fiber Strand', 'Removed Fiber Strand %s from network %d on surface %d', function() return strand_name, network_id, main.surface_index end)
         end
     end
 
@@ -231,9 +214,7 @@ function Network:connectEntity(network_id, fo_entity)
 
     fo_entity.state.strand_names[network_id] = fo_entity.config.strand_name
 
-    debug_print('Connect Entity', function()
-        return ('Connected Entity %d to network %d/%s'):format(main.unit_number, network_id, fo_entity.config.strand_name)
-    end)
+    Framework.logger.log(1, 'Connect Entity', 'Connected Entity %d to network %d/%s', function() return main.unit_number, network_id, fo_entity.config.strand_name end)
 
     return true
 end
@@ -262,10 +243,7 @@ function Network:disconnectEntity(network_id, fo_entity)
 
     self:updateFiberStrandConnections(network_id, fo_entity, fiber_strand)
 
-    debug_print('Disconnect Entity', function()
-        return ('Disconnected Entity %d from network %d/%s'):format(main.unit_number, network_id, strand_name)
-    end)
-
+    Framework.logger.log(1, 'Disconnect Entity', 'Disconnected Entity %d from network %d/%s', function() return main.unit_number, network_id, strand_name end)
     return true
 end
 

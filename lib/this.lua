@@ -2,8 +2,11 @@
 --- Initialize this mod's globals
 ----------------------------------------------------------------------------------------------------
 
+local const = require('lib.constants')
+
 ---@class fo.Mod
----@field other_mods table<string, string>
+---@field remote_apis table<string, string>
+---@field settings ff2.ModSettings
 ---@field fo fo.Fo
 ---@field pin fo.FoPin
 ---@field other fo.Other
@@ -13,11 +16,12 @@
 ---@field console fo.Console
 local This = {
     remote_apis = {
-        ['PickerDollies'] = 'picker-dollies',
+        PickerDollies = 'picker-dollies',
     },
+    settings = require('lib.settings'),
 }
 
-if script then
+function This.boot()
     This.fo = require('scripts.fo')
     This.pin = require('scripts.pin')
     This.other = require('scripts.other')
@@ -26,6 +30,24 @@ if script then
     This.desc_gui = require('scripts.desc-gui')
     This.signal_gui = require('scripts.signal-gui')
     This.console = require('scripts.console')
+end
+
+--------------------------------------------------------------------------------
+-- Framework intializer
+--------------------------------------------------------------------------------
+
+---@return FrameworkConfig config
+function This.framework_init()
+    return {
+        -- prefix is the internal mod prefix
+        prefix = const.prefix,
+        -- prefix for log messages
+        log_prefix = const.log_prefix,
+        -- name is a human readable name
+        name = const.name,
+        -- The filesystem root.
+        root = const.root,
+    }
 end
 
 --- Setup the global optical connector data structure.
@@ -45,8 +67,6 @@ function This:init()
         surface_networks = {},
     }
 end
-
-Framework.settings:add_defaults(require('lib.settings'))
 
 ---@return fo.Storage
 function This.storage()

@@ -30,7 +30,7 @@ function Pins:addPin(entity_id, pin_id, idx)
     local fo_storage = This.storage()
 
     if (entity_id and fo_storage.iopins[pin_id]) then
-        Framework.logger:logf('[BUG] Overwriting existing iopin %d for entity %d', pin_id, entity_id)
+        Framework.logger.log(0, 'addPin', '[BUG] Overwriting existing iopin %d for entity %d', function() return pin_id, entity_id end)
     else
         fo_storage.iopin_count = fo_storage.iopin_count + 1
     end
@@ -51,7 +51,7 @@ local function delete_pin(pin_id)
 
     if fo_storage.iopin_count < 0 then
         fo_storage.iopin_count = table_size(fo_storage.iopins)
-        Framework.logger:logf('[BUG] Fiber Optics IO pin count got negative, size is now: %d', fo_storage.iopin_count)
+        Framework.logger.log(0, 'delete_pin', '[BUG] Fiber Optics IO pin count got negative, size is now: %d', function() return fo_storage.iopin_count end)
     end
 end
 
@@ -113,7 +113,6 @@ end
 ---@param pin_entity LuaEntity
 ---@param idx integer
 function Pins:adopt(entity_id, pin_entity, idx)
-
     pin_entity.minable_flag = false
     pin_entity.destructible = false
     pin_entity.operable = true
