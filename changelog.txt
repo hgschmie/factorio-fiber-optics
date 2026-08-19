@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
-Version: 2.1.3
+Version: 3.0.0
 Date: ????
-  Changes:
+  Bugfixes:
+    - fix that closing the main gui or opening another gui may leave GUis linger around
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.2
 Date: 2026-07-04

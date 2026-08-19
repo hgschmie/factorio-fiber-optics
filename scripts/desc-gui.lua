@@ -24,6 +24,7 @@ local function get_gui_event_definition()
     return {
         events = {
             onWindowClosed = Gui.onCloseDesc,
+            onReturnToMain = Gui.onReturnToMain,
             onConfirmDesc = Gui.onConfirmDesc,
             onDescTitleChanged = Gui.onDescTitleChanged,
             onDescTitleConfirmed = Gui.onDescTitleConfirmed,
@@ -39,7 +40,7 @@ local function get_gui_event_definition()
         custominput_events = {
             [defines.events.on_gui_closed] = {
                 [const.custom_input_confirm_gui] = Gui.onConfirmDesc,
-                [const.custom_input_toggle_menu] = Gui.onCloseDesc,
+                [const.custom_input_toggle_menu] = Gui.onReturnToMain,
             },
         }
     }
@@ -93,7 +94,7 @@ function Gui.getUi(gui)
                         clicked_sprite = 'utility/close_black',
                         mouse_button_filter = { 'left' },
                         tooltip = { 'gui.cancel-instruction' },
-                        handler = { [defines.events.on_gui_click] = gui_events.onWindowClosed },
+                        handler = { [defines.events.on_gui_click] = gui_events.onReturnToMain },
                     },
                 },
             },
@@ -171,9 +172,15 @@ end
 -- UI Callbacks
 ----------------------------------------------------------------------------------------------------
 
----@param event EventData.on_gui_click|EventData.on_gui_opened
+---@param event EventData.on_gui_closed
 ---@param gui framework.gui
 function Gui.onCloseDesc(event, gui)
+    Framework.gui_manager:destroyGuiByPlayer(event.player_index)
+end
+
+---@param event EventData.on_gui_click|framework.gui.custominput_data
+---@param gui framework.gui
+function Gui.onReturnToMain(event, gui)
     Framework.gui_manager:destroyGui(event.player_index, gui.type)
 
     local main_gui = Framework.gui_manager:findGui(event.player_index, This.gui.MAIN_GUI_NAME)
@@ -196,7 +203,7 @@ function Gui.onConfirmDesc(event, gui)
 
     This.fo:setDescription(desc_args)
 
-    return Gui.onCloseDesc(event, gui)
+    return Gui.onReturnToMain(event, gui)
 end
 
 ---@param event EventData.on_gui_text_changed
