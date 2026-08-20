@@ -35,7 +35,7 @@ Multiple fiber optics connectors form a bus across a power network. Each pin is 
 - Each fiber has separate colors for each I/O pin of the Fiber Optics connectors. Currently, all Fiber Optics connectors have 16 pins which are hard-coded to Fiber color 1-16.
 - Each Fiber Optics connector can connect to one or two power networks. For technical reasons, it must connect to the same fiber strand on both networks.
 
-When a connector is hooked up to a power network, it runs a negotiation protocol and when it successfully completes, it turns one of the status LEDs on. There are two status LEDs for up to two network connections. 
+When a connector is hooked up to a power network, it runs a negotiation protocol and when it successfully completes, it turns one of the status LEDs on. There are two status LEDs for up to two network connections.
 
 Each LED signals that there is a connection to the fiber network. The color of the LED reflects the transceiver status (see below). Only when the LED is green, data is flowing.
 
@@ -172,7 +172,7 @@ This is normal and the migrated connectors will work after confirming the dialog
 
 Did you know that modern power cables have a fiber core? [Optical Fiber Composite Phase Wire (OPPC)](https://teletechnonet.com/en/products/networking/fibra-optica/optical-fiber-composite-phase-wire-oppc) is a real thing. Factorio actually uses such cables in-game. So every power cable that was ever placed in your factory has a optical fibers in it. And the Fiber Optics connector makes those available for signal transfer.
 
-## Credits / Acknowledgements
+## Credits
 
 - `Telkine2018` for the compaktcircuit mod. This ultimately kicked off the idea of fiber-optics.
 - `glutenfree` - fff-402-radars. I initially stole the trick of teleporting the connection boxes around before connecting (but no longer use it)
@@ -181,3 +181,10 @@ Did you know that modern power cables have a fiber core? [Optical Fiber Composit
 - `modo.lv` - I flat out stole the basic structure using a global called `this` from the stack combinator mod.
 
 Images by Stable Diffusion and GPT 4. Happy to take better graphics; I am a coder, not a graphics artist. Grateful that AI tools allow me to fake being a graphics artist.
+
+## Legal & Copyright
+
+The code was partially written and reviewed by AI coding agents. If you are fundamentally opposed to using AI tools to develop software and improve software quality, you are free to not install it.
+
+--------------------------------------------------
+Copyright (C) 2024-2026 Henning Schmiedehausen (@hgschmie), licensed under the MIT license.
