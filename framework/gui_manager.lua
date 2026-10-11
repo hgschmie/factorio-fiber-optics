@@ -41,7 +41,7 @@ local GUI_UPDATE_TICK_INTERVAL = 11
 
 --- Externalize the functions called for events; they can not be serialized so they can not be stored in storage
 ---@class framework.gui_manager.event_definition
----@field events table<string, framework.gui.element_handler>? Map of all known events and the functions to call
+---@field events table<string, framework.gui.element_handler> Map of all known events and the functions to call
 ---@field custominput_events table<defines.events, table<string, framework.gui.custominput_handler>>? Map of all known custom input events
 ---@field callback framework.gui.update_callback? Optional update callback that is executed when the GUI is open
 ---@field cleanup framework.gui.update_callback? Optional cleanup callback that is executed when the GUI is closed
@@ -132,7 +132,6 @@ end
 function FrameworkGuiManager:determineGuiHandlerId(event, gui)
     local event_handler_map = assert(gui.event_handlers[event.name])
 
-    ---@type LuaGuiElement
     local elem = event.element
     assert(elem and elem.valid)
     return event_handler_map[elem.name]
@@ -144,14 +143,13 @@ end
 function FrameworkGuiManager:dispatch(event)
     if not event then return false end
 
-    ---@type LuaGuiElement
     local elem = event.element
     if not (elem and elem.valid) then return false end
 
     local player_index = event.player_index
 
     -- find the GUI for the player
-    local gui_type = elem.tags['__GUI_TYPE']
+    local gui_type = elem.tags['__GUI_TYPE'] and tostring(elem.tags['__GUI_TYPE']) or nil
     if not gui_type then return false end
 
     local gui = self:findGui(player_index, gui_type)
@@ -163,7 +161,7 @@ function FrameworkGuiManager:dispatch(event)
         ---@type framework.gui.custominput_data
         local data = {
             input_name = handler_id,
-            player_index = event.player_index,
+            player_index = player_index,
             tick = game.tick
         }
         input_handler(data, gui)
@@ -318,7 +316,7 @@ function FrameworkGuiManager:createGui(map)
         gui_events = table.array_to_dictionary(table.keys(gui_type.events)),
         custominput_events = table.array_to_dictionary(table.keys(gui_type.custominput_events)),
         entity_id = map.entity_id,
-        player_index = map.player_index,
+        player_index = player_index,
         context = map.context or {},
     }
 
