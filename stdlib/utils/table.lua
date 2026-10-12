@@ -437,10 +437,11 @@ function Table.values(tbl, sorted, as_string)
 end
 
 --- Returns a copy of all of the keys in the table.
----@param tbl table the table to copy the keys from, or an empty table if tbl is nil
+---@generic K, V
+---@param tbl table<K, V> the table to copy the keys from, or an empty table if tbl is nil
 ---@param sorted? boolean whether to sort the keys (slower) or keep the random order from pairs()
 ---@param as_string? boolean whether to try and parse the keys as strings, or leave them as their existing type
----@return any[] keys an array with a copy of all the keys in the table
+---@return (K|string)[] keys an array with a copy of all the keys in the table
 function Table.keys(tbl, sorted, as_string)
     if not tbl then return {} end
     local key_set = {}
@@ -541,9 +542,10 @@ Table.size = _ENV.table_size or _size
 --- For all string or number values in an array map them to a value = value table
 -- @usage local a = {"v1", "v2"}
 -- table.array_to_bool(a) -- return {["v1"] = "v1", ["v2"]= "v2"}
----@param tbl table the table to convert
+---@generic V
+---@param tbl V[] the table to convert
 ---@param as_bool? boolean map to true instead of value
----@return table dictionary the converted table
+---@return table<V, boolean|V> dictionary the converted table
 function Table.array_to_dictionary(tbl, as_bool)
     local new_tbl = {}
     for _, v in ipairs(tbl) do
