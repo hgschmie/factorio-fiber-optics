@@ -2,6 +2,7 @@
 Version: 3.0.2
 Date: ????
   Changes:
+    - make sure that console commands work on headless servers
 ---------------------------------------------------------------------------------------------------
 Version: 3.0.1
 Date: 2026-08-20

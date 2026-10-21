@@ -33,7 +33,9 @@ local function resync_networks(data)
         entity_count = entity_count + 1
     end
 
-    game.print { const:locale('command_fo_resync_result'), entity_count, strand_count }
+    Framework.logger.console(function()
+        return { const:locale('command_fo_resync_result'), entity_count, strand_count }
+    end, data)
 end
 
 ---@param data CustomCommandData
@@ -48,7 +50,9 @@ local function prune_networks(data)
         for network_id, fiber_network in pairs(surface_network) do
             if not known_networks[network_id] then
                 local fiber_strands = (', '):join(table.keys(fiber_network, true, true))
-                game.print { const:locale('command_fo_prune_networks_pruning'), game.surfaces[surface_index].name, network_id, fiber_strands }
+                Framework.logger.console(function()
+                    return { const:locale('command_fo_prune_networks_pruning'), game.surfaces[surface_index].name, network_id, fiber_strands }
+                end, data)
                 This.network:destroyNetwork(fiber_network)
                 surface_network[network_id] = nil
 
@@ -57,7 +61,9 @@ local function prune_networks(data)
         end
     end
 
-    game.print { const:locale('command_fo_prune_networks_result'), network_count }
+    Framework.logger.console(function()
+        return { const:locale('command_fo_prune_networks_result'), network_count }
+    end, data)
 end
 
 function Console:register_commands()
