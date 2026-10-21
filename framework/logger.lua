@@ -50,6 +50,26 @@ function FrameworkLogger.print(level, msg_func, target)
     target.print(msg_func(), PRINT_SETTINGS)
 end
 
+---@type PrintSettings
+local CONSOLE_SETTINGS = {
+    sound = defines.print_sound.use_player_settings,
+    skip = defines.print_skip.if_redundant,
+}
+
+--- Reply to a synchronous console command, independently of the log level.
+--- rcon.print also handles server stdin; do not duplicate it with localised_print.
+---@param msg_func ff2.logger.print_function
+---@param target CustomCommandData
+function FrameworkLogger.console(msg_func, target)
+    if target.player_index then
+        local player = game.get_player(target.player_index)
+        if not player then return end
+        player.print(msg_func(), CONSOLE_SETTINGS)
+    else
+        rcon.print(msg_func())
+    end
+end
+
 function FrameworkLogger:updateLogLevel()
     local new_log_level = Framework.settings:get_debug_level()
 
